@@ -4,6 +4,7 @@ from routes.proxy import proxy_bp
 from routes.ai import ai_bp
 from init import PYTHON_PORT
 from waitress import serve
+from routes.opportunities import opportunities_bp
 
 app = Flask(__name__)
 CORS(app, origins=[
@@ -11,11 +12,14 @@ CORS(app, origins=[
     "http://127.0.0.1:5500",
     "http://127.0.0.1:5501",
     "http://localhost:5501",
+    "http://127.0.0.1:5502",
+    "http://localhost:5502",
     "http://localhost:5000",
 ])
 
 app.register_blueprint(proxy_bp)
 app.register_blueprint(ai_bp)
+app.register_blueprint(opportunities_bp)
 
 if __name__ == "__main__":
     print(f"\n--- Rubium Python Server (waitress) ---")
