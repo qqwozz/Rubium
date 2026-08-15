@@ -28,7 +28,7 @@ func main() {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(corsMiddleware())
-	r.Use(bodySizeLimit(1 << 20)) // 1 MB
+	r.Use(bodySizeLimit(5 << 20)) // 5 MB достаточно для стандартной тетради
 	r.Use(requestLogger())
 
 	tasks := handlers.NewTasksHandler(client)
@@ -42,14 +42,16 @@ func main() {
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
-	// Публичные/опциональные (GET по ID можно смотреть без auth, если публичная)
+
+	// Публичные/опциональные
 	nb := r.Group("/api/v1/notebooks")
 	nb.Use(middleware.OptionalAuth(client))
 	{
 		nb.GET("/:id", notebooks.GetNotebookByID)
+		nb.GET("/:id/rating", notebooks.GetRating)
 	}
 
-	// Личный каталог и изменения — только для авторизованных
+	// Только для авторизованных
 	nbPrivate := r.Group("/api/v1/notebooks")
 	nbPrivate.Use(middleware.RequireAuth(client))
 	{
@@ -58,6 +60,7 @@ func main() {
 		nbPrivate.PUT("/:id", notebooks.UpdateNotebook)
 		nbPrivate.DELETE("/:id", notebooks.DeleteNotebook)
 		nbPrivate.POST("/:id/copy", notebooks.CopyNotebook)
+		nbPrivate.POST("/:id/rate", notebooks.RateNotebook)
 	}
 
 	printBanner(cfg.Port)
@@ -187,6 +190,8 @@ func printBanner(port string) {
 	fmt.Printf("  \033[32m│  PUT  /api/v1/notebooks/:id         │\033[0m\n")
 	fmt.Printf("  \033[32m│  DEL  /api/v1/notebooks/:id         │\033[0m\n")
 	fmt.Printf("  \033[32m│  POST /api/v1/notebooks/:id/copy    │\033[0m\n")
+	fmt.Printf("  \033[32m│  GET  /api/v1/notebooks/:id/rating  │\033[0m\n")
+	fmt.Printf("  \033[32m│  POST /api/v1/notebooks/:id/rate    │\033[0m\n")
 	fmt.Printf("  \033[32m└─────────────────────────────────────┘\033[0m\n")
 	fmt.Println()
 }

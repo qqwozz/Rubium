@@ -37,18 +37,20 @@ type Page struct {
 }
 
 type notebookRow struct {
-	ID          string          `json:"id"`
-	UserID      string          `json:"user_id"`
-	Title       string          `json:"title"`
-	Color       string          `json:"color"`
-	Tags        []string        `json:"tags"`
-	IsPublic    bool            `json:"is_public"`
-	IsVerified  bool            `json:"is_verified"`
-	Content     json.RawMessage `json:"content"`
-	ViewsCount  int             `json:"views_count"`
-	CopiesCount int             `json:"copies_count"`
-	CreatedAt   string          `json:"created_at"`
-	UpdatedAt   string          `json:"updated_at"`
+	ID            string          `json:"id"`
+	UserID        string          `json:"user_id"`
+	Title         string          `json:"title"`
+	Color         string          `json:"color"`
+	Tags          []string        `json:"tags"`
+	IsPublic      bool            `json:"is_public"`
+	IsVerified    bool            `json:"is_verified"`
+	Content       json.RawMessage `json:"content"`
+	Ratings       map[string]int  `json:"ratings"`
+	AverageRating float64         `json:"average_rating"`
+	ViewsCount    int             `json:"views_count"`
+	CopiesCount   int             `json:"copies_count"`
+	CreatedAt     string          `json:"created_at"`
+	UpdatedAt     string          `json:"updated_at"`
 }
 
 //! helpers
@@ -360,6 +362,132 @@ func (h *NotebooksHandler) CopyNotebook(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"notebook": newRows[0].toResponse(false)})
+}
+
+
+//! Рейтинг
+type RateRequest struct {
+	Rating int `json:"rating" binding:"required"`
+}
+
+//! RateNotebook — POST /api/v1/notebooks/:id/rate
+//NOTE: Только для публичных тетрадей, не своих. Один голос — перезаписывается.
+func (h *NotebooksHandler) RateNotebook(c *gin.Context) {
+	id := c.Param("id")
+	if !isValidUUID(id) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный UUID"})
+		return
+	}
+	userID := c.MustGet("user_id").(string)
+
+	var req RateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "нужен rating"})
+		return
+	}
+	if req.Rating < 1 || req.Rating > 5 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "rating должен быть от 1 до 5"})
+		return
+	}
+
+	// Получаем тетрадь
+	var rows []notebookRow
+	endpoint := fmt.Sprintf("notebooks?select=id,user_id,is_public,ratings,average_rating&id=eq.%s&limit=1", id)
+	if err := h.client.Query(endpoint, true, &rows); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if len(rows) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "тетрадь не найдена"})
+		return
+	}
+	nb := rows[0]
+
+	if !nb.IsPublic {
+		c.JSON(http.StatusForbidden, gin.H{"error": "оценивать можно только публичные тетради"})
+		return
+	}
+	if nb.UserID == userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "нельзя оценивать свою тетрадь"})
+		return
+	}
+
+	// Обновляем ratings JSONB
+	ratings := nb.Ratings
+	if ratings == nil {
+		ratings = make(map[string]int)
+	}
+	ratings[userID] = req.Rating
+
+	// Пересчитываем среднее
+	var sum int
+	for _, v := range ratings {
+		sum += v
+	}
+	avg := float64(sum) / float64(len(ratings))
+
+	// Сохраняем
+	patchEndpoint := fmt.Sprintf("notebooks?id=eq.%s", id)
+	if err := h.client.Patch(patchEndpoint, true, map[string]interface{}{
+		"ratings":        ratings,
+		"average_rating": avg,
+	}); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"average_rating": avg,
+		"total_ratings":  len(ratings),
+	})
+}
+
+//! GetRating — GET /api/v1/notebooks/:id/rating
+func (h *NotebooksHandler) GetRating(c *gin.Context) {
+	id := c.Param("id")
+	if !isValidUUID(id) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный UUID"})
+		return
+	}
+
+	var rows []notebookRow
+	endpoint := fmt.Sprintf("notebooks?select=id,user_id,is_public,ratings,average_rating&id=eq.%s&limit=1", id)
+	if err := h.client.Query(endpoint, true, &rows); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if len(rows) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "тетрадь не найдена"})
+		return
+	}
+	nb := rows[0]
+
+	// Доступ: публичные — всем, приватные — владельцу
+	uid, authed := c.Get("user_id")
+	if !nb.IsPublic && (!authed || uid.(string) != nb.UserID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "нет доступа"})
+		return
+	}
+
+	total := 0
+	if nb.Ratings != nil {
+		total = len(nb.Ratings)
+	}
+
+	resp := gin.H{
+		"average_rating": nb.AverageRating,
+		"total_ratings":  total,
+	}
+
+	if authed {
+		if r, ok := nb.Ratings[uid.(string)]; ok {
+			resp["user_rating"] = r
+		} else {
+			resp["user_rating"] = nil
+		}
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
 
 //! helpers
