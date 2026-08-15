@@ -38,11 +38,7 @@ type section struct {
 
 // RunAll — запускает все проверки и выводит результат в терминал
 func RunAll() {
-	fmt.Println()
-	fmt.Printf("%s┌─────────────────────────────────────┐%s\n", colorCyan, colorReset)
-	fmt.Printf("%s│         ЗАПУСК ПРОВЕРОК             │%s\n", colorCyan, colorReset)
-	fmt.Printf("%s└─────────────────────────────────────┘%s\n", colorCyan, colorReset)
-	fmt.Println()
+	fmt.Println("Запуск проверок")
 
 	if err := godotenv.Load("../.env"); err != nil {
 		fmt.Printf("%s  ✗ .env не найден%s\n\n", colorRed, colorReset)
