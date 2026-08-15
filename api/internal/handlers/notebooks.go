@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"api/internal/supabase"
 
@@ -104,10 +105,11 @@ func (h *NotebooksHandler) GetNotebooks(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "требуется авторизация"})
 		return
 	}
+	userIDStr := userID.(string)
 
 	filters := []string{
 		"select=id,title,color,tags,is_public,is_verified,views_count,copies_count,created_at,updated_at,content",
-		fmt.Sprintf("user_id=eq.%s", userID),
+		fmt.Sprintf("user_id=eq.%s", userIDStr),
 	}
 
 	if isPublic := c.Query("is_public"); isPublic != "" {
@@ -151,7 +153,7 @@ func (h *NotebooksHandler) GetNotebookByID(c *gin.Context) {
 
 	nb := rows[0]
 	uid, authed := c.Get("user_id")
-	if !nb.IsPublic && (!authed || uid != nb.UserID) {
+	if !nb.IsPublic && (!authed || uid.(string) != nb.UserID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "нет доступа к тетради"})
 		return
 	}
@@ -256,6 +258,8 @@ func (h *NotebooksHandler) UpdateNotebook(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "нет полей для обновления"})
 		return
 	}
+
+	updates["updated_at"] = time.Now().UTC().Format(time.RFC3339)
 
 	endpoint := fmt.Sprintf("notebooks?id=eq.%s", id)
 	if err := h.client.Patch(endpoint, true, updates); err != nil {
