@@ -14,6 +14,7 @@ import (
 	"api/internal/handlers"
 	"api/internal/supabase"
 	"api/internal/tests"
+	"api/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -32,6 +33,7 @@ func main() {
 
 	tasks := handlers.NewTasksHandler(client)
 	check := handlers.NewCheckHandler(client)
+	notebooks := handlers.NewNotebooksHandler(client)
 	r.GET("/api/v1/tasks", tasks.GetTasks)
 	r.GET("/api/v1/tasks/:id", tasks.GetTaskByID)
 	r.PUT("/api/v1/tasks/:id", tasks.UpdateTask)
@@ -40,6 +42,22 @@ func main() {
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
+	// Публичные/опциональные (GET по ID можно смотреть без auth, если публичная)
+	nb := r.Group("/api/v1/notebooks")
+	nb.Use(middleware.OptionalAuth(client))
+	{
+		nb.GET("/:id", notebooks.GetNotebookByID)
+	}
+
+	// Личный каталог и изменения — только для авторизованных
+	nbPrivate := r.Group("/api/v1/notebooks")
+	nbPrivate.Use(middleware.RequireAuth(client))
+	{
+		nbPrivate.GET("", notebooks.GetNotebooks)
+		nbPrivate.POST("", notebooks.CreateNotebook)
+		nbPrivate.PUT("/:id", notebooks.UpdateNotebook)
+		nbPrivate.DELETE("/:id", notebooks.DeleteNotebook)
+	}
 
 	printBanner(cfg.Port)
 
@@ -162,6 +180,11 @@ func printBanner(port string) {
 	fmt.Printf("  \033[32m│  DEL  /api/v1/tasks/:id            │\033[0m\n")
 	fmt.Printf("  \033[32m│  POST /api/v1/check                 │\033[0m\n")
 	fmt.Printf("  \033[32m│  GET  /health                       │\033[0m\n")
+	fmt.Printf("  \033[32m│  GET  /api/v1/notebooks             │\033[0m\n")
+	fmt.Printf("  \033[32m│  GET  /api/v1/notebooks/:id         │\033[0m\n")
+	fmt.Printf("  \033[32m│  POST /api/v1/notebooks             │\033[0m\n")
+	fmt.Printf("  \033[32m│  PUT  /api/v1/notebooks/:id         │\033[0m\n")
+	fmt.Printf("  \033[32m│  DEL  /api/v1/notebooks/:id         │\033[0m\n")
 	fmt.Printf("  \033[32m└─────────────────────────────────────┘\033[0m\n")
 	fmt.Println()
 }
@@ -180,7 +203,7 @@ func corsMiddleware() gin.HandlerFunc {
 		origin := c.Request.Header.Get("Origin")
 		if origins[origin] {
 			c.Header("Access-Control-Allow-Origin", origin)
-			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
+			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS, DELETE")
 			c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
 			c.Header("Access-Control-Max-Age", "86400")
 		}
