@@ -12,28 +12,38 @@ import (
 
 	"api/internal/config"
 	"api/internal/handlers"
+	"api/internal/middleware"
 	"api/internal/supabase"
 	"api/internal/tests"
-	"api/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	// Запускаем тесты перед стартом сервера
 	tests.RunAll()
+
+	// Загружаем конфигурацию (порт, ключи Supabase)
 	cfg := config.Load()
+
+	// Инициализируем клиент Supabase (PostgREST + Auth)
 	client := supabase.NewClient(cfg.SupabaseURL, cfg.SupabaseAnonKey, cfg.SupabaseServiceKey)
 
+	// Настраиваем Gin в production-режиме (без debug-логов)
 	gin.SetMode(gin.ReleaseMode)
-	r := gin.New()
-	r.Use(gin.Recovery())
-	r.Use(corsMiddleware())
-	r.Use(bodySizeLimit(5 << 20)) // 5 MB достаточно для стандартной тетради
-	r.Use(requestLogger())
 
+	// Создаём роутер
+	r := gin.New()
+	r.Use(gin.Recovery())          // Recovery от паник
+	r.Use(corsMiddleware())        // CORS для фронтенда
+	r.Use(bodySizeLimit(5 << 20))  // Лимит тела запроса: 5 MB
+
+	// Инициализируем хендлеры
 	tasks := handlers.NewTasksHandler(client)
 	check := handlers.NewCheckHandler(client)
 	notebooks := handlers.NewNotebooksHandler(client)
+
+	// --- Tasks ---
 	r.GET("/api/v1/tasks", tasks.GetTasks)
 	r.GET("/api/v1/tasks/:id", tasks.GetTaskByID)
 	r.PUT("/api/v1/tasks/:id", tasks.UpdateTask)
@@ -43,28 +53,27 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	// Публичные/опциональные
+	// --- Notebooks: публичные / опциональная авторизация ---
 	nb := r.Group("/api/v1/notebooks")
 	nb.Use(middleware.OptionalAuth(client))
 	{
-		nb.GET("/:id", notebooks.GetNotebookByID)
-		nb.GET("/:id/rating", notebooks.GetRating)
+		nb.GET("/:id", notebooks.GetNotebookByID)       // Просмотр тетради
+		nb.GET("/:id/rating", notebooks.GetRating)      // Получить рейтинг
 	}
 
-	// Только для авторизованных
+	// --- Notebooks: только авторизованные ---
 	nbPrivate := r.Group("/api/v1/notebooks")
 	nbPrivate.Use(middleware.RequireAuth(client))
 	{
-		nbPrivate.GET("", notebooks.GetNotebooks)
-		nbPrivate.POST("", notebooks.CreateNotebook)
-		nbPrivate.PUT("/:id", notebooks.UpdateNotebook)
-		nbPrivate.DELETE("/:id", notebooks.DeleteNotebook)
-		nbPrivate.POST("/:id/copy", notebooks.CopyNotebook)
-		nbPrivate.POST("/:id/rate", notebooks.RateNotebook)
+		nbPrivate.GET("", notebooks.GetNotebooks)               // Мои тетради
+		nbPrivate.POST("", notebooks.CreateNotebook)            // Создать
+		nbPrivate.PUT("/:id", notebooks.UpdateNotebook)         // Обновить
+		nbPrivate.DELETE("/:id", notebooks.DeleteNotebook)      // Удалить
+		nbPrivate.POST("/:id/copy", notebooks.CopyNotebook)     // Копировать
+		nbPrivate.POST("/:id/rate", notebooks.RateNotebook)     // Оценить
 	}
 
-	printBanner(cfg.Port)
-
+	// HTTP-сервер с таймаутами (prod-ready)
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
 		Handler:           r,
@@ -74,128 +83,31 @@ func main() {
 		IdleTimeout:       120 * time.Second,
 	}
 
-	// Graceful shutdown
+	// Graceful shutdown: ловим SIGINT / SIGTERM
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
 		<-quit
-		fmt.Println("\n  ⏳ Завершение активных запросов...")
+		fmt.Println("\nShutting down...")
 
+		// Даём активным запросам 10 секунд на завершение
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
 		if err := srv.Shutdown(ctx); err != nil {
-			log.Fatalf("Принудительное завершение: %v", err)
+			log.Printf("Force shutdown: %v", err)
 		}
-		fmt.Println("  ✓ Сервер остановлен")
+		fmt.Println("Server stopped")
 	}()
 
+	log.Printf("Server started on http://localhost:%s", cfg.Port)
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
 }
 
-func requestLogger() gin.HandlerFunc {
-	const (
-		reset  = "\033[0m"
-		red    = "\033[1;31m"
-		green  = "\033[1;32m"
-		yellow = "\033[1;33m"
-		cyan   = "\033[1;36m"
-		gray   = "\033[90m"
-		bold   = "\033[1m"
-	)
-
-	return func(c *gin.Context) {
-		start := time.Now()
-		query := c.Request.URL.RawQuery
-		clientIP := c.ClientIP()
-
-		c.Next()
-
-		elapsed := time.Since(start)
-		status := c.Writer.Status()
-		method := c.Request.Method
-		path := c.Request.URL.Path
-
-		statusColor := green
-		if status >= 500 {
-			statusColor = red
-		} else if status >= 400 {
-			statusColor = yellow
-		}
-
-		t := time.Now().Format("15:04:05")
-
-		// Строка запроса
-		queryPart := ""
-		if query != "" {
-			queryPart = fmt.Sprintf("%s?%s", path, query)
-		} else {
-			queryPart = path
-		}
-
-		// Время — цветом по скорости
-		timeColor := green
-		timeVal := elapsed.Round(time.Millisecond)
-		if elapsed > 1*time.Second {
-			timeColor = red
-		} else if elapsed > 200*time.Millisecond {
-			timeColor = yellow
-		}
-
-		logLine := fmt.Sprintf("  %s[%s]%s %s%-7s%s %s%s%s %s%d%s %s%s%s",
-			gray, t, reset,
-			cyan, method, reset,
-			bold, queryPart, reset,
-			statusColor, status, reset,
-			timeColor, timeVal, reset,
-		)
-
-		// Доп. строка для POST /check — результат проверки
-		if method == "POST" && path == "/api/v1/check" {
-			logLine += fmt.Sprintf("  %sfrom=%s%s", gray, clientIP, reset)
-		}
-
-		// Ошибки — жирная красная строка
-		if status >= 400 {
-			logLine += fmt.Sprintf("\n  %s  ✗ %s%s", red, http.StatusText(status), reset)
-		}
-
-		// Supabase slow query — предупреждение
-		if elapsed > 1*time.Second {
-			logLine += fmt.Sprintf("\n  %s  ⚠ slow query > 1s%s", yellow, reset)
-		}
-
-		fmt.Println(logLine)
-	}
-}
-
-func printBanner(port string) {
-	fmt.Println()
-	fmt.Printf("  \033[32m┌─────────────────────────────────────┐\033[0m\n")
-	fmt.Printf("  \033[32m│  Сервер запущен                     │\033[0m\n")
-	fmt.Printf("  \033[32m│  http://localhost:%s               │\033[0m\n", port)
-	fmt.Printf("  \033[32m│                                     │\033[0m\n")
-	fmt.Printf("  \033[32m│  GET  /api/v1/tasks                 │\033[0m\n")
-	fmt.Printf("  \033[32m│  GET  /api/v1/tasks/:id            │\033[0m\n")
-	fmt.Printf("  \033[32m│  PUT  /api/v1/tasks/:id            │\033[0m\n")
-	fmt.Printf("  \033[32m│  DEL  /api/v1/tasks/:id            │\033[0m\n")
-	fmt.Printf("  \033[32m│  POST /api/v1/check                 │\033[0m\n")
-	fmt.Printf("  \033[32m│  GET  /health                       │\033[0m\n")
-	fmt.Printf("  \033[32m│  GET  /api/v1/notebooks             │\033[0m\n")
-	fmt.Printf("  \033[32m│  GET  /api/v1/notebooks/:id         │\033[0m\n")
-	fmt.Printf("  \033[32m│  POST /api/v1/notebooks             │\033[0m\n")
-	fmt.Printf("  \033[32m│  PUT  /api/v1/notebooks/:id         │\033[0m\n")
-	fmt.Printf("  \033[32m│  DEL  /api/v1/notebooks/:id         │\033[0m\n")
-	fmt.Printf("  \033[32m│  POST /api/v1/notebooks/:id/copy    │\033[0m\n")
-	fmt.Printf("  \033[32m│  GET  /api/v1/notebooks/:id/rating  │\033[0m\n")
-	fmt.Printf("  \033[32m│  POST /api/v1/notebooks/:id/rate    │\033[0m\n")
-	fmt.Printf("  \033[32m└─────────────────────────────────────┘\033[0m\n")
-	fmt.Println()
-}
-
+// corsMiddleware — разрешает запросы с локальных фронтендов
 func corsMiddleware() gin.HandlerFunc {
 	origins := map[string]bool{
 		"http://localhost:5500": true,
@@ -224,6 +136,7 @@ func corsMiddleware() gin.HandlerFunc {
 	}
 }
 
+// bodySizeLimit — ограничивает размер тела запроса (5 MB)
 func bodySizeLimit(maxBytes int64) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
