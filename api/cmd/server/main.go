@@ -57,6 +57,7 @@ func main() {
 		nbPrivate.POST("", notebooks.CreateNotebook)
 		nbPrivate.PUT("/:id", notebooks.UpdateNotebook)
 		nbPrivate.DELETE("/:id", notebooks.DeleteNotebook)
+		nbPrivate.POST("/:id/copy", notebooks.CopyNotebook)
 	}
 
 	printBanner(cfg.Port)
@@ -185,6 +186,7 @@ func printBanner(port string) {
 	fmt.Printf("  \033[32m│  POST /api/v1/notebooks             │\033[0m\n")
 	fmt.Printf("  \033[32m│  PUT  /api/v1/notebooks/:id         │\033[0m\n")
 	fmt.Printf("  \033[32m│  DEL  /api/v1/notebooks/:id         │\033[0m\n")
+	fmt.Printf("  \033[32m│  POST /api/v1/notebooks/:id/copy    │\033[0m\n")
 	fmt.Printf("  \033[32m└─────────────────────────────────────┘\033[0m\n")
 	fmt.Println()
 }

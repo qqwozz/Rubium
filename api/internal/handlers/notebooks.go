@@ -298,6 +298,70 @@ func (h *NotebooksHandler) DeleteNotebook(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "тетрадь удалена"})
 }
 
+
+// CopyNotebook — POST /api/v1/notebooks/:id/copy
+func (h *NotebooksHandler) CopyNotebook(c *gin.Context) {
+	id := c.Param("id")
+	if !isValidUUID(id) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный UUID"})
+		return
+	}
+	userID := c.MustGet("user_id").(string)
+
+	// 1. Получаем оригинал
+	var rows []notebookRow
+	endpoint := fmt.Sprintf("notebooks?select=*&id=eq.%s&limit=1", id)
+	if err := h.client.Query(endpoint, true, &rows); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if len(rows) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "тетрадь не найдена"})
+		return
+	}
+	original := rows[0]
+
+	// 2. Проверяем, что публичная
+	if !original.IsPublic {
+		c.JSON(http.StatusForbidden, gin.H{"error": "можно копировать только публичные тетради"})
+		return
+	}
+
+	// 3. Создаём копию
+	payload := map[string]interface{}{
+		"user_id":      userID,
+		"title":        original.Title + " (копия)",
+		"color":        original.Color,
+		"tags":         original.Tags,
+		"is_public":    false,
+		"is_verified":  false,
+		"content":      original.Content,
+		"views_count":  0,
+		"copies_count": 0,
+	}
+
+	var newRows []notebookRow
+	if err := h.client.Post("notebooks", true, payload, &newRows); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if len(newRows) == 0 {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "не удалось создать копию"})
+		return
+	}
+
+	// 4. Инкрементируем copies_count оригинала
+	patchEndpoint := fmt.Sprintf("notebooks?id=eq.%s", id)
+	if err := h.client.Patch(patchEndpoint, true, map[string]interface{}{
+		"copies_count": original.CopiesCount + 1,
+	}); err != nil {
+		// Не критично — логируем, но не ломаем ответ
+		fmt.Printf("⚠ не удалось обновить copies_count оригинала %s: %v\n", id, err)
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"notebook": newRows[0].toResponse(false)})
+}
+
 //! helpers
 func (h *NotebooksHandler) getOwner(id string) (string, error) {
 	var rows []notebookRow
