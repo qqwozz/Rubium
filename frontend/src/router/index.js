@@ -1,56 +1,30 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [
-  {
-    path: '/',
-    name: 'home',
-    component: () => import('../views/Home.vue')
-  },
-  {
-    path: '/login',
-    name: 'login',
-    component: () => import('../views/Login.vue')
-  },
-  {
-    path: '/trainer',
-    name: 'trainer',
-    component: () => import('../views/Trainer.vue')
-  },
-  {
-    path: '/daily',
-    name: 'daily',
-    component: () => import('../views/Daily.vue')
-  },
-  {
-    path: '/notebooks',
-    name: 'notebooks',
-    component: () => import('../views/Notebooks.vue')
-  },
-  {
-    path: '/notebook/:id',
-    name: 'notebook-read',
-    component: () => import('../views/NotebookRead.vue')
-  },
-  {
-    path: '/notebook/:id/edit',
-    name: 'notebook-edit',
-    component: () => import('../views/NotebookWrite.vue')
-  },
-  {
-    path: '/community',
-    name: 'community',
-    component: () => import('../views/Community.vue')
-  },
-  {
-    path: '/profile',
-    name: 'profile',
-    component: () => import('../views/Profile.vue')
-  }
+  { path: '/login', name: 'login', component: () => import('../views/Login.vue') },
+  { path: '/register', name: 'register', component: () => import('../views/Register.vue') },
+  { path: '/', name: 'home', component: () => import('../views/Home.vue'), meta: { requiresAuth: true } },
+  { path: '/trainer', name: 'trainer', component: () => import('../views/Trainer.vue'), meta: { requiresAuth: true } },
+  { path: '/daily', name: 'daily', component: () => import('../views/Daily.vue'), meta: { requiresAuth: true } },
+  { path: '/notebooks', name: 'notebooks', component: () => import('../views/Notebooks.vue'), meta: { requiresAuth: true } },
+  { path: '/notebook/:id', name: 'notebook-read', component: () => import('../views/NotebookRead.vue'), meta: { requiresAuth: true } },
+  { path: '/notebook/:id/edit', name: 'notebook-edit', component: () => import('../views/NotebookWrite.vue'), meta: { requiresAuth: true } },
+  { path: '/community', name: 'community', component: () => import('../views/Community.vue'), meta: { requiresAuth: true } },
+  { path: '/profile', name: 'profile', component: () => import('../views/Profile.vue'), meta: { requiresAuth: true } },
+  { path: '/admin', name: 'admin', component: () => import('../views/Admin.vue'), meta: { requiresAuth: true } }
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+router.beforeEach((to) => {
+  const token = localStorage.getItem('supabase_token')
+  
+  if (to.meta.requiresAuth && !token) {
+    return '/login'
+  }
 })
 
 export default router

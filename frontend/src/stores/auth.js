@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import { createClient } from '@supabase/supabase-js'
 import { supabase } from '../api/supabase'
 
 export const useAuthStore = defineStore('auth', {
@@ -8,7 +7,7 @@ export const useAuthStore = defineStore('auth', {
     profile: null,
     loading: true
   }),
-  
+
   getters: {
     isAuthenticated: (state) => !!state.user,
     isAdmin: (state) => state.profile?.status === 'admin',
@@ -17,23 +16,32 @@ export const useAuthStore = defineStore('auth', {
       return state.profile.first_name || state.user?.email?.split('@')[0] || 'ученик'
     }
   },
-  
+
   actions: {
     async init() {
       try {
         const { data: { user } } = await supabase.auth.getUser()
-        
+
         if (user) {
           this.user = user
-          
-          const { data: profile } = await supabase
-            .from('rubium_users')
-            .select('*')
-            .eq('auth_id', user.id)
-            .maybeSingle()
-          
-          if (profile) {
-            this.profile = profile
+
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session) {
+            localStorage.setItem('supabase_token', session.access_token)
+          }
+
+          try {
+            const { data: profile } = await supabase
+              .from('rubium_users')
+              .select('*')
+              .eq('auth_id', user.id)
+              .maybeSingle()
+
+            if (profile) {
+              this.profile = profile
+            }
+          } catch (e) {
+            console.log('Profile load skipped:', e)
           }
         }
       } catch (e) {
@@ -42,15 +50,30 @@ export const useAuthStore = defineStore('auth', {
         this.loading = false
       }
     },
-    
+
     async login(email, password) {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
-      
+
+      localStorage.setItem('supabase_token', data.session.access_token)
+
       this.user = data.user
-      await this.init()
+
+      try {
+        const { data: profile } = await supabase
+          .from('rubium_users')
+          .select('*')
+          .eq('auth_id', data.user.id)
+          .maybeSingle()
+
+        if (profile) {
+          this.profile = profile
+        }
+      } catch (e) {
+        console.log('Profile load skipped:', e)
+      }
     },
-    
+
     async register(email, password, firstName, lastName) {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -60,10 +83,10 @@ export const useAuthStore = defineStore('auth', {
         }
       })
       if (error) throw error
-      
+
       this.user = data.user
     },
-    
+
     async logout() {
       await supabase.auth.signOut()
       this.user = null
