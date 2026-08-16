@@ -1,0 +1,23 @@
+:root {
+  --bg: #0F0F1A;
+  --surface: rgba(255,255,255,0.03);
+  --glass: rgba(255,255,255,0.04);
+  --glass-border: rgba(255,255,255,0.06);
+  --brand: #A78BFA;
+  --accent: #F472B6;
+  --success: #34D399;
+  --warning: #FBBF24;
+  --danger: #F87171;
+  --text: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
