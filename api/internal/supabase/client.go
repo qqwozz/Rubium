@@ -34,7 +34,7 @@ func NewClient(baseURL, anonKey, serviceKey string) *Client {
 
 func (c *Client) headers() map[string]string {
 	return map[string]string{
-		"apikey":       c.anonKey,
+		"apikey":        c.anonKey,
 		"Authorization": "Bearer " + c.anonKey,
 		"Content-Type":  "application/json",
 	}
@@ -42,7 +42,7 @@ func (c *Client) headers() map[string]string {
 
 func (c *Client) headersService() map[string]string {
 	return map[string]string{
-		"apikey":       c.serviceKey,
+		"apikey":        c.serviceKey,
 		"Authorization": "Bearer " + c.serviceKey,
 		"Content-Type":  "application/json",
 	}
@@ -157,8 +157,8 @@ func (c *Client) Patch(endpoint string, useServiceRole bool, payload interface{}
 	return nil
 }
 
-//! POST-запрос к PostgREST (создание записей)
-//! Post отправляет POST-запрос к PostgREST API для создания новых записей в базе данных.
+// ! POST-запрос к PostgREST (создание записей)
+// ! Post отправляет POST-запрос к PostgREST API для создания новых записей в базе данных.
 func (c *Client) Post(endpoint string, useServiceRole bool, payload interface{}, result interface{}) error {
 	// Параметры:
 	//   - endpoint: путь к таблице или RPC-функции (например, "users" или "rpc/my_function")
@@ -170,66 +170,65 @@ func (c *Client) Post(endpoint string, useServiceRole bool, payload interface{},
 	// Возвращает:
 	//   - error: ошибка при выполнении запроса или парсинге ответа
 
+	//* Формируем полный URL для запроса к PostgREST API
+	url := fmt.Sprintf("%s/rest/v1/%s", c.baseURL, endpoint)
 
-    //* Формируем полный URL для запроса к PostgREST API
-    url := fmt.Sprintf("%s/rest/v1/%s", c.baseURL, endpoint)
+	//* Сериализуем payload в JSON
+	// NOTE: json.Marshal может вернуть ошибку при несериализуемых данных
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("marshaling payload: %w", err)
+	}
 
-    //* Сериализуем payload в JSON
-    // NOTE: json.Marshal может вернуть ошибку при несериализуемых данных
-    data, err := json.Marshal(payload)
-    if err != nil {
-        return fmt.Errorf("marshaling payload: %w", err)
-    }
+	//* Создаем HTTP-запрос с телом в виде байтового буфера
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
+	if err != nil {
+		return fmt.Errorf("creating request: %w", err)
+	}
 
-    //* Создаем HTTP-запрос с телом в виде байтового буфера
-    req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
-    if err != nil {
-        return fmt.Errorf("creating request: %w", err)
-    }
+	//* Выбираем заголовки в зависимости от необходимости service role
+	h := c.headers()
+	if useServiceRole {
+		h = c.headersService()
+	}
 
-    //* Выбираем заголовки в зависимости от необходимости service role
-    h := c.headers()
-    if useServiceRole {
-        h = c.headersService()
-    }
+	// Устанавливаем Prefer header для получения созданной записи
+	// representation - возвращает созданные данные, включая дефолтные значения
+	// Возможные альтернативы: "return=minimal" - не возвращает данные
+	h["Prefer"] = "return=representation"
 
-    // Устанавливаем Prefer header для получения созданной записи
-    // representation - возвращает созданные данные, включая дефолтные значения
-    // Возможные альтернативы: "return=minimal" - не возвращает данные
-    h["Prefer"] = "return=representation"
+	//* Применяем все заголовки к запросу
+	for k, v := range h {
+		req.Header.Set(k, v)
+	}
 
-    //* Применяем все заголовки к запросу
-    for k, v := range h {
-        req.Header.Set(k, v)
-    }
+	//* Выполняем запрос с автоматическими повторными попытками
+	resp, err := c.do(req)
+	if err != nil {
+		return err
+	}
+	// NOTE: закрываем тело ответа после обработки
+	defer resp.Body.Close()
 
-    //* Выполняем запрос с автоматическими повторными попытками
-    resp, err := c.do(req)
-    if err != nil {
-        return err
-    }
-    // NOTE: закрываем тело ответа после обработки
-    defer resp.Body.Close()
+	//* Читаем тело ответа
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("reading response: %w", err)
+	}
 
-    //* Читаем тело ответа
-    body, err := io.ReadAll(resp.Body)
-    if err != nil {
-        return fmt.Errorf("reading response: %w", err)
-    }
+	//* Проверяем статус ответа
+	//! POST может возвращать 200 OK или 201 Created
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return fmt.Errorf("supabase returned %d: %s", resp.StatusCode, string(body))
+	}
 
-    //* Проверяем статус ответа
-    //! POST может возвращать 200 OK или 201 Created
-    if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-        return fmt.Errorf("supabase returned %d: %s", resp.StatusCode, string(body))
-    }
+	//* Если result не nil, десериализуем ответ в указанную структуру
+	//NOTE: Это позволяет получить созданную запись (с ID, created_at и т.д.)
+	if result != nil {
+		return json.Unmarshal(body, result)
+	}
 
-    //* Если result не nil, десериализуем ответ в указанную структуру
-    //NOTE: Это позволяет получить созданную запись (с ID, created_at и т.д.)
-    if result != nil {
-        return json.Unmarshal(body, result)
-    }
-
-    return nil
+	return nil
 }
 
 //! AuthUser — проверка Bearer-токена через Supabase Auth
@@ -264,7 +263,6 @@ func (c *Client) AuthUser(token string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close() //! по окончанию функции закрываем (для отсуствия траты ресурсов)
-
 
 	// читаем тело ответа
 	body, err := io.ReadAll(resp.Body)

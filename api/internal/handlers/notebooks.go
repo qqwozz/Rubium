@@ -53,7 +53,7 @@ type notebookRow struct {
 	UpdatedAt     string          `json:"updated_at"`
 }
 
-//! helpers
+// ! helpers
 func countSectionsPages(raw json.RawMessage) (sections, pages int) {
 	if len(raw) == 0 {
 		return 0, 0
@@ -98,7 +98,7 @@ func (r notebookRow) toResponse(includeContent bool) gin.H {
 	return resp
 }
 
-//! GET /api/v1/notebooks
+// ! GET /api/v1/notebooks
 // GetNotebooks — список тетрадей **текущего** пользователя.
 // Требует авторизации. is_public фильтрует внутри списка пользователя.
 func (h *NotebooksHandler) GetNotebooks(c *gin.Context) {
@@ -134,7 +134,7 @@ func (h *NotebooksHandler) GetNotebooks(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"notebooks": notebooks})
 }
 
-//! GET /api/v1/notebooks/:id
+// ! GET /api/v1/notebooks/:id
 func (h *NotebooksHandler) GetNotebookByID(c *gin.Context) {
 	id := c.Param("id")
 	if !isValidUUID(id) {
@@ -163,7 +163,7 @@ func (h *NotebooksHandler) GetNotebookByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"notebook": nb.toResponse(true)})
 }
 
-//! POST /api/v1/notebooks
+// ! POST /api/v1/notebooks
 type CreateNotebookRequest struct {
 	Title    string   `json:"title" binding:"required"`
 	Color    string   `json:"color"`
@@ -207,7 +207,7 @@ func (h *NotebooksHandler) CreateNotebook(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"notebook": rows[0].toResponse(false)})
 }
 
-//! PUT /api/v1/notebooks/:id
+// ! PUT /api/v1/notebooks/:id
 type UpdateNotebookRequest struct {
 	Title    *string          `json:"title"`
 	Color    *string          `json:"color"`
@@ -272,7 +272,7 @@ func (h *NotebooksHandler) UpdateNotebook(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "тетрадь обновлена"})
 }
 
-//! DELETE /api/v1/notebooks/:id 
+// ! DELETE /api/v1/notebooks/:id
 func (h *NotebooksHandler) DeleteNotebook(c *gin.Context) {
 	id := c.Param("id")
 	if !isValidUUID(id) {
@@ -299,7 +299,6 @@ func (h *NotebooksHandler) DeleteNotebook(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "тетрадь удалена"})
 }
-
 
 // CopyNotebook — POST /api/v1/notebooks/:id/copy
 func (h *NotebooksHandler) CopyNotebook(c *gin.Context) {
@@ -364,14 +363,13 @@ func (h *NotebooksHandler) CopyNotebook(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"notebook": newRows[0].toResponse(false)})
 }
 
-
-//! Рейтинг
+// ! Рейтинг
 type RateRequest struct {
 	Rating int `json:"rating" binding:"required"`
 }
 
-//! RateNotebook — POST /api/v1/notebooks/:id/rate
-//NOTE: Только для публичных тетрадей, не своих. Один голос — перезаписывается.
+// ! RateNotebook — POST /api/v1/notebooks/:id/rate
+// NOTE: Только для публичных тетрадей, не своих. Один голос — перезаписывается.
 func (h *NotebooksHandler) RateNotebook(c *gin.Context) {
 	id := c.Param("id")
 	if !isValidUUID(id) {
@@ -442,7 +440,7 @@ func (h *NotebooksHandler) RateNotebook(c *gin.Context) {
 	})
 }
 
-//! GetRating — GET /api/v1/notebooks/:id/rating
+// ! GetRating — GET /api/v1/notebooks/:id/rating
 func (h *NotebooksHandler) GetRating(c *gin.Context) {
 	id := c.Param("id")
 	if !isValidUUID(id) {
@@ -490,7 +488,7 @@ func (h *NotebooksHandler) GetRating(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-//! helpers
+// ! helpers
 func (h *NotebooksHandler) getOwner(id string) (string, error) {
 	var rows []notebookRow
 	endpoint := fmt.Sprintf("notebooks?select=user_id&id=eq.%s&limit=1", id)
