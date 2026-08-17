@@ -99,7 +99,7 @@ async function handleLogin() {
     console.log('Calling auth.login...')
     await auth.login(email.value, password.value)
     console.log('Login success')
-    window.location.href = '/'
+    router.push('/')
   } catch (e) {
     console.log('Login error:', e)
     error.value = e.message || 'Ошибка входа'

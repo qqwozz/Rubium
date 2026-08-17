@@ -16,8 +16,34 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', -apple-system, sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: -300px;
+  left: -300px;
+  width: 800px;
+  height: 800px;
+  background: radial-gradient(circle, rgba(167,139,250,0.06), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  bottom: -250px;
+  right: -250px;
+  width: 700px;
+  height: 700px;
+  background: radial-gradient(circle, rgba(244,114,182,0.05), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }

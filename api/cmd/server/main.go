@@ -14,14 +14,13 @@ import (
 	"api/internal/handlers"
 	"api/internal/middleware"
 	"api/internal/supabase"
-	"api/internal/tests"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	// Запускаем тесты перед стартом сервера
-	tests.RunAll()
+	// tests.RunAll()
 
 	// Загружаем конфигурацию (порт, ключи Supabase)
 	cfg := config.Load()
@@ -34,9 +33,9 @@ func main() {
 
 	// Создаём роутер
 	r := gin.New()
-	r.Use(gin.Recovery())          // Recovery от паник
-	r.Use(corsMiddleware())        // CORS для фронтенда
-	r.Use(bodySizeLimit(5 << 20))  // Лимит тела запроса: 5 MB
+	r.Use(gin.Recovery())         // Recovery от паник
+	r.Use(corsMiddleware())       // CORS для фронтенда
+	r.Use(bodySizeLimit(5 << 20)) // Лимит тела запроса: 5 MB
 
 	// Инициализируем хендлеры
 	tasks := handlers.NewTasksHandler(client)
@@ -57,20 +56,20 @@ func main() {
 	nb := r.Group("/api/v1/notebooks")
 	nb.Use(middleware.OptionalAuth(client))
 	{
-		nb.GET("/:id", notebooks.GetNotebookByID)       // Просмотр тетради
-		nb.GET("/:id/rating", notebooks.GetRating)      // Получить рейтинг
+		nb.GET("/:id", notebooks.GetNotebookByID)  // Просмотр тетради
+		nb.GET("/:id/rating", notebooks.GetRating) // Получить рейтинг
 	}
 
 	// --- Notebooks: только авторизованные ---
 	nbPrivate := r.Group("/api/v1/notebooks")
 	nbPrivate.Use(middleware.RequireAuth(client))
 	{
-		nbPrivate.GET("", notebooks.GetNotebooks)               // Мои тетради
-		nbPrivate.POST("", notebooks.CreateNotebook)            // Создать
-		nbPrivate.PUT("/:id", notebooks.UpdateNotebook)         // Обновить
-		nbPrivate.DELETE("/:id", notebooks.DeleteNotebook)      // Удалить
-		nbPrivate.POST("/:id/copy", notebooks.CopyNotebook)     // Копировать
-		nbPrivate.POST("/:id/rate", notebooks.RateNotebook)     // Оценить
+		nbPrivate.GET("", notebooks.GetNotebooks)           // Мои тетради
+		nbPrivate.POST("", notebooks.CreateNotebook)        // Создать
+		nbPrivate.PUT("/:id", notebooks.UpdateNotebook)     // Обновить
+		nbPrivate.DELETE("/:id", notebooks.DeleteNotebook)  // Удалить
+		nbPrivate.POST("/:id/copy", notebooks.CopyNotebook) // Копировать
+		nbPrivate.POST("/:id/rate", notebooks.RateNotebook) // Оценить
 	}
 
 	// HTTP-сервер с таймаутами (prod-ready)

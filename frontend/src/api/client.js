@@ -1,3 +1,5 @@
+import { supabase } from './supabase'
+
 const API_BASE = '/api/v1'
 
 export async function apiFetch(endpoint, options = {}) {

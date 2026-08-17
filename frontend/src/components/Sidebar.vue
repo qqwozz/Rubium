@@ -188,6 +188,7 @@ defineExpose({ toggle })
 .logout-btn:hover {
   background: rgba(248,113,113,0.1);
   color: #F87171;
+  border-radius: 30%;
 }
 
 .overlay {
