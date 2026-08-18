@@ -40,12 +40,11 @@ type notebookRow struct {
 	ID            string          `json:"id"`
 	UserID        string          `json:"user_id"`
 	Title         string          `json:"title"`
+	Description   string          `json:"description"`
 	Color         string          `json:"color"`
 	Tags          []string        `json:"tags"`
 	IsPublic      bool            `json:"is_public"`
-	IsVerified    bool            `json:"is_verified"`
 	Content       json.RawMessage `json:"content"`
-	Ratings       map[string]int  `json:"ratings"`
 	AverageRating float64         `json:"average_rating"`
 	ViewsCount    int             `json:"views_count"`
 	CopiesCount   int             `json:"copies_count"`
@@ -53,7 +52,6 @@ type notebookRow struct {
 	UpdatedAt     string          `json:"updated_at"`
 }
 
-// ! helpers
 func countSectionsPages(raw json.RawMessage) (sections, pages int) {
 	if len(raw) == 0 {
 		return 0, 0
@@ -72,7 +70,6 @@ func countSectionsPages(raw json.RawMessage) (sections, pages int) {
 func (r notebookRow) toResponse(includeContent bool) gin.H {
 	sc, pc := countSectionsPages(r.Content)
 
-	// nil tags → [] в JSON
 	tags := r.Tags
 	if tags == nil {
 		tags = []string{}
@@ -81,14 +78,15 @@ func (r notebookRow) toResponse(includeContent bool) gin.H {
 	resp := gin.H{
 		"id":             r.ID,
 		"title":          r.Title,
+		"description":    r.Description,
 		"color":          r.Color,
 		"tags":           tags,
 		"is_public":      r.IsPublic,
-		"is_verified":    r.IsVerified,
 		"sections_count": sc,
 		"pages_count":    pc,
 		"views_count":    r.ViewsCount,
 		"copies_count":   r.CopiesCount,
+		"average_rating": r.AverageRating,
 		"created_at":     r.CreatedAt,
 		"updated_at":     r.UpdatedAt,
 	}
@@ -98,20 +96,41 @@ func (r notebookRow) toResponse(includeContent bool) gin.H {
 	return resp
 }
 
-// ! GET /api/v1/notebooks
-// GetNotebooks — список тетрадей **текущего** пользователя.
-// Требует авторизации. is_public фильтрует внутри списка пользователя.
 func (h *NotebooksHandler) GetNotebooks(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "требуется авторизация"})
 		return
 	}
-	userIDStr := userID.(string)
+	authID := userID.(string)
+
+	var users []struct {
+		ID string `json:"id"`
+	}
+	usersEndpoint := fmt.Sprintf("rubium_users?select=id&auth_id=eq.%s", authID)
+	rawUsers, err := h.client.RawQuery(usersEndpoint, true)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if len(rawUsers) > 0 && rawUsers[0] == '{' {
+		rawUsers = append([]byte("["), append(rawUsers, []byte("]")...)...)
+	}
+
+	if err := json.Unmarshal(rawUsers, &users); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if len(users) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "пользователь не найден"})
+		return
+	}
+
+	selectFields := "id,user_id,title,description,color,tags,is_public,average_rating,views_count,copies_count,created_at,updated_at,content"
 
 	filters := []string{
-		"select=id,title,color,tags,is_public,is_verified,views_count,copies_count,created_at,updated_at,content",
-		fmt.Sprintf("user_id=eq.%s", userIDStr),
+		"select=" + selectFields,
+		fmt.Sprintf("user_id=eq.%s", users[0].ID),
 	}
 
 	if isPublic := c.Query("is_public"); isPublic != "" {
@@ -120,8 +139,18 @@ func (h *NotebooksHandler) GetNotebooks(c *gin.Context) {
 
 	endpoint := "notebooks?" + strings.Join(filters, "&")
 
+	rawNotebooks, err := h.client.RawQuery(endpoint, true)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if len(rawNotebooks) > 0 && rawNotebooks[0] == '{' {
+		rawNotebooks = append([]byte("["), append(rawNotebooks, []byte("]")...)...)
+	}
+
 	var rows []notebookRow
-	if err := h.client.Query(endpoint, true, &rows); err != nil {
+	if err := json.Unmarshal(rawNotebooks, &rows); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -134,7 +163,6 @@ func (h *NotebooksHandler) GetNotebooks(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"notebooks": notebooks})
 }
 
-// ! GET /api/v1/notebooks/:id
 func (h *NotebooksHandler) GetNotebookByID(c *gin.Context) {
 	id := c.Param("id")
 	if !isValidUUID(id) {
@@ -154,8 +182,36 @@ func (h *NotebooksHandler) GetNotebookByID(c *gin.Context) {
 	}
 
 	nb := rows[0]
+
+	if nb.IsPublic {
+		c.JSON(http.StatusOK, gin.H{"notebook": nb.toResponse(true)})
+		return
+	}
+
 	uid, authed := c.Get("user_id")
-	if !nb.IsPublic && (!authed || uid.(string) != nb.UserID) {
+	if !authed {
+		c.JSON(http.StatusForbidden, gin.H{"error": "нет доступа к тетради"})
+		return
+	}
+
+	authID := uid.(string)
+	var users []struct {
+		ID string `json:"id"`
+	}
+	usersEndpoint := fmt.Sprintf("rubium_users?select=id&auth_id=eq.%s", authID)
+	rawUsers, err := h.client.RawQuery(usersEndpoint, false)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if len(rawUsers) > 0 && rawUsers[0] == '{' {
+		rawUsers = append([]byte("["), append(rawUsers, []byte("]")...)...)
+	}
+	if err := json.Unmarshal(rawUsers, &users); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if len(users) == 0 || users[0].ID != nb.UserID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "нет доступа к тетради"})
 		return
 	}
@@ -163,28 +219,29 @@ func (h *NotebooksHandler) GetNotebookByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"notebook": nb.toResponse(true)})
 }
 
-// ! POST /api/v1/notebooks
 type CreateNotebookRequest struct {
-	Title    string   `json:"title" binding:"required"`
-	Color    string   `json:"color"`
-	Tags     []string `json:"tags"`
-	IsPublic bool     `json:"is_public"`
+	Title       string   `json:"title" binding:"required"`
+	Description string   `json:"description"`
+	Color       string   `json:"color"`
+	Tags        []string `json:"tags"`
+	IsPublic    bool     `json:"is_public"`
+	UserID      string   `json:"user_id"`
 }
 
 func (h *NotebooksHandler) CreateNotebook(c *gin.Context) {
-	userID := c.MustGet("user_id").(string)
-
 	var req CreateNotebookRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "нужен title"})
 		return
 	}
 
-	// Не шлём пустые значения, чтобы сработали DEFAULT в БД
 	payload := map[string]interface{}{
-		"user_id": userID,
+		"user_id": req.UserID,
 		"title":   req.Title,
 		"content": NotebookContent{Sections: []Section{}},
+	}
+	if req.Description != "" {
+		payload["description"] = req.Description
 	}
 	if req.Color != "" {
 		payload["color"] = req.Color
@@ -207,13 +264,13 @@ func (h *NotebooksHandler) CreateNotebook(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"notebook": rows[0].toResponse(false)})
 }
 
-// ! PUT /api/v1/notebooks/:id
 type UpdateNotebookRequest struct {
-	Title    *string          `json:"title"`
-	Color    *string          `json:"color"`
-	Tags     *[]string        `json:"tags"`
-	IsPublic *bool            `json:"is_public"`
-	Content  *json.RawMessage `json:"content"`
+	Title       *string          `json:"title"`
+	Description *string          `json:"description"`
+	Color       *string          `json:"color"`
+	Tags        *[]string        `json:"tags"`
+	IsPublic    *bool            `json:"is_public"`
+	Content     *json.RawMessage `json:"content"`
 }
 
 func (h *NotebooksHandler) UpdateNotebook(c *gin.Context) {
@@ -222,14 +279,36 @@ func (h *NotebooksHandler) UpdateNotebook(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный UUID"})
 		return
 	}
-	userID := c.MustGet("user_id").(string)
+
+	authID := c.MustGet("user_id").(string)
+
+	var users []struct {
+		ID string `json:"id"`
+	}
+	usersEndpoint := fmt.Sprintf("rubium_users?select=id&auth_id=eq.%s", authID)
+	rawUsers, err := h.client.RawQuery(usersEndpoint, false)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if len(rawUsers) > 0 && rawUsers[0] == '{' {
+		rawUsers = append([]byte("["), append(rawUsers, []byte("]")...)...)
+	}
+	if err := json.Unmarshal(rawUsers, &users); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if len(users) == 0 {
+		c.JSON(http.StatusForbidden, gin.H{"error": "пользователь не найден"})
+		return
+	}
 
 	owner, err := h.getOwner(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "тетрадь не найдена"})
 		return
 	}
-	if owner != userID {
+	if owner != users[0].ID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "нет доступа к тетради"})
 		return
 	}
@@ -243,6 +322,9 @@ func (h *NotebooksHandler) UpdateNotebook(c *gin.Context) {
 	updates := map[string]interface{}{}
 	if req.Title != nil {
 		updates["title"] = *req.Title
+	}
+	if req.Description != nil {
+		updates["description"] = *req.Description
 	}
 	if req.Color != nil {
 		updates["color"] = *req.Color
@@ -272,7 +354,6 @@ func (h *NotebooksHandler) UpdateNotebook(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "тетрадь обновлена"})
 }
 
-// ! DELETE /api/v1/notebooks/:id
 func (h *NotebooksHandler) DeleteNotebook(c *gin.Context) {
 	id := c.Param("id")
 	if !isValidUUID(id) {
@@ -300,7 +381,6 @@ func (h *NotebooksHandler) DeleteNotebook(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "тетрадь удалена"})
 }
 
-// CopyNotebook — POST /api/v1/notebooks/:id/copy
 func (h *NotebooksHandler) CopyNotebook(c *gin.Context) {
 	id := c.Param("id")
 	if !isValidUUID(id) {
@@ -309,7 +389,6 @@ func (h *NotebooksHandler) CopyNotebook(c *gin.Context) {
 	}
 	userID := c.MustGet("user_id").(string)
 
-	// 1. Получаем оригинал
 	var rows []notebookRow
 	endpoint := fmt.Sprintf("notebooks?select=*&id=eq.%s&limit=1", id)
 	if err := h.client.Query(endpoint, true, &rows); err != nil {
@@ -322,20 +401,18 @@ func (h *NotebooksHandler) CopyNotebook(c *gin.Context) {
 	}
 	original := rows[0]
 
-	// 2. Проверяем, что публичная
 	if !original.IsPublic {
 		c.JSON(http.StatusForbidden, gin.H{"error": "можно копировать только публичные тетради"})
 		return
 	}
 
-	// 3. Создаём копию
 	payload := map[string]interface{}{
 		"user_id":      userID,
 		"title":        original.Title + " (копия)",
+		"description":  original.Description,
 		"color":        original.Color,
 		"tags":         original.Tags,
 		"is_public":    false,
-		"is_verified":  false,
 		"content":      original.Content,
 		"views_count":  0,
 		"copies_count": 0,
@@ -351,25 +428,20 @@ func (h *NotebooksHandler) CopyNotebook(c *gin.Context) {
 		return
 	}
 
-	// 4. Инкрементируем copies_count оригинала
 	patchEndpoint := fmt.Sprintf("notebooks?id=eq.%s", id)
 	if err := h.client.Patch(patchEndpoint, true, map[string]interface{}{
 		"copies_count": original.CopiesCount + 1,
 	}); err != nil {
-		// Не критично — логируем, но не ломаем ответ
 		fmt.Printf("⚠ не удалось обновить copies_count оригинала %s: %v\n", id, err)
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"notebook": newRows[0].toResponse(false)})
 }
 
-// ! Рейтинг
 type RateRequest struct {
 	Rating int `json:"rating" binding:"required"`
 }
 
-// ! RateNotebook — POST /api/v1/notebooks/:id/rate
-// NOTE: Только для публичных тетрадей, не своих. Один голос — перезаписывается.
 func (h *NotebooksHandler) RateNotebook(c *gin.Context) {
 	id := c.Param("id")
 	if !isValidUUID(id) {
@@ -388,9 +460,8 @@ func (h *NotebooksHandler) RateNotebook(c *gin.Context) {
 		return
 	}
 
-	// Получаем тетрадь
 	var rows []notebookRow
-	endpoint := fmt.Sprintf("notebooks?select=id,user_id,is_public,ratings,average_rating&id=eq.%s&limit=1", id)
+	endpoint := fmt.Sprintf("notebooks?select=id,user_id,is_public,average_rating&id=eq.%s&limit=1", id)
 	if err := h.client.Query(endpoint, true, &rows); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -410,37 +481,21 @@ func (h *NotebooksHandler) RateNotebook(c *gin.Context) {
 		return
 	}
 
-	// Обновляем ratings JSONB
-	ratings := nb.Ratings
-	if ratings == nil {
-		ratings = make(map[string]int)
-	}
-	ratings[userID] = req.Rating
+	newAvg := (nb.AverageRating + float64(req.Rating)) / 2
 
-	// Пересчитываем среднее
-	var sum int
-	for _, v := range ratings {
-		sum += v
-	}
-	avg := float64(sum) / float64(len(ratings))
-
-	// Сохраняем
 	patchEndpoint := fmt.Sprintf("notebooks?id=eq.%s", id)
 	if err := h.client.Patch(patchEndpoint, true, map[string]interface{}{
-		"ratings":        ratings,
-		"average_rating": avg,
+		"average_rating": newAvg,
 	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"average_rating": avg,
-		"total_ratings":  len(ratings),
+		"average_rating": newAvg,
 	})
 }
 
-// ! GetRating — GET /api/v1/notebooks/:id/rating
 func (h *NotebooksHandler) GetRating(c *gin.Context) {
 	id := c.Param("id")
 	if !isValidUUID(id) {
@@ -449,7 +504,7 @@ func (h *NotebooksHandler) GetRating(c *gin.Context) {
 	}
 
 	var rows []notebookRow
-	endpoint := fmt.Sprintf("notebooks?select=id,user_id,is_public,ratings,average_rating&id=eq.%s&limit=1", id)
+	endpoint := fmt.Sprintf("notebooks?select=id,user_id,is_public,average_rating&id=eq.%s&limit=1", id)
 	if err := h.client.Query(endpoint, true, &rows); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -460,35 +515,17 @@ func (h *NotebooksHandler) GetRating(c *gin.Context) {
 	}
 	nb := rows[0]
 
-	// Доступ: публичные — всем, приватные — владельцу
 	uid, authed := c.Get("user_id")
 	if !nb.IsPublic && (!authed || uid.(string) != nb.UserID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "нет доступа"})
 		return
 	}
 
-	total := 0
-	if nb.Ratings != nil {
-		total = len(nb.Ratings)
-	}
-
-	resp := gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"average_rating": nb.AverageRating,
-		"total_ratings":  total,
-	}
-
-	if authed {
-		if r, ok := nb.Ratings[uid.(string)]; ok {
-			resp["user_rating"] = r
-		} else {
-			resp["user_rating"] = nil
-		}
-	}
-
-	c.JSON(http.StatusOK, resp)
+	})
 }
 
-// ! helpers
 func (h *NotebooksHandler) getOwner(id string) (string, error) {
 	var rows []notebookRow
 	endpoint := fmt.Sprintf("notebooks?select=user_id&id=eq.%s&limit=1", id)
