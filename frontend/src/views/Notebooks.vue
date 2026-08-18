@@ -95,6 +95,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import { apiFetch } from '../api/client'
+import { supabase } from '../api/supabase'
 
 const router = useRouter()
 const notebooks = ref([])
@@ -126,13 +127,21 @@ async function createNotebook() {
       .map(t => t.trim())
       .filter(Boolean)
     
+    const { data: { session } } = await supabase.auth.getSession()
+    const { data: userData } = await supabase
+      .from('rubium_users')
+      .select('id')
+      .eq('auth_id', session.user.id)
+      .single()
+    
     await apiFetch('/notebooks', {
       method: 'POST',
       body: JSON.stringify({
         title: newTitle.value,
         color: newColor.value,
         tags,
-        is_public: newIsPublic.value
+        is_public: newIsPublic.value,
+        user_id: userData.id
       })
     })
     
@@ -147,6 +156,7 @@ async function createNotebook() {
 }
 
 function openNotebook(notebook) {
+  if (!notebook.id) return
   router.push(`/notebook/${notebook.id}/edit`)
 }
 
