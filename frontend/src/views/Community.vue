@@ -65,7 +65,7 @@
               <div class="notebook-footer">
                 <div class="notebook-rating">
                   <i class="fas fa-star"></i> {{ formatRating(notebook.average_rating) }}
-                  <span class="rating-count">({{ countRatings(notebook.ratings) }})</span>
+                  <span class="rating-count">({{ notebook.ratings_count || 0 }})</span>
                 </div>
                 <div v-if="notebook.tags && notebook.tags.length" class="notebook-tags">
                   <span v-for="tag in notebook.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</span>
@@ -77,56 +77,90 @@
       </div>
     </div>
     
-    <Transition name="modal">
-      <div v-if="selectedNotebook" class="modal" @click.self="selectedNotebook = null">
-        <div class="modal-card">
-          <div class="modal-header">
-            <div class="modal-color" :style="{ background: selectedNotebook.color || '#A78BFA' }"></div>
-            <div class="modal-title-block">
-              <h2>{{ selectedNotebook.title }}</h2>
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="selectedNotebook" class="modal" @click.self="selectedNotebook = null">
+          <div class="modal-card">
+            <div class="modal-header">
+              <div class="modal-color" :style="{ background: selectedNotebook.color || '#A78BFA' }"></div>
+              <div class="modal-title-block">
+                <h2>{{ selectedNotebook.title }}</h2>
+              </div>
+              <button class="modal-close" @click="selectedNotebook = null">
+                <i class="fas fa-times"></i>
+              </button>
             </div>
-            <button class="modal-close" @click="selectedNotebook = null">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-          
-          <div class="modal-body">
-            <div class="modal-author">
-              <div class="author-avatar">{{ getInitial(selectedNotebook.author) }}</div>
-              <div>
-                <div class="author-name">{{ getAuthorName(selectedNotebook.author) }}</div>
-                <div class="author-email">{{ getAuthorEmail(selectedNotebook.author) }}</div>
-                <div class="author-meta">
-                  <span><i class="fas fa-star"></i> {{ formatRating(selectedNotebook.average_rating) }} ({{ countRatings(selectedNotebook.ratings) }})</span>
-                  <span><i class="fas fa-eye"></i> {{ selectedNotebook.views_count || 0 }}</span>
-                  <span><i class="fas fa-copy"></i> {{ selectedNotebook.copies_count || 0 }}</span>
+            
+            <div class="modal-body">
+              <div class="modal-author">
+                <div class="author-avatar">{{ getInitial(selectedNotebook.author) }}</div>
+                <div>
+                  <div class="author-name">{{ getAuthorName(selectedNotebook.author) }}</div>
+                  <div class="author-email">{{ getAuthorEmail(selectedNotebook.author) }}</div>
+                  <div class="author-meta">
+                    <span><i class="fas fa-star"></i> {{ formatRating(selectedNotebook.average_rating) }} ({{ selectedNotebook.ratings_count || 0 }})</span>
+                    <span><i class="fas fa-eye"></i> {{ selectedNotebook.views_count || 0 }}</span>
+                    <span><i class="fas fa-copy"></i> {{ selectedNotebook.copies_count || 0 }}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            
-            <div v-if="selectedNotebook.description" class="modal-description">
-              <p>{{ selectedNotebook.description }}</p>
-            </div>
-            
-            <div v-if="selectedNotebook.tags?.length" class="modal-tags">
-              <span v-for="tag in selectedNotebook.tags" :key="tag" class="tag">{{ tag }}</span>
-            </div>
-            
-            <div class="modal-actions">
-              <button class="btn-open" @click="router.push(`/notebook/${selectedNotebook.id}`)">
-                <i class="fas fa-book-open"></i> Открыть
-              </button>
-              <button class="btn-rate" @click="rateNotebook(selectedNotebook)">
-                <i class="fas fa-star"></i> Оценить
-              </button>
-              <button class="btn-copy" @click="copyNotebook(selectedNotebook)">
-                <i class="fas fa-copy"></i> Сохранить
-              </button>
+              
+              <div v-if="selectedNotebook.description" class="modal-description">
+                <p>{{ selectedNotebook.description }}</p>
+              </div>
+              
+              <div v-if="selectedNotebook.tags?.length" class="modal-tags">
+                <span v-for="tag in selectedNotebook.tags" :key="tag" class="tag">{{ tag }}</span>
+              </div>
+              
+              <div class="modal-actions">
+                <button class="btn-open" @click="router.push(`/notebook/${selectedNotebook.id}`)">
+                  <i class="fas fa-book-open"></i> Открыть
+                </button>
+                <button class="btn-rate" @click="openRateModal">
+                  <i class="fas fa-star"></i> Оценить
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+
+      <Transition name="modal">
+        <div v-if="showRateModal" class="modal" @click.self="showRateModal = false">
+          <div class="modal-card rate-modal">
+            <h2>Оценить тетрадь</h2>
+            <div class="rate-stars">
+              <button 
+                v-for="star in 5" 
+                :key="star"
+                class="star-btn"
+                :class="{ active: star <= rateValue }"
+                @click="rateValue = star"
+              >
+                <i class="fas fa-star"></i>
+              </button>
+            </div>
+            <div class="modal-actions">
+              <button class="btn-submit" @click="submitRate">Оценить</button>
+              <button class="btn-cancel" @click="showRateModal = false">Отмена</button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+
+      <Transition name="modal">
+        <div v-if="notification" class="modal" @click.self="notification = null">
+          <div class="modal-card notification-modal">
+            <div class="notification-icon" :class="notification.type">
+              <i :class="notification.type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle'"></i>
+            </div>
+            <p>{{ notification.message }}</p>
+            <button class="btn-submit" @click="notification = null">ОК</button>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -142,6 +176,9 @@ const loading = ref(true)
 const searchQuery = ref('')
 const currentSort = ref('rating')
 const selectedNotebook = ref(null)
+const showRateModal = ref(false)
+const rateValue = ref(5)
+const notification = ref(null)
 
 const sorts = [
   { value: 'rating', label: 'По рейтингу' },
@@ -167,16 +204,8 @@ function formatRating(rating) {
   return Number(rating || 0).toFixed(1)
 }
 
-function countRatings(ratings) {
-  if (!ratings) return 0
-  if (typeof ratings === 'string') {
-    try {
-      return Object.keys(JSON.parse(ratings)).length
-    } catch {
-      return 0
-    }
-  }
-  return Object.keys(ratings).length
+function showNotification(message, type = 'success') {
+  notification.value = { message, type }
 }
 
 async function loadNotebooks() {
@@ -210,6 +239,7 @@ async function loadNotebooks() {
     notebooks.value = data || []
   } catch (e) {
     console.error(e)
+    showNotification('Ошибка при загрузке тетрадей', 'error')
   } finally {
     loading.value = false
   }
@@ -219,52 +249,64 @@ function openNotebook(notebook) {
   selectedNotebook.value = notebook
 }
 
-async function rateNotebook(notebook) {
-  const rating = prompt('Оцени от 1 до 5:', '5')
-  if (!rating) return
-  
-  const numRating = parseInt(rating)
-  if (numRating < 1 || numRating > 5) {
-    alert('Оценка от 1 до 5')
-    return
-  }
+function openRateModal() {
+  rateValue.value = 5
+  showRateModal.value = true
+}
+
+async function submitRate() {
+  if (!selectedNotebook.value) return
   
   try {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
-      alert('Нужно авторизоваться')
+      showNotification('Нужно авторизоваться', 'error')
       return
     }
     
-    const ratings = typeof notebook.ratings === 'string' 
-      ? JSON.parse(notebook.ratings || '{}') 
-      : (notebook.ratings || {})
+    const { data: userData } = await supabase
+      .from('rubium_users')
+      .select('id')
+      .eq('auth_id', session.user.id)
+      .single()
     
-    ratings[session.user.id] = numRating
+    if (userData.id === selectedNotebook.value.user_id) {
+      showNotification('Нельзя оценивать свою тетрадь', 'error')
+      return
+    }
     
-    const values = Object.values(ratings)
-    const avg = values.reduce((sum, v) => sum + v, 0) / values.length
+    const currentAvg = Number(selectedNotebook.value.average_rating || 0)
+    const currentCount = Number(selectedNotebook.value.ratings_count || 0)
+    const newCount = currentCount + 1
+    const newAvg = (currentAvg * currentCount + rateValue.value) / newCount
     
     const { error } = await supabase
       .from('notebooks')
-      .update({ ratings, average_rating: avg })
-      .eq('id', notebook.id)
+      .update({ 
+        average_rating: newAvg,
+        ratings_count: newCount
+      })
+      .eq('id', selectedNotebook.value.id)
     
     if (error) throw error
     
-    await loadNotebooks()
+    showRateModal.value = false
     selectedNotebook.value = null
+    await loadNotebooks()
+    showNotification('Спасибо за оценку!')
   } catch (e) {
     console.error(e)
-    alert('Ошибка при оценке')
+    showNotification('Ошибка при оценке', 'error')
   }
 }
 
-async function copyNotebook(notebook) {
+async function copyNotebook() {
+  if (!selectedNotebook.value) return
+  
   try {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
-      alert('Нужно авторизоваться')
+      showNotification('Нужно авторизоваться', 'error')
       return
     }
     
@@ -278,21 +320,21 @@ async function copyNotebook(notebook) {
       .from('notebooks')
       .insert({
         user_id: userData.id,
-        title: notebook.title + ' (копия)',
-        description: notebook.description,
-        color: notebook.color,
-        tags: notebook.tags,
+        title: selectedNotebook.value.title + ' (копия)',
+        description: selectedNotebook.value.description,
+        color: selectedNotebook.value.color,
+        tags: selectedNotebook.value.tags,
         is_public: false,
-        content: notebook.content
+        content: selectedNotebook.value.content
       })
     
     if (error) throw error
     
-    alert('Тетрадь скопирована в твой каталог!')
     selectedNotebook.value = null
+    showNotification('Тетрадь скопирована в твой каталог!')
   } catch (e) {
     console.error(e)
-    alert('Ошибка при копировании')
+    showNotification('Ошибка при копировании', 'error')
   }
 }
 
@@ -599,7 +641,7 @@ onMounted(loadNotebooks)
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 200;
+  z-index: 9999;
   padding: 20px;
 }
 
@@ -731,6 +773,7 @@ onMounted(loadNotebooks)
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .btn-open,
@@ -781,6 +824,103 @@ onMounted(loadNotebooks)
   background: rgba(255,255,255,0.08);
   color: #F1F5F9;
   transform: translateY(-2px);
+}
+
+.rate-modal {
+  max-width: 400px;
+  text-align: center;
+}
+
+.rate-modal h2 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  margin-bottom: 24px;
+}
+
+.rate-stars {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.star-btn.active {
+  color: #FBBF24;
+}
+
+.star-btn:hover {
+  transform: scale(1.1);
+}
+
+.btn-cancel {
+  padding: 12px 22px;
+  background: rgba(255,255,255,0.04);
+  color: #94A3B8;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 0.85rem;
+}
+
+.btn-cancel:hover {
+  background: rgba(255,255,255,0.08);
+  color: #F1F5F9;
+}
+
+.btn-submit {
+  padding: 12px 22px;
+  background: linear-gradient(135deg, #A78BFA, #8B5CF6);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 0.85rem;
+  box-shadow: 0 4px 16px rgba(167,139,250,0.3);
+}
+
+.btn-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(167,139,250,0.4);
+}
+
+.notification-modal {
+  max-width: 360px;
+  text-align: center;
+}
+
+.notification-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.notification-icon.success {
+  color: #34D399;
+}
+
+.notification-icon.error {
+  color: #F87171;
+}
+
+.notification-modal p {
+  color: #F1F5F9;
+  font-size: 1rem;
+  margin-bottom: 20px;
 }
 
 .modal-enter-active,
