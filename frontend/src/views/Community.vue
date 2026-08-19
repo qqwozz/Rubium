@@ -70,7 +70,7 @@
                   <span class="rating-count">({{ notebook.ratings_count || 0 }})</span>
                 </div>
                 <div v-if="notebook.tags && notebook.tags.length" class="notebook-tags">
-                  <span v-for="tag in notebook.tags.slice(0, 5)" :key="tag" class="tag">{{ tag }}</span>
+                  <span v-for="tag in notebook.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</span>
                 </div>
               </div>
             </div>
@@ -240,16 +240,22 @@ async function loadNotebooks() {
       query = query.order('views_count', { ascending: false })
     }
     
-    if (searchQuery.value) {
-      const q = searchQuery.value.toLowerCase()
-      query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`)
-    }
-    
     const { data, error } = await query
     
     if (error) throw error
     
-    notebooks.value = (data || []).map(n => ({
+    let items = data || []
+    
+    if (searchQuery.value) {
+      const q = searchQuery.value.toLowerCase().trim()
+      items = items.filter(n => 
+        n.title?.toLowerCase().includes(q) ||
+        n.description?.toLowerCase().includes(q) ||
+        n.tags?.some(t => t.toLowerCase().includes(q))
+      )
+    }
+    
+    notebooks.value = items.map(n => ({
       ...n,
       is_verified: n.author?.email === DEVELOPER_EMAIL
     }))
