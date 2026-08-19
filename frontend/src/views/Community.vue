@@ -114,7 +114,7 @@
               </div>
               
               <div class="modal-actions">
-                <button class="btn-open" @click="router.push(`/notebook/${selectedNotebook.id}`)">
+                <button class="btn-open" @click="incrementViews">
                   <i class="fas fa-book-open"></i> Открыть
                 </button>
                 <button class="btn-rate" @click="openRateModal">
@@ -252,6 +252,24 @@ function openNotebook(notebook) {
 function openRateModal() {
   rateValue.value = 5
   showRateModal.value = true
+}
+
+async function incrementViews() {
+  if (!selectedNotebook.value) return
+  
+  try {
+    const { error } = await supabase
+      .from('notebooks')
+      .update({ views_count: (selectedNotebook.value.views_count || 0) + 1 })
+      .eq('id', selectedNotebook.value.id)
+    
+    if (error) throw error
+    
+    router.push(`/notebook/${selectedNotebook.value.id}`)
+  } catch (e) {
+    console.error(e)
+    showNotification('Ошибка при открытии', 'error')
+  }
 }
 
 async function submitRate() {
