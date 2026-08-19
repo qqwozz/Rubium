@@ -57,10 +57,12 @@
           >
             <div class="notebook-color" :style="{ background: notebook.color || '#A78BFA' }"></div>
             <div class="notebook-info">
-              <div class="notebook-title">{{ notebook.title }}</div>
-              <div class="notebook-author">
-                <div class="author-avatar-mini">{{ getInitial(notebook.author) }}</div>
-                <span class="author-name">{{ getAuthorName(notebook.author) }}</span>
+              <div class="notebook-title">
+                {{ notebook.title }}
+                <i v-if="notebook.is_verified" class="fas fa-check-circle verified-badge-icon" title="От разработчика"></i>
+              </div>
+              <div v-if="notebook.description" class="notebook-description">
+                {{ truncateText(notebook.description, 50) }}
               </div>
               <div class="notebook-footer">
                 <div class="notebook-rating">
@@ -68,7 +70,7 @@
                   <span class="rating-count">({{ notebook.ratings_count || 0 }})</span>
                 </div>
                 <div v-if="notebook.tags && notebook.tags.length" class="notebook-tags">
-                  <span v-for="tag in notebook.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</span>
+                  <span v-for="tag in notebook.tags.slice(0, 5)" :key="tag" class="tag">{{ tag }}</span>
                 </div>
               </div>
             </div>
@@ -84,7 +86,10 @@
             <div class="modal-header">
               <div class="modal-color" :style="{ background: selectedNotebook.color || '#A78BFA' }"></div>
               <div class="modal-title-block">
-                <h2>{{ selectedNotebook.title }}</h2>
+                <h2>
+                  {{ selectedNotebook.title }}
+                  <i v-if="selectedNotebook.is_verified" class="fas fa-check-circle verified-badge-icon" title="От разработчика"></i>
+                </h2>
               </div>
               <button class="modal-close" @click="selectedNotebook = null">
                 <i class="fas fa-times"></i>
@@ -92,21 +97,21 @@
             </div>
             
             <div class="modal-body">
+              <div v-if="selectedNotebook.description" class="modal-description">
+                <p>{{ selectedNotebook.description }}</p>
+              </div>
+
               <div class="modal-author">
                 <div class="author-avatar">{{ getInitial(selectedNotebook.author) }}</div>
                 <div>
-                  <div class="author-name">{{ getAuthorName(selectedNotebook.author) }}</div>
+                  <div class="author-name">{{ getAuthorFullName(selectedNotebook.author) }}</div>
                   <div class="author-email">{{ getAuthorEmail(selectedNotebook.author) }}</div>
-                  <div class="author-meta">
-                    <span><i class="fas fa-star"></i> {{ formatRating(selectedNotebook.average_rating) }} ({{ selectedNotebook.ratings_count || 0 }})</span>
-                    <span><i class="fas fa-eye"></i> {{ selectedNotebook.views_count || 0 }}</span>
-                    <span><i class="fas fa-copy"></i> {{ selectedNotebook.copies_count || 0 }}</span>
-                  </div>
                 </div>
               </div>
-              
-              <div v-if="selectedNotebook.description" class="modal-description">
-                <p>{{ selectedNotebook.description }}</p>
+
+              <div class="modal-stats">
+                <span class="stat-item"><i class="fas fa-star"></i> {{ formatRating(selectedNotebook.average_rating) }} ({{ selectedNotebook.ratings_count || 0 }})</span>
+                <span class="stat-item"><i class="fas fa-eye"></i> {{ selectedNotebook.views_count || 0 }}</span>
               </div>
               
               <div v-if="selectedNotebook.tags?.length" class="modal-tags">
@@ -180,6 +185,8 @@ const showRateModal = ref(false)
 const rateValue = ref(5)
 const notification = ref(null)
 
+const DEVELOPER_EMAIL = 'nsdmlk@yandex.ru'
+
 const sorts = [
   { value: 'rating', label: 'По рейтингу' },
   { value: 'newest', label: 'Новые' },
@@ -191,9 +198,10 @@ function getInitial(author) {
   return (author.first_name || author.email || 'А')[0].toUpperCase()
 }
 
-function getAuthorName(author) {
+function getAuthorFullName(author) {
   if (!author) return 'Автор'
-  return author.first_name || author.email?.split('@')[0] || 'Автор'
+  const parts = [author.first_name, author.last_name].filter(Boolean)
+  return parts.join(' ') || author.email?.split('@')[0] || 'Автор'
 }
 
 function getAuthorEmail(author) {
@@ -202,6 +210,11 @@ function getAuthorEmail(author) {
 
 function formatRating(rating) {
   return Number(rating || 0).toFixed(1)
+}
+
+function truncateText(text, maxLength) {
+  if (!text) return ''
+  return text.length > maxLength ? text.slice(0, maxLength) + '...' : text
 }
 
 function showNotification(message, type = 'success') {
@@ -215,7 +228,7 @@ async function loadNotebooks() {
       .from('notebooks')
       .select(`
         *,
-        author:rubium_users!user_id(id, first_name, email)
+        author:rubium_users!user_id(id, first_name, last_name, email)
       `)
       .eq('is_public', true)
     
@@ -236,7 +249,10 @@ async function loadNotebooks() {
     
     if (error) throw error
     
-    notebooks.value = data || []
+    notebooks.value = (data || []).map(n => ({
+      ...n,
+      is_verified: n.author?.email === DEVELOPER_EMAIL
+    }))
   } catch (e) {
     console.error(e)
     showNotification('Ошибка при загрузке тетрадей', 'error')
@@ -315,44 +331,6 @@ async function submitRate() {
   } catch (e) {
     console.error(e)
     showNotification('Ошибка при оценке', 'error')
-  }
-}
-
-async function copyNotebook() {
-  if (!selectedNotebook.value) return
-  
-  try {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
-      showNotification('Нужно авторизоваться', 'error')
-      return
-    }
-    
-    const { data: userData } = await supabase
-      .from('rubium_users')
-      .select('id')
-      .eq('auth_id', session.user.id)
-      .single()
-    
-    const { error } = await supabase
-      .from('notebooks')
-      .insert({
-        user_id: userData.id,
-        title: selectedNotebook.value.title + ' (копия)',
-        description: selectedNotebook.value.description,
-        color: selectedNotebook.value.color,
-        tags: selectedNotebook.value.tags,
-        is_public: false,
-        content: selectedNotebook.value.content
-      })
-    
-    if (error) throw error
-    
-    selectedNotebook.value = null
-    showNotification('Тетрадь скопирована в твой каталог!')
-  } catch (e) {
-    console.error(e)
-    showNotification('Ошибка при копировании', 'error')
   }
 }
 
@@ -543,7 +521,7 @@ onMounted(loadNotebooks)
 
 .notebooks-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 18px;
 }
 
@@ -556,6 +534,7 @@ onMounted(loadNotebooks)
   transition: background 0.2s, border-color 0.2s;
   display: flex;
   gap: 18px;
+  min-height: 120px;
 }
 
 .notebook-card:hover {
@@ -572,48 +551,34 @@ onMounted(loadNotebooks)
 .notebook-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .notebook-title {
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: 1.5rem;
+  font-weight: 800;
   margin-bottom: 8px;
   line-height: 1.3;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
 }
 
-.notebook-author {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.notebook-description {
   font-size: 0.8rem;
   color: #94A3B8;
-  margin-bottom: 14px;
-}
-
-.author-avatar-mini {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #A78BFA, #F472B6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: white;
-  flex-shrink: 0;
-}
-
-.author-name {
-  font-weight: 600;
-  color: #E2E8F0;
+  line-height: 1.4;
+  margin-bottom: 10px;
+  flex: 1;
 }
 
 .notebook-footer {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
   gap: 10px;
+  margin-top: auto;
 }
 
 .notebook-rating {
@@ -651,6 +616,12 @@ onMounted(loadNotebooks)
   font-weight: 500;
 }
 
+.verified-badge-icon {
+  color: #34D399;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
 .modal {
   position: fixed;
   inset: 0;
@@ -669,20 +640,20 @@ onMounted(loadNotebooks)
   border-radius: 24px;
   padding: 32px;
   width: 100%;
-  max-width: 640px;
+  max-width: 600px;
   box-shadow: 0 24px 48px rgba(0,0,0,0.4);
 }
 
 .modal-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 .modal-color {
   width: 6px;
-  height: 56px;
+  height: 2.5em;
   border-radius: 3px;
   flex-shrink: 0;
 }
@@ -696,6 +667,9 @@ onMounted(loadNotebooks)
   font-weight: 800;
   margin-bottom: 8px;
   line-height: 1.3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .modal-close {
@@ -715,11 +689,25 @@ onMounted(loadNotebooks)
   background: rgba(255,255,255,0.06);
 }
 
+.modal-description {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.modal-description p {
+  color: #94A3B8;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
 .modal-author {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 14px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .author-avatar {
@@ -745,46 +733,40 @@ onMounted(loadNotebooks)
 .author-email {
   font-size: 0.8rem;
   color: #64748B;
-  margin-bottom: 6px;
 }
 
-.author-meta {
+.modal-stats {
   display: flex;
-  gap: 14px;
+  gap: 16px;
   flex-wrap: wrap;
-  font-size: 0.78rem;
-  color: #94A3B8;
+  margin-bottom: 16px;
 }
 
-.author-meta span {
+.stat-item {
   display: flex;
   align-items: center;
   gap: 5px;
+  font-size: 0.8rem;
+  color: #94A3B8;
 }
 
-.author-meta i {
+.stat-item i {
   font-size: 0.7rem;
 }
 
-.modal-description {
-  margin-bottom: 20px;
-  padding: 16px;
-  background: rgba(255,255,255,0.03);
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.06);
+.stat-item:first-child i {
+  color: #FBBF24;
 }
 
-.modal-description p {
-  color: #94A3B8;
-  font-size: 0.9rem;
-  line-height: 1.6;
+.stat-item:nth-child(2) i {
+  color: #60A5FA;
 }
 
 .modal-tags {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 .modal-actions {
@@ -795,8 +777,7 @@ onMounted(loadNotebooks)
 }
 
 .btn-open,
-.btn-rate,
-.btn-copy {
+.btn-rate {
   padding: 12px 22px;
   border: none;
   border-radius: 12px;
@@ -829,18 +810,6 @@ onMounted(loadNotebooks)
 
 .btn-rate:hover {
   background: rgba(251,191,36,0.2);
-  transform: translateY(-2px);
-}
-
-.btn-copy {
-  background: rgba(255,255,255,0.04);
-  color: #94A3B8;
-  border: 1px solid rgba(255,255,255,0.08);
-}
-
-.btn-copy:hover {
-  background: rgba(255,255,255,0.08);
-  color: #F1F5F9;
   transform: translateY(-2px);
 }
 
@@ -979,8 +948,7 @@ onMounted(loadNotebooks)
     flex-direction: column;
   }
   .btn-open,
-  .btn-rate,
-  .btn-copy {
+  .btn-rate {
     width: 100%;
     justify-content: center;
   }
