@@ -174,6 +174,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import { supabase } from '../api/supabase'
+import { apiFetch } from '../api/client'
 
 const router = useRouter()
 const notebooks = ref([])
@@ -224,38 +225,13 @@ function showNotification(message, type = 'success') {
 async function loadNotebooks() {
   loading.value = true
   try {
-    let query = supabase
-      .from('notebooks')
-      .select(`
-        *,
-        author:rubium_users!user_id(id, first_name, last_name, email)
-      `)
-      .eq('is_public', true)
+    const params = new URLSearchParams()
+    if (searchQuery.value) params.append('search', searchQuery.value)
+    params.append('sort', currentSort.value)
     
-    if (currentSort.value === 'newest') {
-      query = query.order('created_at', { ascending: false })
-    } else if (currentSort.value === 'rating') {
-      query = query.order('average_rating', { ascending: false })
-    } else if (currentSort.value === 'popular') {
-      query = query.order('views_count', { ascending: false })
-    }
+    const data = await apiFetch(`/notebooks/community?${params}`)
     
-    const { data, error } = await query
-    
-    if (error) throw error
-    
-    let items = data || []
-    
-    if (searchQuery.value) {
-      const q = searchQuery.value.toLowerCase().trim()
-      items = items.filter(n => 
-        n.title?.toLowerCase().includes(q) ||
-        n.description?.toLowerCase().includes(q) ||
-        n.tags?.some(t => t.toLowerCase().includes(q))
-      )
-    }
-    
-    notebooks.value = items.map(n => ({
+    notebooks.value = (data.notebooks || []).map(n => ({
       ...n,
       is_verified: n.author?.email === DEVELOPER_EMAIL
     }))
@@ -298,37 +274,10 @@ async function submitRate() {
   if (!selectedNotebook.value) return
   
   try {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
-      showNotification('Нужно авторизоваться', 'error')
-      return
-    }
-    
-    const { data: userData } = await supabase
-      .from('rubium_users')
-      .select('id')
-      .eq('auth_id', session.user.id)
-      .single()
-    
-    if (userData.id === selectedNotebook.value.user_id) {
-      showNotification('Нельзя оценивать свою тетрадь', 'error')
-      return
-    }
-    
-    const currentAvg = Number(selectedNotebook.value.average_rating || 0)
-    const currentCount = Number(selectedNotebook.value.ratings_count || 0)
-    const newCount = currentCount + 1
-    const newAvg = (currentAvg * currentCount + rateValue.value) / newCount
-    
-    const { error } = await supabase
-      .from('notebooks')
-      .update({ 
-        average_rating: newAvg,
-        ratings_count: newCount
-      })
-      .eq('id', selectedNotebook.value.id)
-    
-    if (error) throw error
+    await apiFetch(`/notebooks/${selectedNotebook.value.id}/rate`, {
+      method: 'POST',
+      body: JSON.stringify({ rating: rateValue.value })
+    })
     
     showRateModal.value = false
     selectedNotebook.value = null
@@ -336,7 +285,7 @@ async function submitRate() {
     showNotification('Спасибо за оценку!')
   } catch (e) {
     console.error(e)
-    showNotification('Ошибка при оценке', 'error')
+    showNotification(e.message || 'Ошибка при оценке', 'error')
   }
 }
 
