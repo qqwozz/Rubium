@@ -84,7 +84,7 @@ import TableRow from '@tiptap/extension-table-row'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
 import Image from '@tiptap/extension-image'
-import katex from 'katex'
+import InlineMath from '../extensions/InlineMath'
 
 const props = defineProps({
   modelValue: {
@@ -106,6 +106,7 @@ const editor = useEditor({
   content: props.modelValue,
   extensions: [
     StarterKit,
+    InlineMath,
     Placeholder.configure({ placeholder: 'Пиши конспект...' }),
     Typography,
     Table.configure({ resizable: true }),
@@ -129,15 +130,10 @@ function insertTable() {
 
 function insertFormula() {
   if (formula.value) {
-    try {
-      const cleanFormula = formula.value.replace(/\\\\/g, '\\')
-      const html = katex.renderToString(cleanFormula, { displayMode: false, throwOnError: false })
-      editor.value.chain().focus().insertContent(html).run()
-      formula.value = ''
-      showFormulaInput.value = false
-    } catch (e) {
-      console.error(e)
-    }
+    const cleanFormula = formula.value.replace(/\\\\/g, '\\')
+    editor.value.chain().focus().insertInlineMath(cleanFormula).run()
+    formula.value = ''
+    showFormulaInput.value = false
   }
 }
 

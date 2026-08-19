@@ -192,7 +192,7 @@
             </div>
             
             <div class="modal-actions">
-              <button class="btn-delete" @click="deleteNotebook">Удалить</button>
+              <button type="button" class="btn-delete" @click="deleteNotebook">Удалить</button>
               <button class="btn-cancel" @click="showEditModal = false">Отмена</button>
               <button class="btn-save" @click="saveNotebook" :disabled="!editTitle.trim()">Сохранить</button>
             </div>
@@ -338,6 +338,7 @@ async function deleteNotebook() {
     })
     
     showEditModal.value = false
+    editId.value = null
     await loadNotebooks()
   } catch (e) {
     console.error(e)

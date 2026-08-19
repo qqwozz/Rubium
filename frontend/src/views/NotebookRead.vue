@@ -15,7 +15,7 @@
       
       <div class="read-layout">
         <div class="sections-panel">
-          <div v-for="(section, si) in sections" :key="section.id" class="section-item">
+          <div v-for="section in sections" :key="section.id" class="section-item">
             <div class="section-header" @click="toggleSection(section.id)">
               <i class="fas fa-chevron-right" :class="{ rotated: openSections.includes(section.id) }"></i>
               <span>{{ section.title }}</span>
@@ -44,7 +44,7 @@
           
           <div v-else>
             <h1 class="page-title">{{ currentPage.title }}</h1>
-            <div class="page-content" v-html="renderLatex(currentPage.content)"></div>
+            <div class="page-content" v-html="renderContent(currentPage.content)"></div>
           </div>
         </div>
       </div>
@@ -73,18 +73,28 @@ const isOwner = computed(() => {
   return notebook.value?.user_id === auth.user?.id
 })
 
-function renderLatex(text) {
-  if (!text) return ''
-  let result = text
+function renderContent(html) {
+  if (!html) return ''
+  
+  let result = html
+  
   result = result.replace(/\$\$([\s\S]*?)\$\$/g, (_, formula) => {
-    try { return katex.renderToString(formula, { displayMode: true, throwOnError: false }) }
-    catch { return formula }
+    try { 
+      return katex.renderToString(formula, { displayMode: true, throwOnError: false }) 
+    } catch { 
+      return formula 
+    }
   })
-  result = result.replace(/\$([^\$]*?)\$/g, (_, formula) => {
-    try { return katex.renderToString(formula, { displayMode: false, throwOnError: false }) }
-    catch { return formula }
+  
+  result = result.replace(/\$([^\$\n]+?)\$/g, (_, formula) => {
+    try { 
+      return katex.renderToString(formula, { displayMode: false, throwOnError: false }) 
+    } catch { 
+      return formula 
+    }
   })
-  return result
+  
+  return `<div class="tiptap-content">${result}</div>`
 }
 
 function toggleSection(sectionId) {
@@ -267,7 +277,93 @@ onMounted(loadNotebook)
   font-size: 0.95rem;
   line-height: 1.7;
   color: #94A3B8;
-  white-space: pre-wrap;
+}
+
+.page-content :deep(.tiptap-content) {
+  line-height: 1.7;
+  color: #94A3B8;
+}
+
+.page-content :deep(.tiptap-content h2) {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 16px 0 8px;
+  color: #F1F5F9;
+}
+
+.page-content :deep(.tiptap-content h3) {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 12px 0 6px;
+  color: #F1F5F9;
+}
+
+.page-content :deep(.tiptap-content p) {
+  margin-bottom: 8px;
+}
+
+.page-content :deep(.tiptap-content ul),
+.page-content :deep(.tiptap-content ol) {
+  margin-left: 20px;
+  margin-bottom: 8px;
+}
+
+.page-content :deep(.tiptap-content table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 16px 0;
+}
+
+.page-content :deep(.tiptap-content th),
+.page-content :deep(.tiptap-content td) {
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 8px 12px;
+}
+
+.page-content :deep(.tiptap-content th) {
+  background: rgba(167,139,250,0.1);
+  font-weight: 700;
+}
+
+.page-content :deep(.tiptap-content img) {
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+.page-content :deep(.tiptap-content .katex) {
+  font-size: 1.1em;
+}
+
+.page-content :deep(.katex-mathml) {
+  display: none;
+}
+
+.page-content :deep(.tiptap-content blockquote) {
+  border-left: 3px solid #A78BFA;
+  padding-left: 16px;
+  margin: 12px 0;
+  color: #94A3B8;
+}
+
+.page-content :deep(.tiptap-content code) {
+  background: rgba(255,255,255,0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85em;
+}
+
+.page-content :deep(.tiptap-content pre) {
+  background: rgba(255,255,255,0.04);
+  padding: 16px;
+  border-radius: 12px;
+  margin: 12px 0;
+  overflow-x: auto;
+}
+
+.page-content :deep(.tiptap-content pre code) {
+  background: none;
+  padding: 0;
 }
 
 @media (max-width: 768px) {

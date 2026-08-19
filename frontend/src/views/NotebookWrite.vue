@@ -124,6 +124,39 @@ import { useRoute, useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import { apiFetch } from '../api/client'
 import NotebookEditor from '../components/NotebookEditor.vue'
+import { onBeforeUnmount, onMounted, onBeforeRouteLeave } from 'vue'
+import { useRoute, useRouter, onBeforeRouteLeave as onLeave } from 'vue-router'
+
+let autoSaveTimer = null
+
+function debouncedSave() {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer)
+  autoSaveTimer = setTimeout(() => {
+    saveNotebook()
+  }, 1500)
+}
+
+function handleKeydown(event) {
+  if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+    event.preventDefault()
+    saveNotebook()
+  }
+}
+
+onMounted(() => {
+  loadNotebook()
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown)
+  if (autoSaveTimer) clearTimeout(autoSaveTimer)
+  saveNotebook()
+})
+
+onBeforeRouteLeave(() => {
+  saveNotebook()
+})
 
 const route = useRoute()
 const router = useRouter()
