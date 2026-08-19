@@ -10,7 +10,7 @@
       <div class="content">
         <div class="notebooks-header">
           <h1><i class="fas fa-book"></i> Мои тетради</h1>
-          <button class="btn-create" @click="showCreateModal = true">
+          <button class="btn-create" @click="openCreateModal">
             <i class="fas fa-plus"></i> Создать тетрадь
           </button>
         </div>
@@ -29,7 +29,13 @@
           <div v-for="notebook in notebooks" :key="notebook.id" class="notebook-card" @click="openNotebook(notebook)">
             <div class="notebook-color" :style="{ background: notebook.color || '#A78BFA' }"></div>
             <div class="notebook-info">
-              <div class="notebook-title">{{ notebook.title }}</div>
+              <div class="notebook-title-row">
+                <div class="notebook-title">{{ notebook.title }}</div>
+                <button class="btn-edit" @click.stop="openEditModal(notebook)">
+                  <i class="fas fa-gear"></i>
+                </button>
+              </div>
+              <div v-if="notebook.description" class="notebook-description">{{ notebook.description }}</div>
               <div class="notebook-meta">
                 <span>{{ notebook.pages_count || 0 }} страниц</span>
                 <span v-if="notebook.is_public"><i class="fas fa-globe"></i> Публичная</span>
@@ -43,70 +49,273 @@
         </div>
       </div>
     </div>
-    
-    <div v-if="showCreateModal" class="modal" @click.self="showCreateModal = false">
-      <div class="modal-card">
-        <h2>Новая тетрадь</h2>
-        
-        <div class="form-group">
-          <label>Название</label>
-          <input v-model="newTitle" type="text" placeholder="Например: Тригонометрия ЕГЭ">
-        </div>
-        
-        <div class="form-group">
-          <label>Цвет</label>
-          <div class="colors-row">
-            <button 
-              v-for="color in colors" 
-              :key="color"
-              class="color-btn"
-              :class="{ active: newColor === color }"
-              :style="{ background: color }"
-              @click="newColor = color"
-            ></button>
+
+    <Teleport to="body">
+      <!-- Модалка создания -->
+      <Transition name="modal">
+        <div v-if="showCreateModal" class="modal" @click.self="showCreateModal = false">
+          <div class="modal-card">
+            <h2>Новая тетрадь</h2>
+            
+            <div class="form-group">
+              <label>Название</label>
+              <input v-model="newTitle" type="text" placeholder="Например: Тригонометрия ЕГЭ">
+            </div>
+
+            <div class="form-group">
+              <label>Описание</label>
+              <textarea v-model="newDescription" rows="3" placeholder="О чём эта тетрадь?"></textarea>
+            </div>
+            
+            <div class="form-group">
+              <label>Цвет</label>
+              <div class="colors-row">
+                <button 
+                  v-for="color in colors" 
+                  :key="color"
+                  class="color-btn"
+                  :class="{ active: newColor === color }"
+                  :style="{ background: color }"
+                  @click="newColor = color"
+                ></button>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label>Теги</label>
+              <div class="tags-input-wrapper">
+                <div v-for="tag in newTags" :key="tag" class="selected-tag">
+                  {{ tag }}
+                  <span @click="removeNewTag(tag)">×</span>
+                </div>
+                <input 
+                  v-model="tagInput" 
+                  type="text" 
+                  placeholder="Выбери тег..."
+                  @input="filterTags"
+                  @keydown.enter.prevent="addTag"
+                  @keydown.backspace="removeLastTag"
+                >
+              </div>
+              <div v-if="filteredTags.length" class="tags-suggestions">
+                <div 
+                  v-for="tag in filteredTags" 
+                  :key="tag"
+                  class="tag-suggestion"
+                  @click="addTag(tag)"
+                >
+                  {{ tag }}
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input v-model="newIsPublic" type="checkbox">
+                Публичная тетрадь
+              </label>
+            </div>
+            
+            <div class="modal-actions">
+              <button class="btn-cancel" @click="showCreateModal = false">Отмена</button>
+              <button class="btn-save" @click="createNotebook" :disabled="!newTitle.trim()">
+                Создать
+              </button>
+            </div>
           </div>
         </div>
-        
-        <div class="form-group">
-          <label>Теги (через запятую)</label>
-          <input v-model="newTags" type="text" placeholder="math, EGE, тригонометрия">
+      </Transition>
+
+      <!-- Модалка редактирования -->
+      <Transition name="modal">
+        <div v-if="showEditModal" class="modal" @click.self="showEditModal = false">
+          <div class="modal-card">
+            <h2>Настройки тетради</h2>
+            
+            <div class="form-group">
+              <label>Название</label>
+              <input v-model="editTitle" type="text">
+            </div>
+
+            <div class="form-group">
+              <label>Описание</label>
+              <textarea v-model="editDescription" rows="3" placeholder="О чём эта тетрадь?"></textarea>
+            </div>
+            
+            <div class="form-group">
+              <label>Цвет</label>
+              <div class="colors-row">
+                <button 
+                  v-for="color in colors" 
+                  :key="color"
+                  class="color-btn"
+                  :class="{ active: editColor === color }"
+                  :style="{ background: color }"
+                  @click="editColor = color"
+                ></button>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label>Теги</label>
+              <div class="tags-input-wrapper">
+                <div v-for="tag in editTags" :key="tag" class="selected-tag">
+                  {{ tag }}
+                  <span @click="removeEditTag(tag)">×</span>
+                </div>
+                <input 
+                  v-model="editTagInput" 
+                  type="text" 
+                  placeholder="Выбери тег..."
+                  @input="filterEditTags"
+                  @keydown.enter.prevent="addEditTag"
+                  @keydown.backspace="removeLastEditTag"
+                >
+              </div>
+              <div v-if="filteredEditTags.length" class="tags-suggestions">
+                <div 
+                  v-for="tag in filteredEditTags" 
+                  :key="tag"
+                  class="tag-suggestion"
+                  @click="addEditTag(tag)"
+                >
+                  {{ tag }}
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input v-model="editIsPublic" type="checkbox">
+                Публичная тетрадь
+              </label>
+            </div>
+            
+            <div class="modal-actions">
+              <button class="btn-delete" @click="deleteNotebook">Удалить</button>
+              <button class="btn-cancel" @click="showEditModal = false">Отмена</button>
+              <button class="btn-save" @click="saveNotebook" :disabled="!editTitle.trim()">Сохранить</button>
+            </div>
+          </div>
         </div>
-        
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input v-model="newIsPublic" type="checkbox">
-            Публичная тетрадь
-          </label>
-        </div>
-        
-        <div class="modal-actions">
-          <button class="btn-cancel" @click="showCreateModal = false">Отмена</button>
-          <button class="btn-save" @click="createNotebook" :disabled="!newTitle.trim()">
-            Создать
-          </button>
-        </div>
-      </div>
-    </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import { apiFetch } from '../api/client'
 import { supabase } from '../api/supabase'
+import tagsRaw from '../assets/tags.txt?raw'
 
 const router = useRouter()
 const notebooks = ref([])
 const loading = ref(true)
+
 const showCreateModal = ref(false)
 const newTitle = ref('')
+const newDescription = ref('')
 const newColor = ref('#A78BFA')
-const newTags = ref('')
+const newTags = ref([])
 const newIsPublic = ref(false)
+const tagInput = ref('')
+const filteredTags = ref([])
+
+const showEditModal = ref(false)
+const editId = ref(null)
+const editTitle = ref('')
+const editDescription = ref('')
+const editColor = ref('#A78BFA')
+const editTags = ref([])
+const editIsPublic = ref(false)
+const editTagInput = ref('')
+const filteredEditTags = ref([])
 
 const colors = ['#A78BFA', '#F472B6', '#34D399', '#FBBF24', '#F87171', '#60A5FA']
+
+const allTags = ref([])
+
+function loadTags() {
+  allTags.value = tagsRaw.split('\n').map(t => t.trim()).filter(Boolean)
+}
+
+function filterTags() {
+  const q = tagInput.value.toLowerCase().trim()
+  filteredTags.value = allTags.value.filter(t => 
+    t.toLowerCase().includes(q) && !newTags.value.includes(t)
+  ).slice(0, 8)
+}
+
+function addTag(tag) {
+  const cleanTag = typeof tag === 'string' ? tag : tagInput.value.trim()
+  if (cleanTag && !newTags.value.includes(cleanTag)) {
+    newTags.value.push(cleanTag)
+  }
+  tagInput.value = ''
+  filteredTags.value = []
+}
+
+function removeNewTag(tag) {
+  newTags.value = newTags.value.filter(t => t !== tag)
+}
+
+function removeLastTag() {
+  if (!tagInput.value && newTags.value.length) {
+    newTags.value.pop()
+  }
+}
+
+function filterEditTags() {
+  const q = editTagInput.value.toLowerCase().trim()
+  filteredEditTags.value = allTags.value.filter(t => 
+    t.toLowerCase().includes(q) && !editTags.value.includes(t)
+  ).slice(0, 8)
+}
+
+function addEditTag(tag) {
+  const cleanTag = typeof tag === 'string' ? tag : editTagInput.value.trim()
+  if (cleanTag && !editTags.value.includes(cleanTag)) {
+    editTags.value.push(cleanTag)
+  }
+  editTagInput.value = ''
+  filteredEditTags.value = []
+}
+
+function removeEditTag(tag) {
+  editTags.value = editTags.value.filter(t => t !== tag)
+}
+
+function removeLastEditTag() {
+  if (!editTagInput.value && editTags.value.length) {
+    editTags.value.pop()
+  }
+}
+
+function openCreateModal() {
+  newTitle.value = ''
+  newDescription.value = ''
+  newColor.value = '#A78BFA'
+  newTags.value = []
+  newIsPublic.value = false
+  tagInput.value = ''
+  filteredTags.value = []
+  showCreateModal.value = true
+}
+
+function openEditModal(notebook) {
+  editId.value = notebook.id
+  editTitle.value = notebook.title || ''
+  editDescription.value = notebook.description || ''
+  editColor.value = notebook.color || '#A78BFA'
+  editTags.value = notebook.tags || []
+  editIsPublic.value = notebook.is_public || false
+  editTagInput.value = ''
+  filteredEditTags.value = []
+  showEditModal.value = true
+}
 
 async function loadNotebooks() {
   loading.value = true
@@ -120,13 +329,23 @@ async function loadNotebooks() {
   }
 }
 
+async function deleteNotebook() {
+  if (!editId.value) return
+  
+  try {
+    await apiFetch(`/notebooks/${editId.value}`, {
+      method: 'DELETE'
+    })
+    
+    showEditModal.value = false
+    await loadNotebooks()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
 async function createNotebook() {
   try {
-    const tags = newTags.value
-      .split(',')
-      .map(t => t.trim())
-      .filter(Boolean)
-    
     const { data: { session } } = await supabase.auth.getSession()
     const { data: userData } = await supabase
       .from('rubium_users')
@@ -138,17 +357,35 @@ async function createNotebook() {
       method: 'POST',
       body: JSON.stringify({
         title: newTitle.value,
+        description: newDescription.value,
         color: newColor.value,
-        tags,
+        tags: newTags.value,
         is_public: newIsPublic.value,
         user_id: userData.id
       })
     })
     
     showCreateModal.value = false
-    newTitle.value = ''
-    newTags.value = ''
-    newIsPublic.value = false
+    await loadNotebooks()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+async function saveNotebook() {
+  try {
+    await apiFetch(`/notebooks/${editId.value}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        title: editTitle.value,
+        description: editDescription.value,
+        color: editColor.value,
+        tags: editTags.value,
+        is_public: editIsPublic.value
+      })
+    })
+    
+    showEditModal.value = false
     await loadNotebooks()
   } catch (e) {
     console.error(e)
@@ -160,7 +397,10 @@ function openNotebook(notebook) {
   router.push(`/notebook/${notebook.id}/edit`)
 }
 
-onMounted(loadNotebooks)
+onMounted(() => {
+  loadTags()
+  loadNotebooks()
+})
 </script>
 
 <style scoped>
@@ -286,10 +526,59 @@ onMounted(loadNotebooks)
   min-width: 0;
 }
 
+.notebook-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
 .notebook-title {
   font-size: 1rem;
   font-weight: 700;
+}
+
+.btn-edit {
+  background: none;
+  border: none;
+  color: #64748B;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.btn-edit:hover {
+  color: #A78BFA;
+  background: rgba(167,139,250,0.1);
+}
+
+.btn-delete {
+  padding: 10px 20px;
+  background: rgba(248,113,113,0.1);
+  color: #F87171;
+  border: 1px solid rgba(248,113,113,0.2);
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  margin-right: auto;
+}
+
+.btn-delete:hover {
+  background: rgba(248,113,113,0.2);
+}
+
+.notebook-description {
+  font-size: 0.8rem;
+  color: #94A3B8;
   margin-bottom: 8px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .notebook-meta {
@@ -322,7 +611,7 @@ onMounted(loadNotebooks)
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 200;
+  z-index: 9999;
   padding: 20px;
 }
 
@@ -332,7 +621,8 @@ onMounted(loadNotebooks)
   border-radius: 24px;
   padding: 32px;
   width: 100%;
-  max-width: 450px;
+  max-width: 500px;
+  box-shadow: 0 24px 48px rgba(0,0,0,0.4);
 }
 
 .modal-card h2 {
@@ -352,7 +642,8 @@ onMounted(loadNotebooks)
   margin-bottom: 6px;
 }
 
-.form-group input[type="text"] {
+.form-group input[type="text"],
+.form-group textarea {
   width: 100%;
   padding: 12px 16px;
   background: rgba(255,255,255,0.03);
@@ -361,9 +652,11 @@ onMounted(loadNotebooks)
   color: #F1F5F9;
   font-family: inherit;
   outline: none;
+  resize: vertical;
 }
 
-.form-group input[type="text"]:focus {
+.form-group input[type="text"]:focus,
+.form-group textarea:focus {
   border-color: #A78BFA;
 }
 
@@ -394,6 +687,72 @@ onMounted(loadNotebooks)
   font-size: 0.85rem;
   color: #94A3B8;
   cursor: pointer;
+}
+
+.tags-input-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  background: rgba(255,255,255,0.03);
+  border: 2px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+}
+
+.tags-input-wrapper input {
+  flex: 1;
+  min-width: 120px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #F1F5F9;
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 4px;
+}
+
+.selected-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(167,139,250,0.15);
+  border: 1px solid rgba(167,139,250,0.2);
+  border-radius: 8px;
+  color: #A78BFA;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.selected-tag span {
+  cursor: pointer;
+  color: #64748B;
+}
+
+.selected-tag span:hover {
+  color: #F87171;
+}
+
+.tags-suggestions {
+  margin-top: 6px;
+  background: #1a1a2e;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.tag-suggestion {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #94A3B8;
+  transition: all 0.2s;
+}
+
+.tag-suggestion:hover {
+  background: rgba(167,139,250,0.1);
+  color: #A78BFA;
 }
 
 .modal-actions {
@@ -427,6 +786,26 @@ onMounted(loadNotebooks)
 .btn-save:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s;
+}
+
+.modal-enter-active .modal-card,
+.modal-leave-active .modal-card {
+  transition: transform 0.3s;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .modal-card,
+.modal-leave-to .modal-card {
+  transform: scale(0.95);
 }
 
 @media (max-width: 768px) {

@@ -13,10 +13,10 @@
         <i class="fas fa-calendar-day"></i> Ежедневные
       </router-link>
       <router-link to="/notebooks" class="nav-link">
-        <i class="fas fa-book"></i> Тетради
+        <i class="fas fa-book"></i> Мои тетради
       </router-link>
       <router-link to="/community" class="nav-link">
-        <i class="fas fa-globe"></i> Каталог
+        <i class="fas fa-globe"></i> Каталог тетрадей
       </router-link>
       <router-link to="/profile" class="nav-link">
         <i class="fas fa-user"></i> Профиль
