@@ -96,6 +96,27 @@ func (r notebookRow) toResponse(includeContent bool) gin.H {
 	return resp
 }
 
+func (h *NotebooksHandler) getRubiumUserID(authID string) (string, error) {
+	var users []struct {
+		ID string `json:"id"`
+	}
+	usersEndpoint := fmt.Sprintf("rubium_users?select=id&auth_id=eq.%s", authID)
+	rawUsers, err := h.client.RawQuery(usersEndpoint, false)
+	if err != nil {
+		return "", err
+	}
+	if len(rawUsers) > 0 && rawUsers[0] == '{' {
+		rawUsers = append([]byte("["), append(rawUsers, []byte("]")...)...)
+	}
+	if err := json.Unmarshal(rawUsers, &users); err != nil {
+		return "", err
+	}
+	if len(users) == 0 {
+		return "", fmt.Errorf("пользователь не найден")
+	}
+	return users[0].ID, nil
+}
+
 func (h *NotebooksHandler) GetNotebooks(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -104,25 +125,9 @@ func (h *NotebooksHandler) GetNotebooks(c *gin.Context) {
 	}
 	authID := userID.(string)
 
-	var users []struct {
-		ID string `json:"id"`
-	}
-	usersEndpoint := fmt.Sprintf("rubium_users?select=id&auth_id=eq.%s", authID)
-	rawUsers, err := h.client.RawQuery(usersEndpoint, true)
+	rubiumUserID, err := h.getRubiumUserID(authID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	if len(rawUsers) > 0 && rawUsers[0] == '{' {
-		rawUsers = append([]byte("["), append(rawUsers, []byte("]")...)...)
-	}
-
-	if err := json.Unmarshal(rawUsers, &users); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	if len(users) == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "пользователь не найден"})
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -130,7 +135,7 @@ func (h *NotebooksHandler) GetNotebooks(c *gin.Context) {
 
 	filters := []string{
 		"select=" + selectFields,
-		fmt.Sprintf("user_id=eq.%s", users[0].ID),
+		fmt.Sprintf("user_id=eq.%s", rubiumUserID),
 	}
 
 	if isPublic := c.Query("is_public"); isPublic != "" {
@@ -194,24 +199,13 @@ func (h *NotebooksHandler) GetNotebookByID(c *gin.Context) {
 		return
 	}
 
-	authID := uid.(string)
-	var users []struct {
-		ID string `json:"id"`
-	}
-	usersEndpoint := fmt.Sprintf("rubium_users?select=id&auth_id=eq.%s", authID)
-	rawUsers, err := h.client.RawQuery(usersEndpoint, false)
+	rubiumUserID, err := h.getRubiumUserID(uid.(string))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
 	}
-	if len(rawUsers) > 0 && rawUsers[0] == '{' {
-		rawUsers = append([]byte("["), append(rawUsers, []byte("]")...)...)
-	}
-	if err := json.Unmarshal(rawUsers, &users); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	if len(users) == 0 || users[0].ID != nb.UserID {
+
+	if rubiumUserID != nb.UserID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "нет доступа к тетради"})
 		return
 	}
@@ -282,24 +276,9 @@ func (h *NotebooksHandler) UpdateNotebook(c *gin.Context) {
 
 	authID := c.MustGet("user_id").(string)
 
-	var users []struct {
-		ID string `json:"id"`
-	}
-	usersEndpoint := fmt.Sprintf("rubium_users?select=id&auth_id=eq.%s", authID)
-	rawUsers, err := h.client.RawQuery(usersEndpoint, false)
+	rubiumUserID, err := h.getRubiumUserID(authID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	if len(rawUsers) > 0 && rawUsers[0] == '{' {
-		rawUsers = append([]byte("["), append(rawUsers, []byte("]")...)...)
-	}
-	if err := json.Unmarshal(rawUsers, &users); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	if len(users) == 0 {
-		c.JSON(http.StatusForbidden, gin.H{"error": "пользователь не найден"})
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -308,7 +287,7 @@ func (h *NotebooksHandler) UpdateNotebook(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "тетрадь не найдена"})
 		return
 	}
-	if owner != users[0].ID {
+	if owner != rubiumUserID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "нет доступа к тетради"})
 		return
 	}
@@ -360,14 +339,21 @@ func (h *NotebooksHandler) DeleteNotebook(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный UUID"})
 		return
 	}
-	userID := c.MustGet("user_id").(string)
+
+	authID := c.MustGet("user_id").(string)
+
+	rubiumUserID, err := h.getRubiumUserID(authID)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
 
 	owner, err := h.getOwner(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "тетрадь не найдена"})
 		return
 	}
-	if owner != userID {
+	if owner != rubiumUserID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "нет доступа к тетради"})
 		return
 	}
@@ -387,7 +373,14 @@ func (h *NotebooksHandler) CopyNotebook(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный UUID"})
 		return
 	}
-	userID := c.MustGet("user_id").(string)
+
+	authID := c.MustGet("user_id").(string)
+
+	rubiumUserID, err := h.getRubiumUserID(authID)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
 
 	var rows []notebookRow
 	endpoint := fmt.Sprintf("notebooks?select=*&id=eq.%s&limit=1", id)
@@ -407,7 +400,7 @@ func (h *NotebooksHandler) CopyNotebook(c *gin.Context) {
 	}
 
 	payload := map[string]interface{}{
-		"user_id":      userID,
+		"user_id":      rubiumUserID,
 		"title":        original.Title + " (копия)",
 		"description":  original.Description,
 		"color":        original.Color,
@@ -448,7 +441,14 @@ func (h *NotebooksHandler) RateNotebook(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный UUID"})
 		return
 	}
-	userID := c.MustGet("user_id").(string)
+
+	authID := c.MustGet("user_id").(string)
+
+	rubiumUserID, err := h.getRubiumUserID(authID)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
 
 	var req RateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -476,7 +476,7 @@ func (h *NotebooksHandler) RateNotebook(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "оценивать можно только публичные тетради"})
 		return
 	}
-	if nb.UserID == userID {
+	if nb.UserID == rubiumUserID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "нельзя оценивать свою тетрадь"})
 		return
 	}
@@ -515,8 +515,26 @@ func (h *NotebooksHandler) GetRating(c *gin.Context) {
 	}
 	nb := rows[0]
 
+	if nb.IsPublic {
+		c.JSON(http.StatusOK, gin.H{
+			"average_rating": nb.AverageRating,
+		})
+		return
+	}
+
 	uid, authed := c.Get("user_id")
-	if !nb.IsPublic && (!authed || uid.(string) != nb.UserID) {
+	if !authed {
+		c.JSON(http.StatusForbidden, gin.H{"error": "нет доступа"})
+		return
+	}
+
+	rubiumUserID, err := h.getRubiumUserID(uid.(string))
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	if rubiumUserID != nb.UserID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "нет доступа"})
 		return
 	}
