@@ -544,6 +544,71 @@ func (h *NotebooksHandler) GetRating(c *gin.Context) {
 	})
 }
 
+func (h *NotebooksHandler) GetCommunityNotebooks(c *gin.Context) {
+	sort := c.DefaultQuery("sort", "rating")
+	search := c.Query("search")
+	limit := c.DefaultQuery("limit", "50")
+
+	selectFields := "id,user_id,title,description,color,tags,is_public,average_rating,views_count,copies_count,created_at,updated_at,content,rubium_users(id,first_name,email)"
+
+	filters := []string{
+		"select=" + selectFields,
+		"is_public=eq.true",
+	}
+
+	if search != "" {
+		filters = append(filters, fmt.Sprintf("or=(title.ilike.*%s*,description.ilike.*%s*,tags.cs.{%s})", search, search, search))
+	}
+
+	switch sort {
+	case "newest":
+		filters = append(filters, "order=created_at.desc")
+	case "popular":
+		filters = append(filters, "order=views_count.desc")
+	default:
+		filters = append(filters, "order=average_rating.desc")
+	}
+
+	filters = append(filters, "limit="+limit)
+
+	endpoint := "notebooks?" + strings.Join(filters, "&")
+
+	rawNotebooks, err := h.client.RawQuery(endpoint, true)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if len(rawNotebooks) > 0 && rawNotebooks[0] == '{' {
+		rawNotebooks = append([]byte("["), append(rawNotebooks, []byte("]")...)...)
+	}
+
+	var raw []struct {
+		notebookRow
+		RubiumUsers struct {
+			ID        string `json:"id"`
+			FirstName string `json:"first_name"`
+			Email     string `json:"email"`
+		} `json:"rubium_users"`
+	}
+	if err := json.Unmarshal(rawNotebooks, &raw); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	notebooks := make([]gin.H, 0, len(raw))
+	for _, r := range raw {
+		resp := r.notebookRow.toResponse(false)
+		resp["author"] = gin.H{
+			"id":         r.RubiumUsers.ID,
+			"first_name": r.RubiumUsers.FirstName,
+			"email":      r.RubiumUsers.Email,
+		}
+		notebooks = append(notebooks, resp)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"notebooks": notebooks})
+}
+
 func (h *NotebooksHandler) getOwner(id string) (string, error) {
 	var rows []notebookRow
 	endpoint := fmt.Sprintf("notebooks?select=user_id&id=eq.%s&limit=1", id)

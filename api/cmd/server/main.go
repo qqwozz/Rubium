@@ -56,8 +56,9 @@ func main() {
 	nb := r.Group("/api/v1/notebooks")
 	nb.Use(middleware.OptionalAuth(client))
 	{
-		nb.GET("/:id", notebooks.GetNotebookByID)  // Просмотр тетради
-		nb.GET("/:id/rating", notebooks.GetRating) // Получить рейтинг
+		nb.GET("/community", notebooks.GetCommunityNotebooks) // Список публичных тетрадей
+		nb.GET("/:id", notebooks.GetNotebookByID)              // Просмотр тетради
+		nb.GET("/:id/rating", notebooks.GetRating)              // Получить рейтинг
 	}
 
 	// --- Notebooks: только авторизованные ---
