@@ -51,6 +51,24 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    async loadProfile() {
+      if (!this.user) return
+
+      try {
+        const { data: profile } = await supabase
+          .from('rubium_users')
+          .select('*')
+          .eq('auth_id', this.user.id)
+          .maybeSingle()
+
+        if (profile) {
+          this.profile = profile
+        }
+      } catch (e) {
+        console.error('Profile load error:', e)
+      }
+    },
+
     async login(email, password) {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
