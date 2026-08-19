@@ -109,9 +109,9 @@
 
 ---
 
-## Тетради (Notebooks) 🆕
+## Тетради (Notebooks) 🔧
 
-Все требуют `Authorization: Bearer <token>`, кроме GET для публичных и community.
+Все требуют `Authorization: Bearer <token>`.
 
 Тетрадь хранится как JSONB — разделы и страницы внутри поля `content`. Никаких отдельных таблиц для sections/pages.
 
@@ -127,14 +127,16 @@
     {
       "id": "uuid",
       "title": "Тригонометрия ЕГЭ",
+      "description": "Конспект по тригонометрии",
       "color": "#A78BFA",
       "tags": ["math", "EGE", "11"],
       "is_public": false,
-      "is_verified": false,
       "sections_count": 3,
       "pages_count": 12,
       "views_count": 0,
       "copies_count": 0,
+      "average_rating": 0,
+      "ratings_count": 0,
       "created_at": "...",
       "updated_at": "..."
     }
@@ -149,24 +151,24 @@
 ```json
 {
   "title": "Тригонометрия ЕГЭ",
+  "description": "Конспект по тригонометрии",
   "color": "#A78BFA",
   "tags": ["math", "EGE", "11"],
   "is_public": false,
-  "content": {
-    "sections": []
-  }
+  "user_id": "uuid"
 }
 ```
 
-| Поле      | Тип   | Обязательный | По умолчанию |
-| ------------- | -------- | ------------------------ | ----------------------- |
-| `title`     | string   | Да                     | —                      |
-| `color`     | string   | Нет                   | `#A78BFA`             |
-| `tags`      | []string | Нет                   | `[]`                  |
-| `is_public` | bool     | Нет                   | `false`               |
-| `content`   | JSONB    | Нет                   | `{ "sections": [] }`  |
+| Поле        | Тип        | Обязательный | По умолчанию |
+| --------------- | ------------- | ------------------------ | ----------------------- |
+| `title`       | string        | Да                     | —                      |
+| `description` | string        | Нет                   | —                      |
+| `color`       | string        | Нет                   | `#A78BFA`             |
+| `tags`        | []string      | Нет                   | `[]`                  |
+| `is_public`   | bool          | Нет                   | `false`               |
+| `user_id`     | string (uuid) | Да                     | —                      |
 
-**Ответ (201):** `{ "id": "uuid", "title": "...", ... }`
+**Ответ (201):** `{ "notebook": { ... } }`
 
 ### GET /api/v1/notebooks/:id
 
@@ -179,10 +181,10 @@
   "notebook": {
     "id": "uuid",
     "title": "Тригонометрия ЕГЭ",
+    "description": "Конспект по тригонометрии",
     "color": "#A78BFA",
     "tags": ["math", "EGE"],
     "is_public": true,
-    "is_verified": false,
     "content": {
       "sections": [
         {
@@ -193,7 +195,6 @@
               "id": "uuid",
               "title": "Формулы приведения",
               "content": { "type": "doc", "content": [] },
-              "source_task_id": null,
               "created_at": "...",
               "updated_at": "..."
             }
@@ -203,7 +204,6 @@
     },
     "views_count": 42,
     "copies_count": 5,
-    "author": { "id": "uuid", "first_name": "Илья" },
     "created_at": "...",
     "updated_at": "..."
   }
@@ -212,28 +212,20 @@
 
 ### PUT /api/v1/notebooks/:id
 
-Только владелец. Сохраняет тетрадь целиком (автосейв с фронта). Все поля опциональны.
+Только владелец. Все поля опциональны.
 
 **Тело:**
 
 ```json
 {
   "title": "Новое название",
+  "description": "Новое описание",
   "color": "#F472B6",
   "tags": ["math", "EGE"],
   "is_public": true,
   "content": { "sections": [...] }
 }
 ```
-
-| Поле        | Кто может                        | Описание                                                |
-| --------------- | ---------------------------------------- | --------------------------------------------------------------- |
-| `title`       | владелец                         |                                                                 |
-| `color`       | владелец                         |                                                                 |
-| `tags`        | владелец                         |                                                                 |
-| `is_public`   | владелец                         |                                                                 |
-| `content`     | владелец                         | вся структура разделов и страниц    |
-| `is_verified` | только админ-владелец | пометить как тетрадь разработчика |
 
 **Ответ:** `{ "message": "тетрадь обновлена" }`
 
@@ -247,19 +239,26 @@
 
 Скопировать публичную тетрадь себе. Увеличивает `copies_count` оригинала.
 
-**Ответ (201):** `{ "id": "new-uuid", "title": "Тригонометрия ЕГЭ (копия)", ... }`
+**Ответ (201):** `{ "notebook": { "id": "new-uuid", "title": "Тригонометрия ЕГЭ (копия)", ... } }`
 
 ---
 
-## Рейтинг (Rating) 🆕
+## Рейтинг (Rating) 🔧
 
 ### POST /api/v1/notebooks/:id/rate
 
-Только для публичных тетрадей, не своей. Один голос на пользователя (перезаписывается).
+Только для публичных тетрадей, не своей.
 
 **Тело:** `{ "rating": 4 }` (1-5)
 
-**Ответ (200):** `{ "average_rating": 4.3, "total_ratings": 12 }`
+**Ответ (200):**
+
+```json
+{
+  "average_rating": 4.3,
+  "ratings_count": 12
+}
+```
 
 ### GET /api/v1/notebooks/:id/rating
 
@@ -268,16 +267,15 @@
 ```json
 {
   "average_rating": 4.3,
-  "total_ratings": 12,
-  "user_rating": 4
+  "ratings_count": 12
 }
 ```
-
-`user_rating` = null если не ставил.
 
 ---
 
 ## Публичный каталог (Community) 🆕
+
+> ⚠️ В планах. Сейчас фронт работает напрямую через Supabase SDK.
 
 ### GET /api/v1/notebooks/community
 
@@ -285,13 +283,13 @@
 
 **Параметры:**
 
-| Параметр | Тип  | По умолчанию | Описание                               |
-| ---------------- | ------- | ----------------------- | ---------------------------------------------- |
-| `search`       | string  | —                      | Поиск по названию и тегам |
-| `tags`         | string  | —                      | Теги через запятую             |
-| `sort`         | string  | `rating`              | `rating`, `newest`, `popular`            |
-| `page`         | integer | 1                       | Страница                               |
-| `limit`        | integer | 20                      | На странице (макс. 50)           |
+| Параметр | Тип  | По умолчанию | Описание                                                 |
+| ---------------- | ------- | ----------------------- | ---------------------------------------------------------------- |
+| `search`       | string  | —                      | Поиск по названию, описанию и тегам |
+| `tags`         | string  | —                      | Теги через запятую                               |
+| `sort`         | string  | `rating`              | `rating`, `newest`, `popular`                              |
+| `page`         | integer | 1                       | Страница                                                 |
+| `limit`        | integer | 20                      | На странице (макс. 50)                             |
 
 **Ответ (200):**
 
@@ -301,13 +299,13 @@
     {
       "id": "uuid",
       "title": "Тригонометрия для ЕГЭ",
+      "description": "Конспект по тригонометрии",
       "color": "#A78BFA",
       "tags": ["math", "EGE", "тригонометрия"],
-      "is_verified": true,
       "average_rating": 4.5,
-      "total_ratings": 28,
+      "ratings_count": 28,
       "pages_count": 15,
-      "author": { "id": "uuid", "first_name": "Илья" },
+      "author": { "id": "uuid", "first_name": "Илья", "last_name": "Емельянов", "email": "..." },
       "created_at": "..."
     }
   ],
@@ -345,6 +343,4 @@
 
 Формат: `{ "error": "описание ошибки" }`
 
-```
-
-```
+---
