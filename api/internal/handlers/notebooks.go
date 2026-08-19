@@ -628,7 +628,7 @@ func (h *NotebooksHandler) GetCommunityNotebooks(c *gin.Context) {
 	// Загружаем авторов
 	authors := make(map[string]gin.H)
 	if len(userIDs) > 0 {
-		usersEndpoint := fmt.Sprintf("rubium_users?select=id,first_name,email,avatar_url&id=in.(%s)", strings.Join(userIDs, ","))
+		usersEndpoint := fmt.Sprintf("rubium_users?select=id,first_name,last_name,email,avatar_url&id=in.(%s)", strings.Join(userIDs, ","))
 		rawUsers, err := h.client.RawQuery(usersEndpoint, false)
 		if err == nil {
 			if len(rawUsers) > 0 && rawUsers[0] == '{' {
@@ -637,6 +637,7 @@ func (h *NotebooksHandler) GetCommunityNotebooks(c *gin.Context) {
 			var users []struct {
 				ID        string `json:"id"`
 				FirstName string `json:"first_name"`
+				LastName  string `json:"last_name"`
 				Email     string `json:"email"`
 				AvatarURL string `json:"avatar_url"`
 			}
@@ -645,6 +646,7 @@ func (h *NotebooksHandler) GetCommunityNotebooks(c *gin.Context) {
 					authors[u.ID] = gin.H{
 						"id":         u.ID,
 						"first_name": u.FirstName,
+						"last_name":  u.LastName,
 						"email":      u.Email,
 						"avatar_url": u.AvatarURL,
 					}
