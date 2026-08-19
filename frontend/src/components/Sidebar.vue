@@ -28,7 +28,10 @@
     
     <div class="sidebar-footer">
       <router-link to="/profile" class="user-link">
-        <div class="user-avatar">{{ auth.userName[0]?.toUpperCase() || 'У' }}</div>
+        <div class="user-avatar">
+          <img v-if="auth.profile?.avatar_url" :src="auth.profile.avatar_url" alt="Аватар">
+          <span v-else>{{ auth.userName[0]?.toUpperCase() || 'У' }}</span>
+        </div>
         <div class="user-info">
           <div class="user-name">{{ auth.userName }}</div>
           <div class="user-email">{{ auth.user?.email }}</div>
@@ -151,6 +154,26 @@ defineExpose({ toggle })
   font-weight: 700;
   color: white;
   flex-shrink: 0;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #A78BFA, #F472B6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .user-info {

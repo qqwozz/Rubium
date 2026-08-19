@@ -102,7 +102,10 @@
               </div>
 
               <div class="modal-author">
-                <div class="author-avatar">{{ getInitial(selectedNotebook.author) }}</div>
+                <div class="author-avatar">
+                    <img v-if="getAuthorAvatar(selectedNotebook.author)" :src="getAuthorAvatar(selectedNotebook.author)" alt="Аватар">
+                    <span v-else>{{ getInitial(selectedNotebook.author) }}</span>
+                </div>
                 <div>
                   <div class="author-name">{{ getAuthorFullName(selectedNotebook.author) }}</div>
                   <div class="author-email">{{ getAuthorEmail(selectedNotebook.author) }}</div>
@@ -173,7 +176,6 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
-import { supabase } from '../api/supabase'
 import { apiFetch } from '../api/client'
 
 const router = useRouter()
@@ -197,6 +199,10 @@ const sorts = [
 function getInitial(author) {
   if (!author) return 'А'
   return (author.first_name || author.email || 'А')[0].toUpperCase()
+}
+
+function getAuthorAvatar(author) {
+  return author?.avatar_url || ''
 }
 
 function getAuthorFullName(author) {
@@ -226,7 +232,7 @@ async function loadNotebooks() {
   loading.value = true
   try {
     const params = new URLSearchParams()
-    if (searchQuery.value) params.append('search', searchQuery.value)
+    if (searchQuery.value.trim()) params.append('search', searchQuery.value.trim())
     params.append('sort', currentSort.value)
     
     const data = await apiFetch(`/notebooks/community?${params}`)
@@ -253,15 +259,12 @@ function openRateModal() {
 }
 
 async function incrementViews() {
-  if (!selectedNotebook.value) return
+  if (!selectedNotebook.value?.id) return
   
   try {
-    const { error } = await supabase
-      .from('notebooks')
-      .update({ views_count: (selectedNotebook.value.views_count || 0) + 1 })
-      .eq('id', selectedNotebook.value.id)
-    
-    if (error) throw error
+    await apiFetch(`/notebooks/${selectedNotebook.value.id}/view`, {
+      method: 'POST'
+    })
     
     router.push(`/notebook/${selectedNotebook.value.id}`)
   } catch (e) {
@@ -777,6 +780,13 @@ onMounted(loadNotebooks)
   font-size: 1.3rem;
   font-weight: 800;
   margin-bottom: 24px;
+}
+
+.author-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .rate-stars {

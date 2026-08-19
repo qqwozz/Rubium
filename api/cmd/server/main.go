@@ -52,25 +52,28 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
+	// --- Notebooks: community (без middleware, отдельный роут) ---
+	r.GET("/api/v1/notebooks/community", notebooks.GetCommunityNotebooks)
+
 	// --- Notebooks: публичные / опциональная авторизация ---
 	nb := r.Group("/api/v1/notebooks")
 	nb.Use(middleware.OptionalAuth(client))
 	{
-		nb.GET("/community", notebooks.GetCommunityNotebooks) // Список публичных тетрадей
-		nb.GET("/:id", notebooks.GetNotebookByID)              // Просмотр тетради
-		nb.GET("/:id/rating", notebooks.GetRating)              // Получить рейтинг
+		nb.GET("/:id", notebooks.GetNotebookByID)  // Просмотр тетради
+		nb.GET("/:id/rating", notebooks.GetRating) // Получить рейтинг
 	}
 
 	// --- Notebooks: только авторизованные ---
 	nbPrivate := r.Group("/api/v1/notebooks")
 	nbPrivate.Use(middleware.RequireAuth(client))
 	{
-		nbPrivate.GET("", notebooks.GetNotebooks)           // Мои тетради
-		nbPrivate.POST("", notebooks.CreateNotebook)        // Создать
-		nbPrivate.PUT("/:id", notebooks.UpdateNotebook)     // Обновить
-		nbPrivate.DELETE("/:id", notebooks.DeleteNotebook)  // Удалить
-		nbPrivate.POST("/:id/copy", notebooks.CopyNotebook) // Копировать
-		nbPrivate.POST("/:id/rate", notebooks.RateNotebook) // Оценить
+		nbPrivate.GET("", notebooks.GetNotebooks)             // Мои тетради
+		nbPrivate.POST("", notebooks.CreateNotebook)          // Создать
+		nbPrivate.PUT("/:id", notebooks.UpdateNotebook)       // Обновить
+		nbPrivate.DELETE("/:id", notebooks.DeleteNotebook)    // Удалить
+		nbPrivate.POST("/:id/copy", notebooks.CopyNotebook)   // Копировать
+		nbPrivate.POST("/:id/rate", notebooks.RateNotebook)   // Оценить
+		nbPrivate.POST("/:id/view", notebooks.IncrementViews) // Увеличить просмотры
 	}
 
 	// HTTP-сервер с таймаутами (prod-ready)

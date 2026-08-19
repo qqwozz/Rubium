@@ -544,12 +544,43 @@ func (h *NotebooksHandler) GetRating(c *gin.Context) {
 	})
 }
 
+func (h *NotebooksHandler) IncrementViews(c *gin.Context) {
+	id := c.Param("id")
+	if !isValidUUID(id) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный UUID"})
+		return
+	}
+
+	var rows []notebookRow
+	endpoint := fmt.Sprintf("notebooks?select=id,views_count&id=eq.%s&limit=1", id)
+	if err := h.client.Query(endpoint, true, &rows); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if len(rows) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "тетрадь не найдена"})
+		return
+	}
+
+	newViews := rows[0].ViewsCount + 1
+
+	patchEndpoint := fmt.Sprintf("notebooks?id=eq.%s", id)
+	if err := h.client.Patch(patchEndpoint, true, map[string]interface{}{
+		"views_count": newViews,
+	}); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"views_count": newViews})
+}
+
 func (h *NotebooksHandler) GetCommunityNotebooks(c *gin.Context) {
 	sort := c.DefaultQuery("sort", "rating")
 	search := c.Query("search")
 	limit := c.DefaultQuery("limit", "50")
 
-	selectFields := "id,user_id,title,description,color,tags,is_public,average_rating,views_count,copies_count,created_at,updated_at,content,rubium_users(id,first_name,email)"
+	selectFields := "id,user_id,title,description,color,tags,is_public,average_rating,views_count,copies_count,created_at,updated_at"
 
 	filters := []string{
 		"select=" + selectFields,
@@ -557,7 +588,7 @@ func (h *NotebooksHandler) GetCommunityNotebooks(c *gin.Context) {
 	}
 
 	if search != "" {
-		filters = append(filters, fmt.Sprintf("or=(title.ilike.*%s*,description.ilike.*%s*,tags.cs.{%s})", search, search, search))
+		filters = append(filters, fmt.Sprintf("or=(title.ilike.*%s*,description.ilike.*%s*)", search, search))
 	}
 
 	switch sort {
@@ -582,26 +613,58 @@ func (h *NotebooksHandler) GetCommunityNotebooks(c *gin.Context) {
 		rawNotebooks = append([]byte("["), append(rawNotebooks, []byte("]")...)...)
 	}
 
-	var raw []struct {
-		notebookRow
-		RubiumUsers struct {
-			ID        string `json:"id"`
-			FirstName string `json:"first_name"`
-			Email     string `json:"email"`
-		} `json:"rubium_users"`
-	}
-	if err := json.Unmarshal(rawNotebooks, &raw); err != nil {
+	var rows []notebookRow
+	if err := json.Unmarshal(rawNotebooks, &rows); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	notebooks := make([]gin.H, 0, len(raw))
-	for _, r := range raw {
-		resp := r.notebookRow.toResponse(false)
-		resp["author"] = gin.H{
-			"id":         r.RubiumUsers.ID,
-			"first_name": r.RubiumUsers.FirstName,
-			"email":      r.RubiumUsers.Email,
+	// Собираем user_ids
+	userIDs := make([]string, 0, len(rows))
+	for _, r := range rows {
+		userIDs = append(userIDs, r.UserID)
+	}
+
+	// Загружаем авторов
+	authors := make(map[string]gin.H)
+	if len(userIDs) > 0 {
+		usersEndpoint := fmt.Sprintf("rubium_users?select=id,first_name,email,avatar_url&id=in.(%s)", strings.Join(userIDs, ","))
+		rawUsers, err := h.client.RawQuery(usersEndpoint, false)
+		if err == nil {
+			if len(rawUsers) > 0 && rawUsers[0] == '{' {
+				rawUsers = append([]byte("["), append(rawUsers, []byte("]")...)...)
+			}
+			var users []struct {
+				ID        string `json:"id"`
+				FirstName string `json:"first_name"`
+				Email     string `json:"email"`
+				AvatarURL string `json:"avatar_url"`
+			}
+			if json.Unmarshal(rawUsers, &users) == nil {
+				for _, u := range users {
+					authors[u.ID] = gin.H{
+						"id":         u.ID,
+						"first_name": u.FirstName,
+						"email":      u.Email,
+						"avatar_url": u.AvatarURL,
+					}
+				}
+			}
+		}
+	}
+
+	notebooks := make([]gin.H, 0, len(rows))
+	for _, r := range rows {
+		resp := r.toResponse(false)
+		if author, ok := authors[r.UserID]; ok {
+			resp["author"] = author
+		} else {
+			resp["author"] = gin.H{
+				"id":         "",
+				"first_name": "Автор",
+				"email":      "",
+				"avatar_url": "",
+			}
 		}
 		notebooks = append(notebooks, resp)
 	}
