@@ -35,8 +35,8 @@ backend/   — Go API, Python
 
 | Имя           | Роль             | GitHub                          | Telegram         |
 | ------------- | ---------------- | ------------------------------- | ---------------- |
-| Илья Емельянов | CEO/CTO/Dev  | [nsdmlk](https://github.com/nsdmlk) | [@KantervilleGhost](https://t.me/KantervilleGhost) |
-| Дима Киселёв  | CEO/CTO/Dev     | [qqwozz](https://github.com/qqwozz) | [@onixxed](https://t.me/onixxed) |
+| Илья Емельянов | Lead Developer  | [nsdmlk](https://github.com/nsdmlk) | [@KantervilleGhost](https://t.me/KantervilleGhost) |
+| Дима Киселёв  | Lead Developer     | [qqwozz](https://github.com/qqwozz) | [@onixxed](https://t.me/onixxed) |
 | Олег Ветер | DevOps    | [veter22](https://github.com/veter22) | [@oveterr](https://t.me/oveterr) |
 
 ## Контрибьюторам
