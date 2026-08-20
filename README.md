@@ -1,4 +1,20 @@
+<div align="center">
+  <img src="assets/images/Rubium.png" alt="Rubium Logo" width="200"/>
+</div>
+
+<p align="center">
+  <img src="assets/images/Rubium.png" alt="Rubium Logo" width="200"/>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/status-active-success.svg" alt="Status"/>
+  <img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="Version"/>
+  <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"/>
+  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"/>
+</p>
+
 # Rubium — экосистема подготовки к ЕГЭ/ОГЭ
+
 
 Платформа для подготовки к экзаменам по математике и информатике.
 Тренажёр, рабочая тетрадь, кастомные варианты и сообщество.
@@ -52,6 +68,13 @@
 - Провайдер: DeepSeek (основной), OpenAI (фолбэк)
 - Подсказки к заданиям
 - AI-проверка развёрнутых ответов и кода
+
+## ✨ Почему Rubium?
+
+- 🎯 **Нацеленность на результат** — все инструменты для подготовки к экзаменам в одном месте
+- 🤖 **AI-помощь** — умные подсказки без спойлеров
+- 📊 **Персональная аналитика** — видите свой прогресс в реальном времени
+- 👥 **Сообщество** — обменивайтесь опытом и решениями
 
 ## Технологии
 
