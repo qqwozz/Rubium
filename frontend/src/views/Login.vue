@@ -24,48 +24,8 @@
       </form>
       
       <p class="register-link">
-        Нет аккаунта? <a href="#" @click.prevent="showRegister = true">Зарегистрируйся</a>
+        Нет аккаунта? <router-link to="/register">Зарегистрируйся</router-link>
       </p>
-    </div>
-    
-    <div v-if="showRegister" class="modal" @click.self="showRegister = false">
-      <div class="login-card">
-        <div class="login-brand"><span>Rub</span>ium</div>
-        <p class="login-subtitle">Создай аккаунт</p>
-        
-        <form @submit.prevent="handleRegister">
-          <div class="form-group">
-            <label>Имя</label>
-            <input v-model="firstName" type="text" required>
-          </div>
-          
-          <div class="form-group">
-            <label>Фамилия</label>
-            <input v-model="lastName" type="text">
-          </div>
-          
-          <div class="form-group">
-            <label>Email</label>
-            <input v-model="regEmail" type="email" required>
-          </div>
-          
-          <div class="form-group">
-            <label>Пароль</label>
-            <input v-model="regPassword" type="password" required minlength="6">
-          </div>
-          
-          <button type="submit" class="btn-login" :disabled="loading">
-            <i v-if="loading" class="fas fa-spinner fa-spin"></i>
-            <span v-else>Создать аккаунт</span>
-          </button>
-          
-          <p v-if="error" class="error">{{ error }}</p>
-        </form>
-        
-        <p class="register-link">
-          <a href="#" @click.prevent="showRegister = false">Назад к входу</a>
-        </p>
-      </div>
     </div>
   </div>
 </template>
@@ -75,48 +35,23 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
-console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL)
-
 const router = useRouter()
 const auth = useAuthStore()
 
 const email = ref('')
 const password = ref('')
-const firstName = ref('')
-const lastName = ref('')
-const regEmail = ref('')
-const regPassword = ref('')
 const loading = ref(false)
 const error = ref('')
-const showRegister = ref(false)
 
 async function handleLogin() {
-  console.log('handleLogin called')
   loading.value = true
   error.value = ''
   
   try {
-    console.log('Calling auth.login...')
     await auth.login(email.value, password.value)
-    console.log('Login success')
     router.push('/')
   } catch (e) {
-    console.log('Login error:', e)
     error.value = e.message || 'Ошибка входа'
-  } finally {
-    loading.value = false
-  }
-}
-
-async function handleRegister() {
-  loading.value = true
-  error.value = ''
-  
-  try {
-    await auth.register(regEmail.value, regPassword.value, firstName.value, lastName.value)
-    router.push('/')
-  } catch (e) {
-    error.value = e.message || 'Ошибка регистрации'
   } finally {
     loading.value = false
   }
@@ -231,16 +166,5 @@ async function handleRegister() {
 .register-link a {
   color: #A78BFA;
   text-decoration: none;
-}
-
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
-  padding: 20px;
 }
 </style>

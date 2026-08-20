@@ -124,9 +124,8 @@ import { useRoute, useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import { apiFetch } from '../api/client'
 import NotebookEditor from '../components/NotebookEditor.vue'
-import { onBeforeUnmount, onMounted, onBeforeRouteLeave } from 'vue'
-import { useRoute, useRouter, onBeforeRouteLeave as onLeave } from 'vue-router'
-
+import { onBeforeUnmount} from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 let autoSaveTimer = null
 
 function debouncedSave() {
@@ -151,11 +150,11 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown)
   if (autoSaveTimer) clearTimeout(autoSaveTimer)
-  saveNotebook()
+  if (route.params.id) saveNotebook()
 })
 
 onBeforeRouteLeave(() => {
-  saveNotebook()
+  if (route.params.id) saveNotebook()
 })
 
 const route = useRoute()
@@ -268,6 +267,8 @@ function selectPage(page) {
 }
 
 async function saveNotebook() {
+  if (!route.params.id) return
+  
   saving.value = true
   try {
     await apiFetch(`/notebooks/${route.params.id}`, {
@@ -278,13 +279,11 @@ async function saveNotebook() {
     })
   } catch (e) {
     console.error(e)
-    alert('Ошибка сохранения')
   } finally {
     saving.value = false
   }
 }
 
-onMounted(loadNotebook)
 </script>
 
 <style scoped>

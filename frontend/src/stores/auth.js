@@ -103,6 +103,34 @@ export const useAuthStore = defineStore('auth', {
       if (error) throw error
 
       this.user = data.user
+
+      // Создаём запись в rubium_users
+      if (data.user) {
+        const { error: insertError } = await supabase
+          .from('rubium_users')
+          .insert({
+            auth_id: data.user.id,
+            email: email,
+            first_name: firstName,
+            last_name: lastName,
+            status: 'user'
+          })
+
+        if (insertError) {
+          console.error('Failed to create profile:', insertError)
+        } else {
+          // Загружаем профиль
+          const { data: profile } = await supabase
+            .from('rubium_users')
+            .select('*')
+            .eq('auth_id', data.user.id)
+            .maybeSingle()
+
+          if (profile) {
+            this.profile = profile
+          }
+        }
+      }
     },
 
     async logout() {
