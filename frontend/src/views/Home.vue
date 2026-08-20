@@ -10,15 +10,17 @@
       <div class="content">
         <div class="hero-card">
           <div class="hero-left">
-            <div class="hero-greeting">С возвращением</div>
+            <div class="hero-greeting">
+              <i class="fas fa-mountain"></i> Готов к новым вершинам?
+            </div>
             <div class="hero-name"><span>{{ auth.userName }}</span></div>
           </div>
           <div class="hero-actions">
-            <router-link to="/daily" class="hero-btn daily">
-              <i class="fa-solid fa-calendar-check"></i> Ежедневные задания
-            </router-link>
-            <router-link to="/trainer" class="hero-btn story">
+            <router-link to="/trainer" class="hero-btn daily">
               <i class="fa-solid fa-play"></i> Начать тренировку
+            </router-link>
+            <router-link to="/notebooks" class="hero-btn story">
+              <i class="fa-solid fa-book"></i> К моим тетрадям
             </router-link>
           </div>
         </div>
@@ -26,10 +28,9 @@
         <section class="section">
           <div class="section-title"><i class="fas fa-info-circle"></i> О Rubium</div>
           <div class="about-text">
-            <strong>Rubium</strong> — экосистема для подготовки к экзаменам и учёбы в университете.
-            Тренажёр с заданиями из ФИПИ, <strong>рабочая тетрадь</strong> для конспектов,
-            <strong>кастомные варианты</strong> ЕГЭ/ОГЭ и <strong>сообщество</strong>, где можно делиться материалами.
-            Подходит для школьников 9–11 классов, студентов и преподавателей.
+            <strong>Rubium</strong> — это <em>образовательная среда</em> нового поколения, созданная <strong>студентами</strong> для <strong>студентов</strong>. 
+            Она объединяет подготовку к экзаменам, обмен знаниями и доступ к реальным карьерным возможностям в одном <em>цифровом пространстве</em>. 
+            Здесь каждый учится, растёт и строит свой путь к <strong>сильному будущему</strong>.
           </div>
         </section>
 
@@ -39,44 +40,71 @@
             <div class="feature-card">
               <span class="icon"><i class="fas fa-brain"></i></span>
               <h3>Тренажёр</h3>
-              <p>Задания из открытого банка ФИПИ с мгновенной проверкой и AI-подсказками.</p>
+              <p>Решай задания из открытого банка ФИПИ и проверяй себя мгновенно.</p>
             </div>
             <div class="feature-card">
               <span class="icon"><i class="fas fa-book"></i></span>
               <h3>Рабочая тетрадь</h3>
-              <p>Markdown-редактор с формулами, кодом и автосохранением. Веди конспекты и публикуй их в сообществе.</p>
+              <p>Пиши конспекты с формулами и таблицами. Автосохранение включено.</p>
             </div>
             <div class="feature-card">
-              <span class="icon"><i class="fas fa-file-pen"></i></span>
-              <h3>Кастомные варианты</h3>
-              <p>Собирай вариант из нужных номеров, решай с таймером и получай автопроверку в баллах ЕГЭ/ОГЭ.</p>
+              <span class="icon"><i class="fas fa-globe"></i></span>
+              <h3>Сообщество</h3>
+              <p>Находи публичные тетради, сохраняй их себе и делись своими конспектами.</p>
             </div>
             <div class="feature-card">
-              <span class="icon"><i class="fas fa-chart-line"></i></span>
-              <h3>Статистика</h3>
-              <p>Личный прогресс по темам, точность, стрик дней и рейтинг среди других учеников.</p>
+              <span class="icon"><i class="fas fa-rocket"></i></span>
+              <h3>Развитие</h3>
+              <p>Подготовка к экзаменам, обмен знаниями и путь к карьере — всё в одном пространстве.</p>
             </div>
           </div>
         </section>
 
         <section class="section">
-          <div class="section-title"><i class="fas fa-route"></i> Как начать</div>
+          <div class="section-title"><i class="fas fa-route"></i> С чего начать</div>
           <div class="steps-grid">
             <div class="step-card">
               <div class="step-number">1</div>
-              <h3>Зарегистрируйся</h3>
-              <p>Создай аккаунт в Rubium</p>
+              <h3>Создай аккаунт</h3>
+              <p>Это займёт меньше минуты</p>
             </div>
             <div class="step-card">
               <div class="step-number">2</div>
-              <h3>Выбери предмет</h3>
-              <p>Математика, информатика, физика, русский язык и другие</p>
+              <h3>Открой тренажёр</h3>
+              <p>Решай задания из банка ФИПИ</p>
             </div>
             <div class="step-card">
               <div class="step-number">3</div>
-              <h3>Начни заниматься</h3>
-              <p>Решай задания, веди тетрадь, создавай варианты и следи за прогрессом</p>
+              <h3>Веди тетрадь</h3>
+              <p>Сохраняй конспекты и делись ими</p>
             </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-title"><i class="fab fa-telegram"></i> Наши Telegram-каналы</div>
+          <div class="tg-grid">
+            <a href="https://t.me/rubium_edu" target="_blank" class="tg-card">
+              <div class="tg-icon public">
+                <i class="fab fa-telegram"></i>
+              </div>
+              <div class="tg-info">
+                <h3>Rubium</h3>
+                <p>Новости, обновления и анонсы платформы. Будь в курсе всего первым.</p>
+              </div>
+              <i class="fas fa-arrow-up-right-from-square tg-arrow"></i>
+            </a>
+            
+            <a href="https://t.me/+5KS-7mS6aDw0NDJi" target="_blank" class="tg-card">
+              <div class="tg-icon tech">
+                <i class="fas fa-laptop-code"></i>
+              </div>
+              <div class="tg-info">
+                <h3>Rubium Tech</h3>
+                <p>Хочешь быть частью команды разработчиков? Попробуй себя в реальном проекте.</p>
+              </div>
+              <i class="fas fa-arrow-up-right-from-square tg-arrow"></i>
+            </a>
           </div>
         </section>
 
@@ -164,7 +192,6 @@ const developers = [
   padding: 24px 32px 32px;
 }
 
-/* HERO */
 .hero-card {
   background: linear-gradient(135deg, rgba(167,139,250,0.1), rgba(244,114,182,0.06));
   border: 1px solid rgba(167,139,250,0.1);
@@ -179,9 +206,16 @@ const developers = [
 }
 
 .hero-greeting {
-  font-size: 0.85rem;
+  font-size: 1rem;
   color: #94A3B8;
   margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+}
+
+.hero-greeting i {
+  margin-right: 8px;
+  color: #A78BFA;
 }
 
 .hero-name {
@@ -233,7 +267,6 @@ const developers = [
   transform: translateY(-2px);
 }
 
-/* SECTIONS */
 .section {
   margin-bottom: 40px;
 }
@@ -262,7 +295,6 @@ const developers = [
   color: #F1F5F9;
 }
 
-/* FEATURES */
 .features-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -302,7 +334,6 @@ const developers = [
   line-height: 1.5;
 }
 
-/* STEPS */
 .steps-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -342,7 +373,74 @@ const developers = [
   line-height: 1.5;
 }
 
-/* DEVELOPERS */
+.tg-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.tg-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 20px 22px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s;
+}
+
+.tg-card:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(167,139,250,0.15);
+  transform: translateY(-2px);
+}
+
+.tg-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.tg-icon.public {
+  background: rgba(56,189,248,0.15);
+  color: #38BDF8;
+}
+
+.tg-icon.tech {
+  background: rgba(167,139,250,0.15);
+  color: #A78BFA;
+}
+
+.tg-info {
+  flex: 1;
+}
+
+.tg-info h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.tg-info p {
+  font-size: 0.78rem;
+  color: #94A3B8;
+  line-height: 1.4;
+}
+
+.tg-arrow {
+  color: #64748B;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
 .devs-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -419,6 +517,7 @@ const developers = [
   }
   .features-grid,
   .steps-grid,
+  .tg-grid,
   .devs-grid {
     grid-template-columns: 1fr;
   }

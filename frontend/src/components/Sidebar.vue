@@ -9,9 +9,9 @@
       <router-link to="/trainer" class="nav-link">
         <i class="fas fa-pencil"></i> Тренажёр
       </router-link>
-      <router-link to="/daily" class="nav-link">
+      <!-- <router-link to="/daily" class="nav-link">
         <i class="fas fa-calendar-day"></i> Ежедневные
-      </router-link>
+      </router-link> -->
       <router-link to="/notebooks" class="nav-link">
         <i class="fas fa-book"></i> Мои тетради
       </router-link>
