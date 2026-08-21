@@ -110,8 +110,14 @@ async function handleRegister() {
   error.value = ''
   
   try {
-    await auth.register(email.value, password.value, firstName.value, lastName.value)
-    router.push('/')
+    const result = await auth.register(email.value, password.value, firstName.value, lastName.value)
+    
+    if (result.requiresVerification) {
+      localStorage.setItem('pendingEmail', email.value)
+      router.push('/verify-email')
+    } else {
+      router.push('/')
+    }
   } catch (e) {
     error.value = e.message || 'Ошибка регистрации'
     setTimeout(() => { error.value = '' }, 5000)
