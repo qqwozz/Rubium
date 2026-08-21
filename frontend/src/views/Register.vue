@@ -29,14 +29,24 @@
           <i v-if="loading" class="fas fa-spinner fa-spin"></i>
           <span v-else>Создать аккаунт</span>
         </button>
-        
-        <p v-if="error" class="error">{{ error }}</p>
       </form>
       
       <p class="register-link">
         Уже есть аккаунт? <router-link to="/login">Войти</router-link>
       </p>
     </div>
+    
+    <Teleport to="body">
+      <Transition name="banner">
+        <div v-if="error" class="banner error-banner" @click="error = ''">
+          <i class="fas fa-exclamation-circle"></i>
+          <span>{{ error }}</span>
+          <button class="banner-close" @click.stop="error = ''">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -64,6 +74,7 @@ async function handleRegister() {
     router.push('/')
   } catch (e) {
     error.value = e.message || 'Ошибка регистрации'
+    setTimeout(() => { error.value = '' }, 5000)
   } finally {
     loading.value = false
   }
@@ -161,13 +172,6 @@ async function handleRegister() {
   cursor: not-allowed;
 }
 
-.error {
-  color: #F87171;
-  font-size: 0.8rem;
-  margin-top: 12px;
-  text-align: center;
-}
-
 .register-link {
   text-align: center;
   margin-top: 16px;
@@ -178,5 +182,66 @@ async function handleRegister() {
 .register-link a {
   color: #A78BFA;
   text-decoration: none;
+}
+
+.banner {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  z-index: 9999;
+  max-width: 400px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  cursor: pointer;
+}
+
+.error-banner {
+  background: rgba(248,113,113,0.15);
+  border: 1px solid rgba(248,113,113,0.3);
+  color: #F87171;
+}
+
+.banner i {
+  font-size: 1.2rem;
+}
+
+.banner span {
+  flex: 1;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.banner-close {
+  background: none;
+  border: none;
+  color: #F87171;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.banner-close:hover {
+  background: rgba(248,113,113,0.2);
+}
+
+.banner-enter-active,
+.banner-leave-active {
+  transition: all 0.3s;
+}
+
+.banner-enter-from {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.banner-leave-to {
+  transform: translateX(100%);
+  opacity: 0;
 }
 </style>
