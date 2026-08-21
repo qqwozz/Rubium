@@ -16,11 +16,11 @@
             <div class="hero-name"><span>{{ auth.userName }}</span></div>
           </div>
           <div class="hero-actions">
-            <router-link to="/trainer" class="hero-btn daily">
-              <i class="fa-solid fa-play"></i> Начать тренировку
-            </router-link>
             <router-link to="/notebooks" class="hero-btn story">
               <i class="fa-solid fa-book"></i> К моим тетрадям
+            </router-link>
+            <router-link to="/community" class="hero-btn daily">
+              <i class="fa-solid fa-globe"></i> В каталог тетрадей
             </router-link>
           </div>
         </div>
@@ -38,11 +38,6 @@
           <div class="section-title"><i class="fas fa-cubes"></i> Возможности</div>
           <div class="features-grid">
             <div class="feature-card">
-              <span class="icon"><i class="fas fa-brain"></i></span>
-              <h3>Тренажёр</h3>
-              <p>Решай задания из открытого банка ФИПИ и проверяй себя мгновенно.</p>
-            </div>
-            <div class="feature-card">
               <span class="icon"><i class="fas fa-book"></i></span>
               <h3>Рабочая тетрадь</h3>
               <p>Пиши конспекты с формулами и таблицами. Автосохранение включено.</p>
@@ -51,6 +46,11 @@
               <span class="icon"><i class="fas fa-globe"></i></span>
               <h3>Сообщество</h3>
               <p>Находи публичные тетради, сохраняй их себе и делись своими конспектами.</p>
+            </div>
+            <div class="feature-card">
+              <span class="icon"><i class="fas fa-graduation-cap"></i></span>
+              <h3>Каталог курсов</h3>
+              <p>Бесплатные курсы от MIT, Stanford, Harvard и других университетов.</p>
             </div>
             <div class="feature-card">
               <span class="icon"><i class="fas fa-rocket"></i></span>
@@ -70,13 +70,13 @@
             </div>
             <div class="step-card">
               <div class="step-number">2</div>
-              <h3>Открой тренажёр</h3>
-              <p>Решай задания из банка ФИПИ</p>
+              <h3>Веди тетрадь</h3>
+              <p>Сохраняй конспекты и делись ими</p>
             </div>
             <div class="step-card">
               <div class="step-number">3</div>
-              <h3>Веди тетрадь</h3>
-              <p>Сохраняй конспекты и делись ими</p>
+              <h3>Ищи возможности</h3>
+              <p>Выбери курс в каталоге и конспектируй его тут</p>
             </div>
           </div>
         </section>
@@ -109,7 +109,7 @@
         </section>
 
         <section class="section">
-          <div class="section-title"><i class="fas fa-code"></i> Разработчики</div>
+          <div class="section-title"><i class="fas fa-code"></i> Создатели</div>
           <div class="devs-grid">
             <div v-for="dev in developers" :key="dev.name" class="dev-card">
               <div class="dev-avatar">
