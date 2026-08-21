@@ -6,6 +6,7 @@
   <img src="https://img.shields.io/badge/status-active-success.svg" alt="Status"/>
   <img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="Version"/>
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"/>
+  <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"/>
 </p>
 
 # Rubium
@@ -13,6 +14,10 @@
 **Rubium** — open-source образовательная платформа для подготовки к ЕГЭ/ОГЭ.
 
 От студентов для студентов. Не просто пет-проект — живой продукт, которым пользуются реальные люди.
+
+## 📜 Лицензия
+
+Этот проект распространяется под лицензией **Apache License 2.0**. Подробности в файле [LICENSE](LICENSE).
 
 ## Стек
 
