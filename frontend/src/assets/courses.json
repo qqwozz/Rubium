@@ -1,0 +1,189 @@
+[
+  {
+    "id": 1,
+    "name": "MIT 6.006 — Introduction to Algorithms",
+    "description": "Классический курс по алгоритмам и структурам данных.",
+    "subjects": ["Алгоритмы", "Структуры данных", "Computer Science"],
+    "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020",
+    "type": "course",
+    "free": true,
+    "university": "MIT",
+    "rating": 4.9
+  },
+  {
+    "id": 2,
+    "name": "MIT 6.S191 — Introduction to Deep Learning",
+    "description": "Современный курс по глубокому обучению: нейросети, компьютерное зрение, NLP.",
+    "subjects": ["Deep Learning", "AI", "Нейросети"],
+    "url": "http://introtodeeplearning.com",
+    "type": "course",
+    "free": true,
+    "university": "MIT",
+    "rating": 4.9
+  },
+  {
+    "id": 3,
+    "name": "MIT 18.06 — Linear Algebra",
+    "description": "Линейная алгебра от Gilbert Strang. Один из лучших курсов MIT.",
+    "subjects": ["Математика", "Линейная алгебра"],
+    "url": "https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010",
+    "type": "course",
+    "free": true,
+    "university": "MIT",
+    "rating": 5.0
+  },
+  {
+    "id": 4,
+    "name": "Stanford CS229 — Machine Learning",
+    "description": "Классический курс машинного обучения от Andrew Ng.",
+    "subjects": ["Machine Learning", "AI"],
+    "url": "https://cs229.stanford.edu",
+    "type": "course",
+    "free": true,
+    "university": "Stanford",
+    "rating": 4.9
+  },
+  {
+    "id": 5,
+    "name": "Stanford CS224N — NLP with Deep Learning",
+    "description": "Обработка естественного языка: transformers, attention, LLM.",
+    "subjects": ["NLP", "Deep Learning", "AI"],
+    "url": "https://web.stanford.edu/class/cs224n",
+    "type": "course",
+    "free": true,
+    "university": "Stanford",
+    "rating": 4.9
+  },
+  {
+    "id": 6,
+    "name": "Stanford CS231N — CNNs for Visual Recognition",
+    "description": "Компьютерное зрение и свёрточные нейросети.",
+    "subjects": ["Computer Vision", "Deep Learning", "AI"],
+    "url": "https://cs231n.stanford.edu",
+    "type": "course",
+    "free": true,
+    "university": "Stanford",
+    "rating": 4.9
+  },
+  {
+    "id": 7,
+    "name": "Princeton Algorithms I & II",
+    "description": "Алгоритмы и структуры данных от Robert Sedgewick.",
+    "subjects": ["Алгоритмы", "Java", "Computer Science"],
+    "url": "https://algs4.cs.princeton.edu",
+    "type": "course",
+    "free": true,
+    "university": "Princeton",
+    "rating": 4.8
+  },
+  {
+    "id": 8,
+    "name": "CS50 — Harvard",
+    "description": "Введение в компьютерные науки. Самый известный курс по программированию.",
+    "subjects": ["Программирование", "Алгоритмы", "Computer Science"],
+    "url": "https://cs50.harvard.edu",
+    "type": "course",
+    "free": true,
+    "university": "Harvard",
+    "rating": 4.9
+  },
+  {
+    "id": 9,
+    "name": "Berkeley CS 61A — Structure and Interpretation of Computer Programs",
+    "description": "Основы программирования и компьютерных наук на Python.",
+    "subjects": ["Программирование", "Python", "Computer Science"],
+    "url": "https://cs61a.org",
+    "type": "course",
+    "free": true,
+    "university": "UC Berkeley",
+    "rating": 4.8
+  },
+  {
+    "id": 10,
+    "name": "MIT 6.042J — Mathematics for Computer Science",
+    "description": "Дискретная математика для программистов.",
+    "subjects": ["Математика", "Дискретная математика", "Computer Science"],
+    "url": "https://ocw.mit.edu/courses/6-042j-mathematics-for-computer-science-spring-2015",
+    "type": "course",
+    "free": true,
+    "university": "MIT",
+    "rating": 4.8
+  },
+  {
+    "id": 11,
+    "name": "Google Digital Garage — Fundamentals of Digital Marketing",
+    "description": "Бесплатный сертифицированный курс по цифровому маркетингу от Google.",
+    "subjects": ["Маркетинг", "Digital Marketing", "SEO", "SMM"],
+    "url": "https://learndigital.withgoogle.com/digitalgarage",
+    "type": "course",
+    "free": true,
+    "university": "Google",
+    "rating": 4.7
+  },
+  {
+    "id": 12,
+    "name": "HubSpot Academy — Inbound Marketing",
+    "description": "Бесплатные сертификации по inbound-маркетингу, контенту и продажам.",
+    "subjects": ["Маркетинг", "Content Marketing", "Sales"],
+    "url": "https://academy.hubspot.com",
+    "type": "course",
+    "free": true,
+    "university": "HubSpot",
+    "rating": 4.6
+  },
+  {
+    "id": 13,
+    "name": "Meta Blueprint — Social Media Marketing",
+    "description": "Официальные курсы по продвижению в Facebook и Instagram.",
+    "subjects": ["Маркетинг", "SMM", "Social Media"],
+    "url": "https://www.facebook.com/business/learn",
+    "type": "course",
+    "free": true,
+    "university": "Meta",
+    "rating": 4.6
+  },
+  {
+    "id": 14,
+    "name": "BBC Learning English",
+    "description": "Бесплатные материалы для изучения английского: видео, аудио, грамматика.",
+    "subjects": ["Английский язык"],
+    "url": "https://bbc.co.uk/learningenglish",
+    "type": "platform",
+    "free": true,
+    "university": "BBC",
+    "rating": 4.7
+  },
+  {
+    "id": 15,
+    "name": "Duolingo",
+    "description": "Изучение языков бесплатно: английский, немецкий, французский, испанский.",
+    "subjects": ["Английский", "Немецкий", "Французский", "Испанский"],
+    "url": "https://duolingo.com",
+    "type": "platform",
+    "free": true,
+    "university": "Duolingo",
+    "rating": 4.6
+  },
+  {
+    "id": 16,
+    "name": "Coursera — English for Career Development",
+    "description": "Курс английского для карьеры от University of Pennsylvania.",
+    "subjects": ["Английский язык", "Карьера"],
+    "url": "https://coursera.org/learn/english-for-career-development",
+    "type": "course",
+    "free": true,
+    "university": "University of Pennsylvania",
+    "rating": 4.7
+  },
+  {
+    "id": 17,
+    "name": "Harvard — Justice (Michael Sandel)",
+    "description": "Классический курс по философии и этике.",
+    "subjects": ["Философия", "Этика"],
+    "url": "https://www.edx.org/learn/philosophy/harvard-university-justice",
+    "type": "course",
+    "free": true,
+    "university": "Harvard",
+    "rating": 4.9
+  }
+]

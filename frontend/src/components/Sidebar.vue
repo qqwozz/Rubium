@@ -6,40 +6,46 @@
       <router-link to="/" class="nav-link">
         <i class="fas fa-house"></i> Главная
       </router-link>
-      <router-link to="/trainer" class="nav-link">
-        <i class="fas fa-pencil"></i> Тренажёр
-      </router-link>
-      <!-- <router-link to="/daily" class="nav-link">
-        <i class="fas fa-calendar-day"></i> Ежедневные
-      </router-link> -->
-      <router-link to="/notebooks" class="nav-link">
-        <i class="fas fa-book"></i> Мои тетради
-      </router-link>
       <router-link to="/community" class="nav-link">
         <i class="fas fa-globe"></i> Каталог тетрадей
       </router-link>
-      <router-link to="/profile" class="nav-link">
-        <i class="fas fa-user"></i> Профиль
+      <template v-if="auth.isAuthenticated">
+        <router-link to="/notebooks" class="nav-link">
+          <i class="fas fa-book"></i> Мои тетради
+        </router-link>
+        <router-link v-if="auth.isAdmin" to="/admin" class="nav-link admin-link">
+          <i class="fas fa-shield-halved"></i> Админ
+        </router-link>
+      </template>
+      <router-link to="/courses" class="nav-link">
+          <i class="fas fa-graduation-cap"></i> Каталог курсов
       </router-link>
-      <router-link v-if="auth.isAdmin" to="/admin" class="nav-link admin-link">
-        <i class="fas fa-shield-halved"></i> Админ
+      <router-link to="/rubium_tech" class="nav-link">
+          <i class="fas fa-laptop"></i> Rubium Tech
       </router-link>
     </nav>
     
     <div class="sidebar-footer">
-      <router-link to="/profile" class="user-link">
-        <div class="user-avatar">
-          <img v-if="auth.profile?.avatar_url" :src="auth.profile.avatar_url" alt="Аватар">
-          <span v-else>{{ auth.userName[0]?.toUpperCase() || 'У' }}</span>
-        </div>
-        <div class="user-info">
-          <div class="user-name">{{ auth.userName }}</div>
-          <div class="user-email">{{ auth.user?.email }}</div>
-        </div>
-      </router-link>
-      <button class="logout-btn" @click="auth.logout()">
-        <i class="fas fa-sign-out-alt"></i>
-      </button>
+      <template v-if="auth.isAuthenticated">
+        <router-link to="/profile" class="user-link">
+          <div class="user-avatar">
+            <img v-if="auth.profile?.avatar_url" :src="auth.profile.avatar_url" alt="Аватар">
+            <span v-else>{{ auth.userName[0]?.toUpperCase() || 'У' }}</span>
+          </div>
+          <div class="user-info">
+            <div class="user-name">{{ auth.userName }}</div>
+            <div class="user-email">{{ auth.user?.email }}</div>
+          </div>
+        </router-link>
+        <button class="logout-btn" @click="auth.logout()">
+          <i class="fas fa-sign-out-alt"></i>
+        </button>
+      </template>
+      <template v-else>
+        <router-link to="/login" class="login-btn">
+          <i class="fas fa-sign-in-alt"></i> Войти
+        </router-link>
+      </template>
     </div>
   </aside>
   
@@ -154,19 +160,6 @@ defineExpose({ toggle })
   font-weight: 700;
   color: white;
   flex-shrink: 0;
-}
-
-.user-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #A78BFA, #F472B6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  color: white;
-  flex-shrink: 0;
   overflow: hidden;
 }
 
@@ -212,6 +205,26 @@ defineExpose({ toggle })
   background: rgba(248,113,113,0.1);
   color: #F87171;
   border-radius: 30%;
+}
+
+.login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #A78BFA;
+  color: #0F0F1A;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.85rem;
+  width: 100%;
+  transition: all 0.3s;
+}
+
+.login-btn:hover {
+  background: #8B5CF6;
 }
 
 .overlay {

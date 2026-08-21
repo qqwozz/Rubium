@@ -21,13 +21,13 @@
 
 ## Стек
 
-| Слой       | Технологии                    |
-| ---------- | ----------------------------- |
-| Frontend   | Vue 3, Vite, Pinia, TipTap    |
-| Backend    | Go (gin), Python              |
-| Database   | Supabase (PostgreSQL)         |
-| Rendering  | KaTeX                         |
-| Auth       | Supabase Auth                 |
+| Слой  | Технологии       |
+| --------- | -------------------------- |
+| Frontend  | Vue 3, Vite, Pinia, TipTap |
+| Backend   | Go (gin), Python           |
+| Database  | Supabase (PostgreSQL)      |
+| Rendering | KaTeX                      |
+| Auth      | Supabase Auth              |
 
 ## Структура
 
@@ -38,11 +38,11 @@ backend/   — Go API, Python
 
 ## Команда
 
-| Имя           | Роль             | GitHub                          | Telegram         |
-| ------------- | ---------------- | ------------------------------- | ---------------- |
-| Илья Емельянов | Lead Developer  | [nsdmlk](https://github.com/nsdmlk) | [@KantervilleGhost](https://t.me/KantervilleGhost) |
-| Дима Киселёв  | Lead Developer     | [qqwozz](https://github.com/qqwozz) | [@onixxed](https://t.me/onixxed) |
-| Олег Ветер | DevOps    | [veter22](https://github.com/veter22) | [@oveterr](https://t.me/oveterr) |
+| Имя                      | Роль       | GitHub                               | Telegram                                          |
+| --------------------------- | -------------- | ------------------------------------ | ------------------------------------------------- |
+| Илья Емельянов | Lead Developer | [nsdmlk](https://github.com/nsdmlk)   | [@KantervilleGhost](https://t.me/KantervilleGhost) |
+| Дима Киселёв     | Lead Developer | [qqwozz](https://github.com/qqwozz)   | [@onixxed](https://t.me/onixxed)                   |
+| Олег Ветер         | DevOps         | [veter22](https://github.com/veter22) | [@oveterr](https://t.me/oveterr)                   |
 
 ## Контрибьюторам
 
@@ -56,4 +56,4 @@ backend/   — Go API, Python
 ---
 
 **Rubium** — строй будущее вместе с нами.
----
+-------------------------------------------------------------
