@@ -22,10 +22,31 @@
         
         <div class="form-group">
           <label>Пароль</label>
-          <input v-model="password" type="password" required minlength="6" placeholder="Минимум 6 символов">
+          <input 
+            v-model="password" 
+            type="password" 
+            required 
+            minlength="8" 
+            placeholder="Минимум 8 символов"
+            @input="validatePassword"
+          >
+          <div class="password-hints" v-if="password.length > 0">
+            <span :class="{ valid: hasMinLength }">
+              <i :class="hasMinLength ? 'fas fa-check-circle' : 'fas fa-circle'"></i> 8+ символов
+            </span>
+            <span :class="{ valid: hasUpperCase }">
+              <i :class="hasUpperCase ? 'fas fa-check-circle' : 'fas fa-circle'"></i> Заглавная буква
+            </span>
+            <span :class="{ valid: hasLowerCase }">
+              <i :class="hasLowerCase ? 'fas fa-check-circle' : 'fas fa-circle'"></i> Строчная буква
+            </span>
+            <span :class="{ valid: isLatinOnly }">
+              <i :class="isLatinOnly ? 'fas fa-check-circle' : 'fas fa-circle'"></i> Только латиница
+            </span>
+          </div>
         </div>
         
-        <button type="submit" class="btn-login" :disabled="loading">
+        <button type="submit" class="btn-login" :disabled="loading || !isPasswordValid">
           <i v-if="loading" class="fas fa-spinner fa-spin"></i>
           <span v-else>Создать аккаунт</span>
         </button>
@@ -51,7 +72,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
@@ -65,7 +86,26 @@ const password = ref('')
 const loading = ref(false)
 const error = ref('')
 
+const hasMinLength = computed(() => password.value.length >= 8)
+const hasUpperCase = computed(() => /[A-Z]/.test(password.value))
+const hasLowerCase = computed(() => /[a-z]/.test(password.value))
+const isLatinOnly = computed(() => /^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+$/.test(password.value))
+const isPasswordValid = computed(() => hasMinLength.value && hasUpperCase.value && hasLowerCase.value && isLatinOnly.value)
+
+function validatePassword() {
+  if (password.value.length > 0 && !isLatinOnly.value) {
+    error.value = 'Пароль может содержать только латинские буквы, цифры и спецсимволы'
+    setTimeout(() => { error.value = '' }, 3000)
+  }
+}
+
 async function handleRegister() {
+  if (!isPasswordValid.value) {
+    error.value = 'Пароль не соответствует требованиям'
+    setTimeout(() => { error.value = '' }, 5000)
+    return
+  }
+
   loading.value = true
   error.value = ''
   
@@ -148,6 +188,30 @@ async function handleRegister() {
   border-color: #A78BFA;
 }
 
+.password-hints {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.password-hints span {
+  font-size: 0.75rem;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.2s;
+}
+
+.password-hints span.valid {
+  color: #34D399;
+}
+
+.password-hints span i {
+  font-size: 0.6rem;
+}
+
 .btn-login {
   width: 100%;
   padding: 12px;
@@ -160,6 +224,7 @@ async function handleRegister() {
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.3s;
+  margin-top: 8px;
 }
 
 .btn-login:hover:not(:disabled) {
