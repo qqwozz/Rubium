@@ -1,0 +1,40 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment / secrets
+.env
+.env.local
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+
+# Go
+api/server
+api/server.exe
+api/server_test.exe
+api/*.txt
+
+# Node
+node_modules/
+
+# Config with secrets
+# config.yaml
+
+
+backend/data/task_parser.py
