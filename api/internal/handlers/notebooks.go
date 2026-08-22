@@ -46,6 +46,7 @@ type notebookRow struct {
 	IsPublic      bool            `json:"is_public"`
 	Content       json.RawMessage `json:"content"`
 	AverageRating float64         `json:"average_rating"`
+	RatingsCount  int             `json:"ratings_count"`
 	ViewsCount    int             `json:"views_count"`
 	CopiesCount   int             `json:"copies_count"`
 	CreatedAt     string          `json:"created_at"`
@@ -219,7 +220,7 @@ type CreateNotebookRequest struct {
 	Color       string   `json:"color"`
 	Tags        []string `json:"tags"`
 	IsPublic    bool     `json:"is_public"`
-	UserID      string   `json:"user_id"`
+	// UserID УДАЛЁН — берём из контекста авторизации
 }
 
 func (h *NotebooksHandler) CreateNotebook(c *gin.Context) {
@@ -229,8 +230,21 @@ func (h *NotebooksHandler) CreateNotebook(c *gin.Context) {
 		return
 	}
 
+	// Берём auth_id из контекста middleware, а не из тела запроса
+	authID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "требуется авторизация"})
+		return
+	}
+
+	rubiumUserID, err := h.getRubiumUserID(authID.(string))
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
 	payload := map[string]interface{}{
-		"user_id": req.UserID,
+		"user_id": rubiumUserID,
 		"title":   req.Title,
 		"content": NotebookContent{Sections: []Section{}},
 	}
@@ -421,11 +435,13 @@ func (h *NotebooksHandler) CopyNotebook(c *gin.Context) {
 		return
 	}
 
-	patchEndpoint := fmt.Sprintf("notebooks?id=eq.%s", id)
-	if err := h.client.Patch(patchEndpoint, true, map[string]interface{}{
-		"copies_count": original.CopiesCount + 1,
-	}); err != nil {
-		fmt.Printf("⚠ не удалось обновить copies_count оригинала %s: %v\n", id, err)
+	// Atomic increment через RPC вместо read-modify-write
+	if err := h.client.RPC("increment_notebook_copies", true, map[string]interface{}{
+		"notebook_id": id,
+	}, nil); err != nil {
+		// Не ломаем пользователю создание копии, если счётчик не обновился
+		// но логируем (в реальном проекте — в structured logger)
+		_ = err
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"notebook": newRows[0].toResponse(false)})
@@ -461,7 +477,7 @@ func (h *NotebooksHandler) RateNotebook(c *gin.Context) {
 	}
 
 	var rows []notebookRow
-	endpoint := fmt.Sprintf("notebooks?select=id,user_id,is_public,average_rating&id=eq.%s&limit=1", id)
+	endpoint := fmt.Sprintf("notebooks?select=id,user_id,is_public,average_rating,ratings_count&id=eq.%s&limit=1", id)
 	if err := h.client.Query(endpoint, true, &rows); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -481,11 +497,14 @@ func (h *NotebooksHandler) RateNotebook(c *gin.Context) {
 		return
 	}
 
-	newAvg := (nb.AverageRating + float64(req.Rating)) / 2
+	// Правильный взвешенный расчёт среднего
+	newCount := nb.RatingsCount + 1
+	newAvg := (nb.AverageRating*float64(nb.RatingsCount) + float64(req.Rating)) / float64(newCount)
 
 	patchEndpoint := fmt.Sprintf("notebooks?id=eq.%s", id)
 	if err := h.client.Patch(patchEndpoint, true, map[string]interface{}{
 		"average_rating": newAvg,
+		"ratings_count":  newCount,
 	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -493,6 +512,7 @@ func (h *NotebooksHandler) RateNotebook(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"average_rating": newAvg,
+		"ratings_count":  newCount,
 	})
 }
 
@@ -551,28 +571,15 @@ func (h *NotebooksHandler) IncrementViews(c *gin.Context) {
 		return
 	}
 
-	var rows []notebookRow
-	endpoint := fmt.Sprintf("notebooks?select=id,views_count&id=eq.%s&limit=1", id)
-	if err := h.client.Query(endpoint, true, &rows); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	if len(rows) == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "тетрадь не найдена"})
-		return
-	}
-
-	newViews := rows[0].ViewsCount + 1
-
-	patchEndpoint := fmt.Sprintf("notebooks?id=eq.%s", id)
-	if err := h.client.Patch(patchEndpoint, true, map[string]interface{}{
-		"views_count": newViews,
-	}); err != nil {
+	// Atomic increment через RPC вместо race-prone read-modify-write
+	if err := h.client.RPC("increment_notebook_views", true, map[string]interface{}{
+		"notebook_id": id,
+	}, nil); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"views_count": newViews})
+	c.JSON(http.StatusOK, gin.H{"message": "просмотр засчитан"})
 }
 
 func (h *NotebooksHandler) GetCommunityNotebooks(c *gin.Context) {

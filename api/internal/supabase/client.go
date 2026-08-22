@@ -231,6 +231,49 @@ func (c *Client) Post(endpoint string, useServiceRole bool, payload interface{},
 	return nil
 }
 
+// RPC вызывает хранимую функцию Supabase через POST /rpc/{function}
+func (c *Client) RPC(function string, useServiceRole bool, params interface{}, result interface{}) error {
+	url := fmt.Sprintf("%s/rest/v1/rpc/%s", c.baseURL, function)
+
+	data, err := json.Marshal(params)
+	if err != nil {
+		return fmt.Errorf("marshaling rpc params: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
+	if err != nil {
+		return fmt.Errorf("creating rpc request: %w", err)
+	}
+
+	h := c.headers()
+	if useServiceRole {
+		h = c.headersService()
+	}
+	for k, v := range h {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("reading rpc response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("supabase rpc returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	if result != nil && len(body) > 0 {
+		return json.Unmarshal(body, result)
+	}
+	return nil
+}
+
 //! AuthUser — проверка Bearer-токена через Supabase Auth
 // возвращает user_id
 
