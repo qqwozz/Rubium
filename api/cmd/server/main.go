@@ -42,15 +42,22 @@ func main() {
 	check := handlers.NewCheckHandler(client)
 	notebooks := handlers.NewNotebooksHandler(client)
 
-	// --- Tasks ---
+	// --- Tasks: public read ---
 	r.GET("/api/v1/tasks", tasks.GetTasks)
 	r.GET("/api/v1/tasks/:id", tasks.GetTaskByID)
-	r.PUT("/api/v1/tasks/:id", tasks.UpdateTask)
-	r.DELETE("/api/v1/tasks/:id", tasks.DeleteTask)
 	r.POST("/api/v1/check", check.Check)
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
+
+	// --- Tasks: protected write (auth required) ---
+	// TODO: add admin/moderator role check inside handlers when role system is ready
+	tasksAdmin := r.Group("/api/v1/tasks")
+	tasksAdmin.Use(middleware.RequireAuth(client))
+	{
+		tasksAdmin.PUT("/:id", tasks.UpdateTask)
+		tasksAdmin.DELETE("/:id", tasks.DeleteTask)
+	}
 
 	// --- Notebooks: community (без middleware, отдельный роут) ---
 	r.GET("/api/v1/notebooks/community", notebooks.GetCommunityNotebooks)
