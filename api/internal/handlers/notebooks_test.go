@@ -12,6 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const testUUID = "550e8400-e29b-41d4-a716-446655440000"
+
 func mockNotebooksServer(t *testing.T) (*httptest.Server, *supabase.Client) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -28,16 +30,26 @@ func mockNotebooksServer(t *testing.T) (*httptest.Server, *supabase.Client) {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`[{"id":"rubium-123"}]`))
 		case r.URL.Path == "/rest/v1/notebooks" && r.Method == "GET":
-			if r.URL.RawQuery == "select=*&id=eq.valid-uuid&limit=1" {
+			// публичная тетрадь по ID (для GetNotebookByID)
+			if r.URL.RawQuery == "select=*&id=eq."+testUUID+"&limit=1" {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(`[{"id":"valid-uuid","user_id":"rubium-123","title":"Test","is_public":true,"average_rating":0,"ratings_count":0,"views_count":0,"copies_count":0,"created_at":"2024-01-01","updated_at":"2024-01-01","content":null}]`))
-			} else if r.URL.RawQuery == "select=user_id&id=eq.valid-uuid&limit=1" {
+				w.Write([]byte(`[{"id":"` + testUUID + `","user_id":"rubium-123","title":"Test","is_public":true,"average_rating":0,"ratings_count":0,"views_count":0,"copies_count":0,"created_at":"2024-01-01","updated_at":"2024-01-01","content":null}]`))
+				return
+			}
+			// owner по ID (для getOwner / Update / Delete)
+			if r.URL.RawQuery == "select=user_id&id=eq."+testUUID+"&limit=1" {
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(`[{"user_id":"rubium-123"}]`))
-			} else {
-				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(`[]`))
+				return
 			}
+			// для рейтинга — СВОЯ тетрадь (чтобы проверить запрет оценки своего)
+			if r.URL.RawQuery == "select=id,user_id,is_public,average_rating,ratings_count&id=eq."+testUUID+"&limit=1" {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`[{"id":"` + testUUID + `","user_id":"rubium-123","is_public":true,"average_rating":4.5,"ratings_count":2}]`))
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`[]`))
 		case r.URL.Path == "/rest/v1/notebooks" && r.Method == "POST":
 			w.WriteHeader(http.StatusCreated)
 			w.Write([]byte(`[{"id":"new-uuid","user_id":"rubium-123","title":"New Notebook","is_public":false,"average_rating":0,"ratings_count":0,"views_count":0,"copies_count":0,"created_at":"2024-01-01","updated_at":"2024-01-01","content":null}]`))
@@ -95,7 +107,7 @@ func TestGetNotebookByID_Public(t *testing.T) {
 	defer srv.Close()
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/api/v1/notebooks/valid-uuid", nil)
+	req, _ := http.NewRequest("GET", "/api/v1/notebooks/"+testUUID, nil)
 	r.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
@@ -178,5 +190,51 @@ func TestGetCommunityNotebooks(t *testing.T) {
 	}
 	if _, ok := resp["notebooks"]; !ok {
 		t.Error("expected notebooks in response")
+	}
+}
+
+func TestDeleteNotebook_Success(t *testing.T) {
+	r, srv := setupNotebooksRouter(t)
+	defer srv.Close()
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("DELETE", "/api/v1/notebooks/"+testUUID, nil)
+	req.Header.Set("Authorization", "Bearer valid-token")
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestUpdateNotebook_NoFields(t *testing.T) {
+	r, srv := setupNotebooksRouter(t)
+	defer srv.Close()
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("PUT", "/api/v1/notebooks/"+testUUID, bytes.NewBuffer([]byte(`{}`)))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer valid-token")
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for empty body, got %d", w.Code)
+	}
+}
+
+func TestRateNotebook_OwnNotebook(t *testing.T) {
+	r, srv := setupNotebooksRouter(t)
+	defer srv.Close()
+
+	body, _ := json.Marshal(map[string]int{"rating": 5})
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/api/v1/notebooks/"+testUUID+"/rate", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer valid-token")
+	r.ServeHTTP(w, req)
+
+	// В mock тетрадь принадлежит rubium-123, авторизованный тоже rubium-123 → 403
+	if w.Code != http.StatusForbidden {
+		t.Errorf("expected 403 for own notebook, got %d", w.Code)
 	}
 }
