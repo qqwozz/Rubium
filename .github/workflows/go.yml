@@ -12,20 +12,42 @@ on:
       - 'api/**'
 
 jobs:
-  test:
+  lint:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./api
-
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version-file: api/go.mod
           cache-dependency-path: api/go.sum
 
-      - run: go mod download
+      - run: go mod verify
       - run: go vet ./...
-      - run: go test ./... -v -race
+      - run: go mod tidy && git diff --exit-code
+
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
+
+      - name: Cache Go build
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/go-build
+          key: go-build-${{ runner.os }}-${{ hashFiles('api/go.sum') }}
+          restore-keys: go-build-${{ runner.os }}-
+
+      - run: go mod verify
+      - run: go test ./... -race -count=1
