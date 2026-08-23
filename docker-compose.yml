@@ -9,7 +9,11 @@ services:
       - "6379:6379"
     networks:
       - app-network
-
+    healthcheck:
+      test: ["CMD","redis-cli","ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
   api:
     build:
       context: ./api
@@ -26,7 +30,8 @@ services:
       - DEEPSEEK_API_KEY=dummy_deepseek_key
       - OPENAI_API_KEY=dummy_openai_key
     depends_on:
-      - redis
+      - redis:
+          condition: service_healthy
     networks:
       - app-network
 
@@ -39,7 +44,8 @@ services:
     environment:
       - REDIS_HOST=redis:6379
     depends_on:
-      - redis
+      - redis:
+          condition: service_healthy
     networks:
       - app-network
 
