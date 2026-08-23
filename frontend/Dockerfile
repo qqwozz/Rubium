@@ -1,9 +1,8 @@
-FROM node:20.18-alpine AS builder
+FROM node:20.18-slim AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN rm -f package-lock.json
-RUN npm install
+RUN npm ci
 
 COPY . .
 RUN npm run build
