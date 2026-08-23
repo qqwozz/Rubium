@@ -30,8 +30,8 @@ services:
       - DEEPSEEK_API_KEY=dummy_deepseek_key
       - OPENAI_API_KEY=dummy_openai_key
     depends_on:
-      - redis:
-          condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - app-network
 
@@ -44,8 +44,8 @@ services:
     environment:
       - REDIS_HOST=redis:6379
     depends_on:
-      - redis:
-          condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - app-network
 
