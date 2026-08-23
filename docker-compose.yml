@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: rubium_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: rubium_api
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rubium_backend
+    restart: always
+    environment:
+      - REDIS_HOST=redis:6379
+    depends_on:
+      - redis
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: rubium_frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
