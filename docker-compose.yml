@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: rubium_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD","redis-cli","ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: rubium_api
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.yaml:/config.yaml
+    environment:
+      - SUPABASE_ANON_KEY=dummy_anon_key
+      - SUPABASE_SERVICE_KEY=dummy_service_key
+      - DEEPSEEK_API_KEY=dummy_deepseek_key
+      - OPENAI_API_KEY=dummy_openai_key
+    depends_on:
+      - redis:
+          condition: service_healthy
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rubium_backend
+    restart: always
+    environment:
+      - REDIS_HOST=redis:6379
+    depends_on:
+      - redis:
+          condition: service_healthy
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: rubium_frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
