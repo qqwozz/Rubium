@@ -38,3 +38,6 @@ node_modules/
 
 
 backend/data/task_parser.py
+
+.env
+**/.env
