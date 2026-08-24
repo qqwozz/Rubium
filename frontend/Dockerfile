@@ -1,17 +1,16 @@
-FROM node:20.18-slim AS builder
+FROM node:22-slim AS builder
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm ci
 
 COPY . .
-RUN npm run build
+
+
+RUN rm -rf node_modules package-lock.json && \
+    npm install && \
+    npm run build
+
 
 FROM nginx:1.27-alpine
-WORKDIR /usr/share/nginx/html
-
-RUN rm -rf ./*
-COPY --from=builder /app/dist .
-
+COPY --from=builder /app/dist /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
