@@ -24,8 +24,11 @@ services:
       - "8080:8080"
     volumes:
       - ./config.yaml:/config.yaml
-    env_file:
-      - .env
+    environment:
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       redis:
         condition: service_healthy

@@ -131,6 +131,13 @@ func (h *TasksHandler) UpdateTask(c *gin.Context) {
 		return
 	}
 
+	// Guard: middleware must have set user_id
+	if _, exists := c.Get("user_id"); !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "требуется авторизация"})
+		return
+	}
+	// TODO: verify admin/moderator role before allowing edits
+
 	var req UpdateTaskRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный JSON"})
@@ -190,6 +197,12 @@ func (h *TasksHandler) DeleteTask(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный UUID"})
 		return
 	}
+
+	if _, exists := c.Get("user_id"); !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "требуется авторизация"})
+		return
+	}
+	// TODO: verify admin/moderator role before allowing deletion)
 
 	var tasks []map[string]interface{}
 	checkEndpoint := fmt.Sprintf("tasks?select=id&id=eq.%s&limit=1", id)

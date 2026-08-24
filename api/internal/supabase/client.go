@@ -65,12 +65,21 @@ func (c *Client) do(req *http.Request) (*http.Response, error) {
 			continue
 		}
 
-		if resp.StatusCode < 500 {
+		// 2xx and 3xx are success
+		if resp.StatusCode < 400 {
 			return resp, nil
 		}
 
-		body, _ := io.ReadAll(resp.Body)
+		// Read error body for diagnostics
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		resp.Body.Close()
+
+		// 4xx — client error, don't retry (bad request, unauthorized, forbidden, etc.)
+		if resp.StatusCode < 500 {
+			return nil, fmt.Errorf("supabase returned %d: %s", resp.StatusCode, string(body))
+		}
+
+		// 5xx — server error, retry with backoff
 		lastErr = fmt.Errorf("supabase returned %d: %s", resp.StatusCode, string(body))
 	}
 
@@ -149,11 +158,6 @@ func (c *Client) Patch(endpoint string, useServiceRole bool, payload interface{}
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("supabase returned %d: %s", resp.StatusCode, string(body))
-	}
-
 	return nil
 }
 
@@ -224,8 +228,8 @@ func (c *Client) Post(endpoint string, useServiceRole bool, payload interface{},
 
 	//* Если result не nil, десериализуем ответ в указанную структуру
 	//NOTE: Это позволяет получить созданную запись (с ID, created_at и т.д.)
-	if result != nil {
-		return json.Unmarshal(body, result)
+	if result != nil && len(body) > 0 {
+ 	   return json.Unmarshal(body, result)
 	}
 
 	return nil
@@ -262,10 +266,6 @@ func (c *Client) RPC(function string, useServiceRole bool, params interface{}, r
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("reading rpc response: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("supabase rpc returned %d: %s", resp.StatusCode, string(body))
 	}
 
 	if result != nil && len(body) > 0 {
@@ -354,11 +354,6 @@ func (c *Client) Delete(endpoint string, useServiceRole bool) error {
 		return err
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("supabase returned %d: %s", resp.StatusCode, string(body))
-	}
 
 	return nil
 }
