@@ -46,7 +46,19 @@
           </div>
         </div>
         
-        <button type="submit" class="btn-login" :disabled="loading || !isPasswordValid">
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input v-model="agreed" type="checkbox" required>
+            <span>
+              Я согласен с 
+              <a href="#" @click.prevent="openDoc('privacy')">политикой конфиденциальности</a> 
+              и 
+              <a href="#" @click.prevent="openDoc('terms')">пользовательским соглашением</a>
+            </span>
+          </label>
+        </div>
+        
+        <button type="submit" class="btn-login" :disabled="loading || !isPasswordValid || !agreed">
           <i v-if="loading" class="fas fa-spinner fa-spin"></i>
           <span v-else>Создать аккаунт</span>
         </button>
@@ -67,6 +79,23 @@
           </button>
         </div>
       </Transition>
+
+      <Transition name="modal">
+        <div v-if="showDoc" class="modal" @click.self="showDoc = false">
+          <div class="modal-card doc-modal">
+            <div class="modal-header">
+              <h2>{{ docTitle }}</h2>
+              <button class="modal-close" @click="showDoc = false">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            <div class="modal-body doc-content">
+              <p v-if="docLoading" class="doc-loading">Загружаем...</p>
+              <div v-else v-html="docText"></div>
+            </div>
+          </div>
+        </div>
+      </Transition>
     </Teleport>
   </div>
 </template>
@@ -85,6 +114,12 @@ const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
+const agreed = ref(false)
+
+const showDoc = ref(false)
+const docTitle = ref('')
+const docText = ref('')
+const docLoading = ref(false)
 
 const hasMinLength = computed(() => password.value.length >= 8)
 const hasUpperCase = computed(() => /[A-Z]/.test(password.value))
@@ -99,9 +134,38 @@ function validatePassword() {
   }
 }
 
+async function openDoc(type) {
+  docLoading.value = true
+  showDoc.value = true
+  
+  if (type === 'privacy') {
+    docTitle.value = 'Политика конфиденциальности'
+  } else if (type === 'terms') {
+    docTitle.value = 'Пользовательское соглашение'
+  } else if (type === 'consent') {
+    docTitle.value = 'Согласие на обработку данных'
+  }
+  
+  try {
+    const response = await fetch(`/docs/${type}.txt`)
+    const text = await response.text()
+    docText.value = text.replace(/\n/g, '<br>')
+  } catch (e) {
+    docText.value = 'Не удалось загрузить документ'
+  } finally {
+    docLoading.value = false
+  }
+}
+
 async function handleRegister() {
   if (!isPasswordValid.value) {
     error.value = 'Пароль не соответствует требованиям'
+    setTimeout(() => { error.value = '' }, 5000)
+    return
+  }
+
+  if (!agreed.value) {
+    error.value = 'Необходимо согласие с документами'
     setTimeout(() => { error.value = '' }, 5000)
     return
   }
@@ -192,6 +256,33 @@ async function handleRegister() {
 
 .form-group input:focus {
   border-color: #A78BFA;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  margin-top: 2px;
+}
+
+.checkbox-label span {
+  font-size: 0.8rem;
+  color: #94A3B8;
+  line-height: 1.4;
+}
+
+.checkbox-label a {
+  color: #A78BFA;
+  text-decoration: none;
+}
+
+.checkbox-label a:hover {
+  text-decoration: underline;
 }
 
 .password-hints {
@@ -314,5 +405,95 @@ async function handleRegister() {
 .banner-leave-to {
   transform: translateX(100%);
   opacity: 0;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.modal-card {
+  background: #1a1a2e;
+  border: 1px solid rgba(167,139,250,0.15);
+  border-radius: 24px;
+  padding: 32px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 48px rgba(0,0,0,0.4);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.modal-header h2 {
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: #64748B;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 6px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.modal-close:hover {
+  color: #F1F5F9;
+  background: rgba(255,255,255,0.06);
+}
+
+.modal-body {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.doc-content {
+  color: #94A3B8;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.doc-loading {
+  color: #64748B;
+  text-align: center;
+  padding: 20px;
+}
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s;
+}
+
+.modal-enter-active .modal-card,
+.modal-leave-active .modal-card {
+  transition: transform 0.3s;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .modal-card,
+.modal-leave-to .modal-card {
+  transform: scale(0.95);
 }
 </style>
