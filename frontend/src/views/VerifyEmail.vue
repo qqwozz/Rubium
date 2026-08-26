@@ -51,56 +51,74 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   padding: 20px;
+  background: #0a0a0a;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 .verify-card {
-  background: rgba(255,255,255,0.03);
+  background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 24px;
-  padding: 32px;
+  border-radius: 18px;
+  padding: 40px 32px;
   width: 100%;
   max-width: 400px;
   text-align: center;
 }
 
 .verify-icon {
-  font-size: 3rem;
-  color: #A78BFA;
-  margin-bottom: 16px;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: #a3a3a3;
 }
 
 .verify-card h2 {
-  color: #F1F5F9;
+  color: #ffffff;
+  font-size: 1.25rem;
+  font-weight: 700;
   margin-bottom: 12px;
+  letter-spacing: -0.01em;
 }
 
 .verify-card p {
-  color: #94A3B8;
+  color: #737373;
   font-size: 0.9rem;
-  margin-bottom: 20px;
+  line-height: 1.6;
+  margin-bottom: 24px;
 }
 
 .verify-card strong {
-  color: #F1F5F9;
+  color: #e5e5e5;
+  font-weight: 600;
 }
 
 .btn-resend {
-  padding: 12px 24px;
-  background: #A78BFA;
-  color: #0F0F1A;
-  border: none;
-  border-radius: 12px;
-  font-weight: 600;
+  padding: 10px 20px;
+  background: #ffffff;
+  color: #0a0a0a;
+  border: 1px solid #ffffff;
+  border-radius: 10px;
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s ease;
 }
 
 .btn-resend:hover:not(:disabled) {
-  background: #8B5CF6;
+  background: #e5e5e5;
+  border-color: #e5e5e5;
 }
 
 .btn-resend:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 </style>
