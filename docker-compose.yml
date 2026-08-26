@@ -35,19 +35,6 @@ services:
     networks:
       - app-network
 
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: rubium_backend
-    restart: always
-    environment:
-      - REDIS_HOST=redis:6379
-    depends_on:
-      redis:
-        condition: service_healthy
-    networks:
-      - app-network
 
   frontend:
     build:
@@ -59,7 +46,6 @@ services:
       - "80:80"
     depends_on:
       - api
-      - backend
     networks:
       - app-network
 
