@@ -1,6 +1,6 @@
 <template>
   <aside class="sidebar" :class="{ open: isOpen }">
-    <div class="sidebar-brand"><span>Rub</span>ium</div>
+    <div class="sidebar-brand">Rubium</div>
     
     <nav class="sidebar-nav">
       <router-link to="/" class="nav-link">
@@ -18,10 +18,10 @@
         </router-link>
       </template>
       <router-link to="/courses" class="nav-link">
-          <i class="fas fa-graduation-cap"></i> Каталог курсов
+        <i class="fas fa-graduation-cap"></i> Каталог курсов
       </router-link>
       <router-link to="/rubium_tech" class="nav-link">
-          <i class="fas fa-laptop"></i> Rubium Tech
+        <i class="fas fa-laptop"></i> Rubium Tech
       </router-link>
     </nav>
     
@@ -72,64 +72,59 @@ defineExpose({ toggle })
   top: 0;
   bottom: 0;
   width: 240px;
-  background: rgba(255,255,255,0.02);
+  background: #0a0a0a;
   border-right: 1px solid rgba(255,255,255,0.06);
-  backdrop-filter: blur(20px);
   display: flex;
   flex-direction: column;
-  padding: 20px 16px;
+  padding: 24px 16px 20px;
   z-index: 100;
   transition: transform 0.3s ease;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 .sidebar-brand {
-  font-family: 'Unbounded', sans-serif;
-  font-size: 1.3rem;
-  font-weight: 800;
-  padding: 8px 12px 20px;
-  color: #F1F5F9;
-}
-
-.sidebar-brand span {
-  background: linear-gradient(135deg, #A78BFA, #F472B6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 0 12px 28px;
+  color: #ffffff;
+  letter-spacing: -0.02em;
 }
 
 .sidebar-nav {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   overflow-y: auto;
 }
 
 .nav-link {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px 14px;
-  border-radius: 16px;
-  color: #94A3B8;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: #737373;
   text-decoration: none;
-  font-size: 0.85rem;
-  font-weight: 600;
-  transition: all 0.2s;
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
 }
 
 .nav-link:hover {
-  background: rgba(255,255,255,0.06);
-  color: #F1F5F9;
+  background: rgba(255,255,255,0.04);
+  color: #e5e5e5;
 }
 
 .nav-link.router-link-active {
-  background: rgba(167,139,250,0.15);
-  color: #A78BFA;
+  background: rgba(255,255,255,0.06);
+  color: #ffffff;
 }
 
 .nav-link i {
-  width: 20px;
+  width: 18px;
   text-align: center;
+  font-size: 0.85rem;
 }
 
 .sidebar-footer {
@@ -144,21 +139,24 @@ defineExpose({ toggle })
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   text-decoration: none;
   color: inherit;
+  min-width: 0;
 }
 
 .user-avatar {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #A78BFA, #F472B6);
+  background: #1a1a1a;
+  border: 1px solid rgba(255,255,255,0.08);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  color: white;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: #a3a3a3;
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -175,36 +173,40 @@ defineExpose({ toggle })
 }
 
 .user-name {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: #e5e5e5;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .user-email {
-  font-size: 0.65rem;
-  color: #64748B;
+  font-size: 0.7rem;
+  color: #525252;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-top: 1px;
 }
 
 .logout-btn {
   background: none;
   border: none;
-  color: #64748B;
+  color: #525252;
   cursor: pointer;
-  font-size: 0.9rem;
-  padding: 6px 8px;
-  transition: all 0.2s;
+  font-size: 0.85rem;
+  padding: 6px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .logout-btn:hover {
-  background: rgba(248,113,113,0.1);
-  color: #F87171;
-  border-radius: 30%;
+  color: #e5e5e5;
+  background: rgba(255,255,255,0.04);
 }
 
 .login-btn {
@@ -212,26 +214,26 @@ defineExpose({ toggle })
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 16px;
-  background: #A78BFA;
-  color: #0F0F1A;
-  border-radius: 12px;
+  padding: 9px 16px;
+  background: #ffffff;
+  color: #0a0a0a;
+  border-radius: 8px;
   text-decoration: none;
   font-weight: 600;
   font-size: 0.85rem;
   width: 100%;
-  transition: all 0.3s;
+  transition: all 0.15s ease;
 }
 
 .login-btn:hover {
-  background: #8B5CF6;
+  background: #e5e5e5;
 }
 
 .overlay {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.6);
   z-index: 99;
 }
 

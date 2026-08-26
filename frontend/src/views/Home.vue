@@ -1,6 +1,13 @@
 <template>
   <div class="home-page">
-    <Sidebar />
+    <Sidebar ref="sidebarRef" />
+    
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+      <button class="mobile-menu-btn" @click="sidebarRef?.toggle()">
+        <i class="fas fa-bars"></i>
+      </button>
+    </header>
     
     <div class="main-content">
       <header class="topbar">
@@ -8,125 +15,126 @@
       </header>
       
       <div class="content">
-        <div class="hero-card">
-          <div class="hero-left">
-            <div class="hero-greeting">
-              <i class="fas fa-mountain"></i> Готов к новым вершинам?
-            </div>
-            <div class="hero-name"><span>{{ auth.userName }}</span></div>
-          </div>
+        <!-- Hero -->
+        <section class="hero">
+          <p class="hero-greeting">Готов к новым вершинам?</p>
+          <h1 class="hero-name">{{ auth.userName }}</h1>
           <div class="hero-actions">
-            <router-link to="/notebooks" class="hero-btn story">
+            <router-link to="/notebooks" class="btn btn-primary">
               <i class="fa-solid fa-book"></i> К моим тетрадям
             </router-link>
-            <router-link to="/community" class="hero-btn daily">
+            <router-link to="/community" class="btn btn-secondary">
               <i class="fa-solid fa-globe"></i> В каталог тетрадей
             </router-link>
           </div>
-        </div>
-
-        <section class="section">
-          <div class="section-title"><i class="fas fa-info-circle"></i> О Rubium</div>
-          <div class="about-text">
-            <strong>Rubium</strong> — это <em>образовательная среда</em> нового поколения, созданная <strong>студентами</strong> для <strong>студентов</strong>. 
-            Она объединяет подготовку к экзаменам, обмен знаниями и доступ к реальным карьерным возможностям в одном <em>цифровом пространстве</em>. 
-            Здесь каждый учится, растёт и строит свой путь к <strong>сильному будущему</strong>.
-          </div>
         </section>
 
+        <!-- О Rubium -->
         <section class="section">
-          <div class="section-title"><i class="fas fa-cubes"></i> Возможности</div>
+          <h2 class="section-title">О Rubium</h2>
+          <p class="section-body">
+            <strong>Rubium</strong> — это образовательная среда нового поколения, созданная студентами для студентов. Она объединяет подготовку к экзаменам, обмен знаниями и доступ к реальным карьерным возможностям в одном цифровом пространстве. Здесь каждый учится, растёт и строит свой путь к сильному будущему.
+          </p>
+        </section>
+
+        <!-- Возможности -->
+        <section class="section">
+          <h2 class="section-title">Возможности</h2>
           <div class="features-grid">
-            <div class="feature-card">
-              <span class="icon"><i class="fas fa-book"></i></span>
-              <h3>Рабочая тетрадь</h3>
-              <p>Пиши конспекты с формулами и таблицами. Автосохранение включено.</p>
-            </div>
-            <div class="feature-card">
-              <span class="icon"><i class="fas fa-globe"></i></span>
-              <h3>Сообщество</h3>
-              <p>Находи публичные тетради, сохраняй их себе и делись своими конспектами.</p>
-            </div>
-            <div class="feature-card">
-              <span class="icon"><i class="fas fa-graduation-cap"></i></span>
-              <h3>Каталог курсов</h3>
-              <p>Бесплатные курсы от MIT, Stanford, Harvard и других университетов.</p>
-            </div>
-            <div class="feature-card">
-              <span class="icon"><i class="fas fa-rocket"></i></span>
-              <h3>Развитие</h3>
-              <p>Подготовка к экзаменам, обмен знаниями и путь к карьере — всё в одном пространстве.</p>
-            </div>
-          </div>
-        </section>
-
-        <section class="section">
-          <div class="section-title"><i class="fas fa-route"></i> С чего начать</div>
-          <div class="steps-grid">
-            <div class="step-card">
-              <div class="step-number">1</div>
-              <h3>Создай аккаунт</h3>
-              <p>Это займёт меньше минуты</p>
-            </div>
-            <div class="step-card">
-              <div class="step-number">2</div>
-              <h3>Веди тетрадь</h3>
-              <p>Сохраняй конспекты и делись ими</p>
-            </div>
-            <div class="step-card">
-              <div class="step-number">3</div>
-              <h3>Ищи возможности</h3>
-              <p>Выбери курс в каталоге и конспектируй его тут</p>
-            </div>
-          </div>
-        </section>
-
-        <section class="section">
-          <div class="section-title"><i class="fab fa-telegram"></i> Наши Telegram-каналы</div>
-          <div class="tg-grid">
-            <a href="https://t.me/rubium_edu" target="_blank" class="tg-card">
-              <div class="tg-icon public">
-                <i class="fab fa-telegram"></i>
+            <div class="feature-item">
+              <div class="feature-icon"><i class="fas fa-book"></i></div>
+              <div class="feature-content">
+                <h3>Рабочая тетрадь</h3>
+                <p>Пиши конспекты с формулами и таблицами. Автосохранение включено.</p>
               </div>
-              <div class="tg-info">
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon"><i class="fas fa-globe"></i></div>
+              <div class="feature-content">
+                <h3>Сообщество</h3>
+                <p>Находи публичные тетради, сохраняй их себе и делись своими конспектами.</p>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon"><i class="fas fa-graduation-cap"></i></div>
+              <div class="feature-content">
+                <h3>Каталог курсов</h3>
+                <p>Бесплатные курсы от MIT, Stanford, Harvard и других университетов.</p>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon"><i class="fas fa-rocket"></i></div>
+              <div class="feature-content">
+                <h3>Развитие</h3>
+                <p>Подготовка к экзаменам, обмен знаниями и путь к карьере — всё в одном пространстве.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- С чего начать -->
+        <section class="section">
+          <h2 class="section-title">С чего начать</h2>
+          <div class="steps-list">
+            <div class="step">
+              <span class="step-num">01</span>
+              <div class="step-content">
+                <h3>Создай аккаунт</h3>
+                <p>Это займёт меньше минуты</p>
+              </div>
+            </div>
+            <div class="step">
+              <span class="step-num">02</span>
+              <div class="step-content">
+                <h3>Веди тетрадь</h3>
+                <p>Сохраняй конспекты и делись ими</p>
+              </div>
+            </div>
+            <div class="step">
+              <span class="step-num">03</span>
+              <div class="step-content">
+                <h3>Ищи возможности</h3>
+                <p>Выбери курс в каталоге и конспектируй его тут</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Telegram -->
+        <section class="section">
+          <h2 class="section-title">Наши Telegram-каналы</h2>
+          <div class="links-list">
+            <a href="https://t.me/rubium_edu" target="_blank" class="link-row">
+              <div class="link-icon"><i class="fab fa-telegram"></i></div>
+              <div class="link-text">
                 <h3>Rubium</h3>
                 <p>Новости, обновления и анонсы платформы. Будь в курсе всего первым.</p>
               </div>
-              <i class="fas fa-arrow-up-right-from-square tg-arrow"></i>
+              <i class="fas fa-arrow-up-right-from-square link-arrow"></i>
             </a>
-            
-            <a href="https://t.me/+5KS-7mS6aDw0NDJi" target="_blank" class="tg-card">
-              <div class="tg-icon tech">
-                <i class="fas fa-laptop-code"></i>
-              </div>
-              <div class="tg-info">
+            <a href="https://t.me/+5KS-7mS6aDw0NDJi" target="_blank" class="link-row">
+              <div class="link-icon"><i class="fas fa-laptop-code"></i></div>
+              <div class="link-text">
                 <h3>Rubium Tech</h3>
                 <p>Хочешь быть частью команды разработчиков? Попробуй себя в реальном проекте.</p>
               </div>
-              <i class="fas fa-arrow-up-right-from-square tg-arrow"></i>
+              <i class="fas fa-arrow-up-right-from-square link-arrow"></i>
             </a>
           </div>
         </section>
 
+        <!-- Создатели -->
         <section class="section">
-          <div class="section-title"><i class="fas fa-code"></i> Создатели</div>
-          <div class="devs-grid">
-            <div v-for="dev in developers" :key="dev.name" class="dev-card">
-              <div class="dev-avatar">
-                <img :src="dev.avatar" :alt="dev.name" loading="lazy">
-              </div>
+          <h2 class="section-title">Создатели</h2>
+          <div class="devs-list">
+            <div v-for="dev in developers" :key="dev.name" class="dev-row">
+              <img :src="dev.avatar" :alt="dev.name" class="dev-avatar" loading="lazy">
               <div class="dev-info">
                 <h4>{{ dev.name }}</h4>
                 <div class="dev-links">
-                  <a :href="`https://github.com/${dev.github}`" target="_blank">
-                    <i class="fab fa-github"></i> {{ dev.github }}
-                  </a>
-                  <a :href="`https://t.me/${dev.telegram}`" target="_blank">
-                    <i class="fab fa-telegram"></i> {{ dev.telegram }}
-                  </a>
-                  <a :href="dev.website" target="_blank">
-                    <i class="fa-regular fa-address-card"></i> Веб-сайт
-                  </a>
+                  <a :href="`https://github.com/${dev.github}`" target="_blank">GitHub</a>
+                  <a :href="`https://t.me/${dev.telegram}`" target="_blank">Telegram</a>
+                  <a :href="dev.website" target="_blank">Веб-сайт</a>
                 </div>
               </div>
             </div>
@@ -138,10 +146,12 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import Sidebar from '../components/Sidebar.vue'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
+const sidebarRef = ref(null)
 
 const developers = [
   {
@@ -165,6 +175,9 @@ const developers = [
 .home-page {
   display: flex;
   min-height: 100vh;
+  background: #0a0a0a;
+  color: #fafafa;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 .main-content {
@@ -173,61 +186,48 @@ const developers = [
 }
 
 .topbar {
-  padding: 16px 32px;
+  padding: 20px 48px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 
 .page-title {
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  color: #64748B;
-  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.12em;
+  color: #525252;
 }
 
 .content {
-  max-width: 1000px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: 24px 32px 32px;
+  padding: 48px 48px 96px;
 }
 
-.hero-card {
-  background: linear-gradient(135deg, rgba(167,139,250,0.1), rgba(244,114,182,0.06));
-  border: 1px solid rgba(167,139,250,0.1);
-  border-radius: 24px;
-  padding: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  flex-wrap: wrap;
-  margin-bottom: 32px;
+/* Mobile Header */
+.mobile-header {
+  display: none;
+}
+
+/* Hero */
+.hero {
+  padding: 32px 0 64px;
 }
 
 .hero-greeting {
   font-size: 1rem;
-  color: #94A3B8;
-  margin-bottom: 6px;
-  display: flex;
-  align-items: center;
-}
-
-.hero-greeting i {
-  margin-right: 8px;
-  color: #A78BFA;
+  color: #737373;
+  margin-bottom: 8px;
+  line-height: 1.4;
 }
 
 .hero-name {
-  font-size: 2.4rem;
-  font-weight: 800;
-  letter-spacing: -1px;
-}
-
-.hero-name span {
-  background: linear-gradient(135deg, #A78BFA, #F472B6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+  margin-bottom: 32px;
+  line-height: 1.1;
 }
 
 .hero-actions {
@@ -236,290 +236,322 @@ const developers = [
   flex-wrap: wrap;
 }
 
-.hero-btn {
-  display: flex;
+.btn {
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 24px;
-  border-radius: 16px;
-  font-weight: 700;
-  font-size: 0.88rem;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
   text-decoration: none;
-  transition: all 0.3s;
-  white-space: nowrap;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
 }
 
-.hero-btn.daily {
-  background: linear-gradient(135deg, #FBBF24, #F59E0B);
-  color: #0F0F1A;
+.btn-primary {
+  background: #ffffff;
+  color: #0a0a0a;
+  border-color: #ffffff;
 }
 
-.hero-btn.daily:hover {
-  transform: translateY(-2px);
+.btn-primary:hover {
+  background: #e5e5e5;
+  border-color: #e5e5e5;
 }
 
-.hero-btn.story {
-  background: linear-gradient(135deg, #A78BFA, #8B5CF6);
-  color: #fff;
+.btn-secondary {
+  background: transparent;
+  color: #fafafa;
+  border-color: rgba(255,255,255,0.12);
 }
 
-.hero-btn.story:hover {
-  transform: translateY(-2px);
+.btn-secondary:hover {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.2);
 }
 
+/* Sections */
 .section {
-  margin-bottom: 40px;
+  margin-bottom: 80px;
 }
 
 .section-title {
-  font-size: 1.4rem;
-  font-weight: 800;
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #e5e5e5;
+  margin-bottom: 24px;
+  letter-spacing: -0.01em;
 }
 
-.section-title i {
-  color: #A78BFA;
-  font-size: 1.2rem;
-}
-
-.about-text {
-  color: #94A3B8;
-  font-size: 0.95rem;
+.section-body {
+  color: #a3a3a3;
+  font-size: 1rem;
   line-height: 1.7;
+  max-width: 640px;
 }
 
-.about-text strong {
-  color: #F1F5F9;
+.section-body strong {
+  color: #f5f5f5;
+  font-weight: 600;
 }
 
+/* Features */
 .features-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 32px;
 }
 
-.feature-card {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
-  padding: 20px 22px;
-  transition: all 0.3s;
-}
-
-.feature-card:hover {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(167,139,250,0.15);
-  transform: translateY(-2px);
-}
-
-.feature-card .icon {
-  font-size: 1.5rem;
-  color: #A78BFA;
-  margin-bottom: 10px;
-  display: block;
-}
-
-.feature-card h3 {
-  font-size: 0.95rem;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.feature-card p {
-  font-size: 0.8rem;
-  color: #94A3B8;
-  line-height: 1.5;
-}
-
-.steps-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-.step-card {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
-  padding: 20px 22px;
-  text-align: center;
-}
-
-.step-number {
-  display: inline-block;
-  width: 32px;
-  height: 32px;
-  line-height: 32px;
-  border-radius: 50%;
-  background: rgba(167,139,250,0.15);
-  color: #A78BFA;
-  font-weight: 800;
-  font-size: 0.8rem;
-  margin-bottom: 10px;
-}
-
-.step-card h3 {
-  font-size: 0.9rem;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.step-card p {
-  font-size: 0.78rem;
-  color: #94A3B8;
-  line-height: 1.5;
-}
-
-.tg-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.tg-card {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
-  padding: 20px 22px;
+.feature-item {
   display: flex;
-  align-items: center;
   gap: 14px;
-  text-decoration: none;
-  color: inherit;
-  transition: all 0.3s;
+  align-items: flex-start;
 }
 
-.tg-card:hover {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(167,139,250,0.15);
-  transform: translateY(-2px);
-}
-
-.tg-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+.feature-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 0.9rem;
   flex-shrink: 0;
 }
 
-.tg-icon.public {
-  background: rgba(56,189,248,0.15);
-  color: #38BDF8;
-}
-
-.tg-icon.tech {
-  background: rgba(167,139,250,0.15);
-  color: #A78BFA;
-}
-
-.tg-info {
-  flex: 1;
-}
-
-.tg-info h3 {
-  font-size: 0.9rem;
-  font-weight: 700;
+.feature-content h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e5e5e5;
   margin-bottom: 4px;
 }
 
-.tg-info p {
-  font-size: 0.78rem;
-  color: #94A3B8;
+.feature-content p {
+  font-size: 0.85rem;
+  color: #737373;
+  line-height: 1.5;
+}
+
+/* Steps */
+.steps-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.step {
+  padding-top: 8px;
+}
+
+.step-num {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #404040;
+  margin-bottom: 12px;
+  letter-spacing: 0.05em;
+}
+
+.step-content h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e5e5e5;
+  margin-bottom: 6px;
+}
+
+.step-content p {
+  font-size: 0.85rem;
+  color: #737373;
+  line-height: 1.5;
+}
+
+/* Links (Telegram) */
+.links-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.link-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.2s ease;
+  margin: 0 -12px;
+  padding-left: 12px;
+  padding-right: 12px;
+  border-radius: 8px;
+}
+
+.link-row:hover {
+  background: rgba(255,255,255,0.02);
+}
+
+.link-row:first-child {
+  padding-top: 12px;
+}
+
+.link-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.link-text {
+  flex: 1;
+}
+
+.link-text h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e5e5e5;
+  margin-bottom: 3px;
+}
+
+.link-text p {
+  font-size: 0.82rem;
+  color: #737373;
   line-height: 1.4;
 }
 
-.tg-arrow {
-  color: #64748B;
-  font-size: 0.8rem;
+.link-arrow {
+  font-size: 0.75rem;
+  color: #404040;
   flex-shrink: 0;
+  transition: color 0.2s ease;
 }
 
-.devs-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+.link-row:hover .link-arrow {
+  color: #a3a3a3;
 }
 
-.dev-card {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
-  padding: 20px 22px;
+/* Devs */
+.devs-list {
   display: flex;
-  gap: 16px;
-  align-items: center;
-  transition: all 0.3s;
+  flex-direction: column;
 }
 
-.dev-card:hover {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(167,139,250,0.15);
+.dev-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 
 .dev-avatar {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  flex-shrink: 0;
-  overflow: hidden;
-  background: linear-gradient(135deg, #A78BFA, #F472B6);
-}
-
-.dev-avatar img {
-  width: 100%;
-  height: 100%;
   object-fit: cover;
+  flex-shrink: 0;
+  background: #1a1a1a;
 }
 
 .dev-info h4 {
   font-size: 0.95rem;
-  font-weight: 700;
-  padding-bottom: 5px;
+  font-weight: 600;
+  color: #e5e5e5;
+  margin-bottom: 6px;
 }
 
 .dev-links {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 4px;
+  gap: 16px;
 }
 
 .dev-links a {
-  color: #64748B;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
+  color: #525252;
   text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  transition: color 0.2s;
+  transition: color 0.2s ease;
 }
 
 .dev-links a:hover {
-  color: #A78BFA;
+  color: #a3a3a3;
 }
 
+/* Responsive */
 @media (max-width: 768px) {
   .main-content {
     margin-left: 0;
   }
+  
+  .topbar {
+    display: none;
+  }
+  
+  .mobile-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 10px 5px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    position: sticky;
+    top: 0;
+    background: #0a0a0a;
+    z-index: 50;
+  }
+  
+  .mobile-logo {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+  }
+  
+  .mobile-menu-btn {
+    background: none;
+    border: none;
+    color: #737373;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease;
+  }
+  
+  .mobile-menu-btn:hover {
+    color: #e5e5e5;
+  }
+  
   .content {
-    padding: 16px;
+    padding: 32px 24px 64px;
   }
+  
   .hero-name {
-    font-size: 1.8rem;
+    font-size: 2.2rem;
   }
+  
   .features-grid,
-  .steps-grid,
-  .tg-grid,
-  .devs-grid {
+  .steps-list {
     grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  
+  .hero-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .btn {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style>
