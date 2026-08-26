@@ -1,7 +1,7 @@
 <template>
   <div class="login-page">
     <div class="login-card">
-      <div class="login-brand"><span>Rub</span>ium</div>
+      <div class="login-brand">Rubium</div>
       <p class="login-subtitle">Войди, чтобы продолжить</p>
       
       <form @submit.prevent="handleLogin">
@@ -76,36 +76,33 @@ async function handleLogin() {
   align-items: center;
   justify-content: center;
   padding: 20px;
+  background: #0a0a0a;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 .login-card {
-  background: rgba(255,255,255,0.03);
+  background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 24px;
+  border-radius: 18px;
   padding: 32px;
   width: 100%;
   max-width: 400px;
 }
 
 .login-brand {
-  font-family: 'Unbounded', sans-serif;
-  font-size: 1.8rem;
-  font-weight: 800;
+  font-size: 1.5rem;
+  font-weight: 700;
   text-align: center;
   margin-bottom: 8px;
-}
-
-.login-brand span {
-  background: linear-gradient(135deg, #A78BFA, #F472B6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #ffffff;
+  letter-spacing: -0.02em;
 }
 
 .login-subtitle {
   text-align: center;
-  color: #94A3B8;
+  color: #737373;
   font-size: 0.9rem;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .form-group {
@@ -115,61 +112,73 @@ async function handleLogin() {
 .form-group label {
   display: block;
   font-size: 0.8rem;
-  color: #94A3B8;
+  font-weight: 500;
+  color: #a3a3a3;
   margin-bottom: 6px;
 }
 
 .form-group input {
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 14px;
   background: rgba(255,255,255,0.03);
-  border: 2px solid rgba(255,255,255,0.06);
-  border-radius: 12px;
-  color: #F1F5F9;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  color: #e5e5e5;
   font-size: 0.9rem;
   font-family: inherit;
   outline: none;
-  transition: border-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .form-group input:focus {
-  border-color: #A78BFA;
+  border-color: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.04);
+}
+
+.form-group input::placeholder {
+  color: #525252;
 }
 
 .btn-login {
   width: 100%;
   padding: 12px;
-  background: #A78BFA;
-  color: #0F0F1A;
-  border: none;
-  border-radius: 12px;
+  background: #ffffff;
+  color: #0a0a0a;
+  border: 1px solid #ffffff;
+  border-radius: 10px;
   font-family: inherit;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s ease;
+  margin-top: 8px;
 }
 
 .btn-login:hover:not(:disabled) {
-  background: #8B5CF6;
-  transform: translateY(-1px);
+  background: #e5e5e5;
+  border-color: #e5e5e5;
 }
 
 .btn-login:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .register-link {
   text-align: center;
-  margin-top: 16px;
+  margin-top: 20px;
   font-size: 0.85rem;
-  color: #94A3B8;
+  color: #525252;
 }
 
 .register-link a {
-  color: #A78BFA;
+  color: #a3a3a3;
   text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.register-link a:hover {
+  color: #e5e5e5;
 }
 
 .banner {
@@ -179,48 +188,48 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 18px;
-  border-radius: 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
   z-index: 9999;
   max-width: 400px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  box-shadow: 0 16px 32px rgba(0,0,0,0.4);
   cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 
 .error-banner {
-  background: rgba(248,113,113,0.15);
-  border: 1px solid rgba(248,113,113,0.3);
-  color: #F87171;
+  background: #111111;
+  border: 1px solid rgba(239,68,68,0.2);
+  color: #ef4444;
 }
 
 .banner i {
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
 
 .banner span {
   flex: 1;
-  font-size: 0.85rem;
-  font-weight: 600;
 }
 
 .banner-close {
   background: none;
   border: none;
-  color: #F87171;
+  color: #737373;
   cursor: pointer;
   font-size: 0.8rem;
   padding: 4px;
-  border-radius: 6px;
-  transition: all 0.2s;
+  border-radius: 5px;
+  transition: color 0.15s ease;
 }
 
 .banner-close:hover {
-  background: rgba(248,113,113,0.2);
+  color: #e5e5e5;
 }
 
 .banner-enter-active,
 .banner-leave-active {
-  transition: all 0.3s;
+  transition: all 0.25s ease;
 }
 
 .banner-enter-from {
