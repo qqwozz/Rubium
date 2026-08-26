@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="assets/images/Rubium.png" alt="Rubium Logo" width="200"/>
+  <img src="frontend/public/logo.svg" alt="Rubium Logo" width="200"/>
 </div>
-
+<br>
 <p align="center">
   <img src="https://img.shields.io/badge/status-active-success.svg" alt="Status"/>
   <img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="Version"/>
