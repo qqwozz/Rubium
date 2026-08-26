@@ -1,6 +1,12 @@
 <template>
   <div class="admin-page">
-    <Sidebar />
+    <Sidebar ref="sidebarRef" />
+    
+    <header class="mobile-header">
+      <button class="mobile-menu-btn" @click="sidebarRef?.toggle()">
+        <i class="fas fa-bars"></i>
+      </button>
+    </header>
     
     <div class="main-content">
       <header class="topbar">
@@ -9,21 +15,17 @@
       
       <div class="content">
         <div class="admin-header">
-          <h1><i class="fas fa-shield-halved"></i> Админ-панель</h1>
-          <p>Управление задачами, пользователями и тетрадями</p>
+          <h1>Админ-панель</h1>
+          <p>Управление пользователями и тетрадями</p>
         </div>
         
         <div v-if="!auth.isAdmin" class="access-denied">
-          <i class="fas fa-lock"></i>
+          <div class="empty-icon"><i class="fas fa-lock"></i></div>
           <p>Нет доступа</p>
         </div>
         
         <template v-else>
           <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-value">{{ stats.tasks }}</div>
-              <div class="stat-label">Задач</div>
-            </div>
             <div class="stat-card">
               <div class="stat-value">{{ stats.users }}</div>
               <div class="stat-label">Пользователей</div>
@@ -32,20 +34,9 @@
               <div class="stat-value">{{ stats.notebooks }}</div>
               <div class="stat-label">Тетрадей</div>
             </div>
-            <div class="stat-card">
-              <div class="stat-value">{{ stats.today }}</div>
-              <div class="stat-label">Активность сегодня</div>
-            </div>
           </div>
           
           <div class="admin-tabs">
-            <button 
-              class="admin-tab" 
-              :class="{ active: activeTab === 'tasks' }"
-              @click="activeTab = 'tasks'; loadTasks()"
-            >
-              <i class="fas fa-tasks"></i> Задачи
-            </button>
             <button 
               class="admin-tab" 
               :class="{ active: activeTab === 'users' }"
@@ -62,42 +53,6 @@
             </button>
           </div>
           
-          <!-- ЗАДАЧИ -->
-          <div v-if="activeTab === 'tasks'" class="admin-section">
-            <div class="section-header">
-              <h2>Задачи</h2>
-              <div class="filters">
-                <select v-model="taskSubject" class="filter-select">
-                  <option value="">Все предметы</option>
-                  <option value="math">Математика</option>
-                  <option value="informatics">Информатика</option>
-                  <option value="physics">Физика</option>
-                  <option value="russian">Русский язык</option>
-                </select>
-                <button class="btn-load" @click="loadTasks" :disabled="loading">
-                  <i v-if="loading" class="fas fa-spinner fa-spin"></i>
-                  <span v-else>Загрузить</span>
-                </button>
-              </div>
-            </div>
-            
-            <div v-if="tasks.length" class="items-list">
-              <div v-for="task in tasks" :key="task.id" class="item-row">
-                <div class="item-info">
-                  <div class="item-title">{{ task.content?.slice(0, 80) }}...</div>
-                  <div class="item-meta">{{ task.subject }} | {{ task.topic }} | №{{ task.task_number }}</div>
-                </div>
-                <button class="btn-icon danger" @click="deleteTask(task.id)">
-                  <i class="fas fa-trash"></i>
-                </button>
-              </div>
-            </div>
-            
-            <div v-else class="empty-state">
-              <p>Нет задач</p>
-            </div>
-          </div>
-          
           <!-- ПОЛЬЗОВАТЕЛИ -->
           <div v-if="activeTab === 'users'" class="admin-section">
             <div class="section-header">
@@ -112,12 +67,12 @@
               <div v-for="user in users" :key="user.id" class="item-row">
                 <div class="item-info">
                   <div class="item-title">{{ user.first_name || '—' }} {{ user.last_name || '' }}</div>
-                  <div class="item-meta">{{ user.email }} | Регистрация: {{ formatDate(user.created_at) }}</div>
+                  <div class="item-meta">{{ user.email }} · {{ formatDate(user.created_at) }}</div>
                 </div>
                 <div class="item-actions">
                   <button 
                     class="btn-status" 
-                    :class="{ admin: user.status === 'admin' }"
+                    :class="{ active: user.status === 'admin' }"
                     @click="toggleStatus(user)"
                   >
                     {{ user.status === 'admin' ? 'Админ' : 'Юзер' }}
@@ -149,13 +104,13 @@
                 <div class="item-info">
                   <div class="item-title">{{ notebook.title }}</div>
                   <div class="item-meta">
-                    {{ notebook.author?.first_name || 'Автор' }} | {{ notebook.views_count }} просмотров
+                    {{ notebook.author?.first_name || 'Автор' }} · {{ notebook.views_count || 0 }} просмотров
                   </div>
                 </div>
                 <div class="item-actions">
                   <button 
                     class="btn-status"
-                    :class="{ admin: !notebook.is_public }"
+                    :class="{ active: !notebook.is_public }"
                     @click="toggleNotebookVisibility(notebook)"
                   >
                     {{ notebook.is_public ? 'Скрыть' : 'Показать' }}
@@ -184,13 +139,12 @@ import { useAuthStore } from '../stores/auth'
 import { supabase } from '../api/supabase'
 
 const auth = useAuthStore()
-const activeTab = ref('tasks')
-const tasks = ref([])
+const sidebarRef = ref(null)
+const activeTab = ref('users')
 const users = ref([])
 const notebooks = ref([])
 const loading = ref(false)
-const taskSubject = ref('')
-const stats = ref({ tasks: 0, users: 0, notebooks: 0, today: 0 })
+const stats = ref({ users: 0, notebooks: 0 })
 
 function formatDate(dateStr) {
   if (!dateStr) return ''
@@ -199,52 +153,13 @@ function formatDate(dateStr) {
 
 async function loadStats() {
   try {
-    const [tasksRes, usersRes, notebooksRes] = await Promise.all([
-      supabase.from('tasks').select('id', { count: 'exact', head: true }),
+    const [usersRes, notebooksRes] = await Promise.all([
       supabase.from('rubium_users').select('id', { count: 'exact', head: true }),
       supabase.from('notebooks').select('id', { count: 'exact', head: true })
     ])
     
-    stats.value.tasks = tasksRes.count || 0
     stats.value.users = usersRes.count || 0
     stats.value.notebooks = notebooksRes.count || 0
-    
-    const today = new Date().toISOString().split('T')[0]
-    const { count } = await supabase
-      .from('tasks')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', today)
-    
-    stats.value.today = count || 0
-  } catch (e) {
-    console.error(e)
-  }
-}
-
-async function loadTasks() {
-  loading.value = true
-  try {
-    let query = supabase.from('tasks').select('*').limit(50)
-    if (taskSubject.value) query = query.eq('subject', taskSubject.value)
-    
-    const { data, error } = await query
-    if (error) throw error
-    tasks.value = data || []
-  } catch (e) {
-    console.error(e)
-  } finally {
-    loading.value = false
-  }
-}
-
-async function deleteTask(taskId) {
-  if (!confirm('Удалить задачу?')) return
-  
-  try {
-    const { error } = await supabase.from('tasks').delete().eq('id', taskId)
-    if (error) throw error
-    tasks.value = tasks.value.filter(t => t.id !== taskId)
-    await loadStats()
   } catch (e) {
     console.error(e)
   }
@@ -346,7 +261,7 @@ async function deleteNotebook(notebook) {
 
 onMounted(() => {
   loadStats()
-  loadTasks()
+  loadUsers()
 })
 </script>
 
@@ -354,6 +269,9 @@ onMounted(() => {
 .admin-page {
   display: flex;
   min-height: 100vh;
+  background: #0a0a0a;
+  color: #fafafa;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 .main-content {
@@ -362,106 +280,129 @@ onMounted(() => {
 }
 
 .topbar {
-  padding: 16px 32px;
+  padding: 20px 48px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 
 .page-title {
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  color: #64748B;
-  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.12em;
+  color: #525252;
 }
 
 .content {
   max-width: 900px;
   margin: 0 auto;
-  padding: 32px;
+  padding: 48px 48px 96px;
+}
+
+.mobile-header {
+  display: none;
 }
 
 .admin-header {
-  margin-bottom: 24px;
+  margin-bottom: 40px;
 }
 
 .admin-header h1 {
-  font-size: 1.5rem;
-  font-weight: 800;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #ffffff;
   margin-bottom: 6px;
 }
 
-.admin-header h1 i {
-  color: #FBBF24;
-  margin-right: 10px;
-}
-
 .admin-header p {
-  color: #94A3B8;
+  color: #737373;
+  font-size: 0.95rem;
 }
 
 .access-denied {
   text-align: center;
-  padding: 60px;
-  color: #F87171;
+  padding: 80px 20px;
+  color: #525252;
 }
 
-.access-denied i {
-  font-size: 3rem;
-  margin-bottom: 16px;
+.empty-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: #a3a3a3;
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
 }
 
 .stat-card {
-  background: rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
-  padding: 16px;
+  border-radius: 14px;
+  padding: 20px;
   text-align: center;
 }
 
 .stat-value {
-  font-size: 1.4rem;
-  font-weight: 800;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #ffffff;
   margin-bottom: 4px;
+  letter-spacing: -0.02em;
 }
 
 .stat-label {
-  font-size: 0.7rem;
-  color: #64748B;
+  font-size: 0.8rem;
+  color: #737373;
+  font-weight: 500;
 }
 
 .admin-tabs {
   display: flex;
-  gap: 4px;
-  margin-bottom: 24px;
-  background: rgba(255,255,255,0.04);
-  border-radius: 12px;
+  gap: 2px;
+  margin-bottom: 32px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
   padding: 4px;
 }
 
 .admin-tab {
   flex: 1;
-  padding: 10px;
+  padding: 9px 12px;
   background: transparent;
   border: none;
   border-radius: 8px;
-  color: #94A3B8;
+  color: #737373;
   cursor: pointer;
   font-family: inherit;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 0.85rem;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.admin-tab:hover {
+  color: #e5e5e5;
 }
 
 .admin-tab.active {
-  background: rgba(167,139,250,0.15);
-  color: #A78BFA;
+  background: #ffffff;
+  color: #0a0a0a;
 }
 
 .section-header {
@@ -475,33 +416,34 @@ onMounted(() => {
 
 .section-header h2 {
   font-size: 1.1rem;
-  font-weight: 700;
-}
-
-.filters {
-  display: flex;
-  gap: 8px;
-}
-
-.filter-select {
-  padding: 8px 12px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 8px;
-  color: #F1F5F9;
-  font-family: inherit;
-  font-size: 0.8rem;
+  font-weight: 600;
+  color: #e5e5e5;
 }
 
 .btn-load {
-  padding: 8px 16px;
-  background: #A78BFA;
-  color: #0F0F1A;
-  border: none;
+  padding: 8px 14px;
+  background: #ffffff;
+  color: #0a0a0a;
+  border: 1px solid #ffffff;
   border-radius: 8px;
   font-family: inherit;
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 0.8rem;
   cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-load:hover:not(:disabled) {
+  background: #e5e5e5;
+  border-color: #e5e5e5;
+}
+
+.btn-load:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .items-list {
@@ -515,10 +457,16 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 16px;
-  background: rgba(255,255,255,0.04);
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 12px;
+  transition: all 0.15s ease;
+}
+
+.item-row:hover {
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.08);
 }
 
 .item-info {
@@ -527,14 +475,15 @@ onMounted(() => {
 }
 
 .item-title {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  margin-bottom: 4px;
+  color: #e5e5e5;
+  margin-bottom: 3px;
 }
 
 .item-meta {
-  font-size: 0.7rem;
-  color: #64748B;
+  font-size: 0.78rem;
+  color: #525252;
 }
 
 .item-actions {
@@ -544,57 +493,111 @@ onMounted(() => {
 }
 
 .btn-status {
-  padding: 6px 12px;
-  background: rgba(255,255,255,0.06);
-  color: #94A3B8;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 8px;
+  padding: 5px 10px;
+  background: rgba(255,255,255,0.04);
+  color: #737373;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px;
   font-family: inherit;
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
 }
 
-.btn-status.admin {
-  background: rgba(251,191,36,0.15);
-  color: #FBBF24;
-  border-color: rgba(251,191,36,0.2);
+.btn-status:hover {
+  background: rgba(255,255,255,0.06);
+  color: #e5e5e5;
+}
+
+.btn-status.active {
+  background: rgba(255,255,255,0.08);
+  color: #ffffff;
+  border-color: rgba(255,255,255,0.12);
 }
 
 .btn-icon {
   background: none;
   border: none;
-  color: #64748B;
+  color: #525252;
   cursor: pointer;
-  padding: 8px;
-  border-radius: 8px;
-  transition: all 0.2s;
+  padding: 6px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  transition: all 0.15s ease;
 }
 
 .btn-icon:hover {
-  background: rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.04);
+  color: #e5e5e5;
 }
 
 .btn-icon.danger:hover {
-  color: #F87171;
+  color: #ef4444;
+  background: rgba(239,68,68,0.06);
 }
 
 .empty-state {
   text-align: center;
-  padding: 40px;
-  color: #94A3B8;
+  padding: 60px 20px;
+  color: #525252;
+  font-size: 0.9rem;
 }
 
 @media (max-width: 768px) {
   .main-content {
     margin-left: 0;
   }
-  .content {
-    padding: 16px;
+  
+  .topbar {
+    display: none;
   }
+  
+  .mobile-header {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px 5px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    position: sticky;
+    top: 0;
+    background: #0a0a0a;
+    z-index: 50;
+  }
+  
+  .mobile-menu-btn {
+    background: none;
+    border: none;
+    color: #737373;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease;
+  }
+  
+  .mobile-menu-btn:hover {
+    color: #e5e5e5;
+  }
+  
+  .content {
+    padding: 32px 24px 64px;
+  }
+  
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .item-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .item-actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
 </style>
