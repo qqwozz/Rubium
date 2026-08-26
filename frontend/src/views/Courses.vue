@@ -1,6 +1,12 @@
 <template>
   <div class="courses-page">
-    <Sidebar />
+    <Sidebar ref="sidebarRef" />
+    
+    <header class="mobile-header">
+      <button class="mobile-menu-btn" @click="sidebarRef?.toggle()">
+        <i class="fas fa-bars"></i>
+      </button>
+    </header>
     
     <div class="main-content">
       <header class="topbar">
@@ -9,20 +15,8 @@
       
       <div class="content">
         <div class="courses-header">
-          <h1><i class="fas fa-graduation-cap"></i> Курсы</h1>
+          <h1>Курсы</h1>
           <p>Бесплатные и платные курсы от лучших университетов и компаний мира</p>
-        </div>
-        
-        <div class="filters-row">
-          <button 
-            v-for="subject in subjects" 
-            :key="subject"
-            class="filter-btn"
-            :class="{ active: activeSubject === subject }"
-            @click="activeSubject = subject"
-          >
-            {{ subject }}
-          </button>
         </div>
         
         <div v-if="filteredCourses.length" class="courses-grid">
@@ -35,7 +29,7 @@
           >
             <div class="course-header">
               <div class="course-university">{{ course.university }}</div>
-              <span class="course-free" :class="{ paid: !course.free }">
+              <span class="course-badge" :class="course.free ? 'free' : 'paid'">
                 {{ course.free ? 'Бесплатно' : 'Платно' }}
               </span>
             </div>
@@ -71,7 +65,7 @@ import coursesData from '../assets/courses.json'
 
 const courses = ref(coursesData)
 const activeSubject = ref('Все')
-const searchQuery = ref('')
+const sidebarRef = ref(null)
 
 const allSubjects = computed(() => {
   const subjects = new Set(['Все'])
@@ -80,21 +74,8 @@ const allSubjects = computed(() => {
 })
 
 const filteredCourses = computed(() => {
-  let result = courses.value
-  
-  if (activeSubject.value !== 'Все') {
-    result = result.filter(c => c.subjects.includes(activeSubject.value))
-  }
-  
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase()
-    result = result.filter(c => 
-      c.name.toLowerCase().includes(q) ||
-      c.description.toLowerCase().includes(q)
-    )
-  }
-  
-  return result
+  if (activeSubject.value === 'Все') return courses.value
+  return courses.value.filter(c => c.subjects.includes(activeSubject.value))
 })
 </script>
 
@@ -102,6 +83,9 @@ const filteredCourses = computed(() => {
 .courses-page {
   display: flex;
   min-height: 100vh;
+  background: #0a0a0a;
+  color: #fafafa;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 .main-content {
@@ -110,49 +94,50 @@ const filteredCourses = computed(() => {
 }
 
 .topbar {
-  padding: 16px 32px;
+  padding: 20px 48px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 
 .page-title {
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  color: #64748B;
-  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.12em;
+  color: #525252;
 }
 
 .content {
-  max-width: 1000px;
+  max-width: 900px;
   margin: 0 auto;
-  padding: 32px;
+  padding: 48px 48px 96px;
+}
+
+.mobile-header {
+  display: none;
 }
 
 .courses-header {
-  margin-bottom: 24px;
+  margin-bottom: 40px;
 }
 
 .courses-header h1 {
-  font-size: 2rem;
-  font-weight: 800;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #ffffff;
   margin-bottom: 8px;
 }
 
-.courses-header h1 i {
-  color: #A78BFA;
-  margin-right: 12px;
-}
-
 .courses-header p {
-  color: #94A3B8;
+  color: #737373;
+  font-size: 0.95rem;
 }
 
 .filters-row {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 
 .filter-btn {
@@ -160,91 +145,100 @@ const filteredCourses = computed(() => {
   border-radius: 20px;
   border: 1px solid rgba(255,255,255,0.06);
   background: transparent;
-  color: #94A3B8;
+  color: #737373;
   cursor: pointer;
   font-family: inherit;
-  font-size: 0.75rem;
-  font-weight: 600;
-  transition: all 0.2s;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
 }
 
 .filter-btn:hover {
-  color: #F1F5F9;
+  color: #e5e5e5;
+  border-color: rgba(255,255,255,0.1);
 }
 
 .filter-btn.active {
-  background: rgba(167,139,250,0.15);
-  border-color: #A78BFA;
-  color: #A78BFA;
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #0a0a0a;
 }
 
 .courses-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 16px;
 }
 
 .course-card {
-  background: rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
+  border-radius: 14px;
   padding: 20px;
   text-decoration: none;
   color: inherit;
-  transition: all 0.3s;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 .course-card:hover {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(167,139,250,0.15);
-  transform: translateY(-2px);
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.1);
 }
 
 .course-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .course-university {
-  font-size: 0.7rem;
-  color: #A78BFA;
+  font-size: 0.75rem;
+  color: #a3a3a3;
   font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
-.course-free {
+.course-badge {
   font-size: 0.65rem;
-  padding: 2px 8px;
-  border-radius: 10px;
-  background: rgba(52,211,153,0.1);
-  color: #34D399;
+  padding: 3px 8px;
+  border-radius: 8px;
   font-weight: 600;
 }
 
-.course-free.paid {
-  background: rgba(251,191,36,0.1);
-  color: #FBBF24;
+.course-badge.free {
+  background: rgba(255,255,255,0.06);
+  color: #a3a3a3;
+}
+
+.course-badge.paid {
+  background: rgba(255,255,255,0.06);
+  color: #737373;
 }
 
 .course-card h3 {
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 600;
   margin-bottom: 8px;
   line-height: 1.3;
+  color: #e5e5e5;
 }
 
 .course-card p {
-  font-size: 0.8rem;
-  color: #94A3B8;
+  font-size: 0.85rem;
+  color: #737373;
   line-height: 1.5;
   margin-bottom: 16px;
+  flex: 1;
 }
 
 .course-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-top: auto;
 }
 
 .course-subjects {
@@ -254,34 +248,77 @@ const filteredCourses = computed(() => {
 }
 
 .subject-tag {
-  font-size: 0.65rem;
-  padding: 2px 8px;
-  background: rgba(167,139,250,0.08);
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
   border-radius: 6px;
-  color: #A78BFA;
+  color: #737373;
+  font-weight: 500;
 }
 
 .course-rating {
-  font-size: 0.75rem;
-  color: #FBBF24;
+  font-size: 0.8rem;
+  color: #a3a3a3;
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-shrink: 0;
+}
+
+.course-rating i {
+  font-size: 0.7rem;
+  color: #525252;
 }
 
 .empty-state {
   text-align: center;
-  padding: 60px;
-  color: #94A3B8;
+  padding: 80px 20px;
+  color: #525252;
+  font-size: 0.95rem;
 }
 
 @media (max-width: 768px) {
   .main-content {
     margin-left: 0;
   }
-  .content {
-    padding: 16px;
+  
+  .topbar {
+    display: none;
   }
+  
+  .mobile-header {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px 5px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    position: sticky;
+    top: 0;
+    background: #0a0a0a;
+    z-index: 50;
+  }
+  
+  .mobile-menu-btn {
+    background: none;
+    border: none;
+    color: #737373;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease;
+  }
+  
+  .mobile-menu-btn:hover {
+    color: #e5e5e5;
+  }
+  
+  .content {
+    padding: 32px 24px 64px;
+  }
+  
   .courses-grid {
     grid-template-columns: 1fr;
   }
