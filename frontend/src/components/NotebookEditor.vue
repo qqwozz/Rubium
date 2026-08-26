@@ -28,10 +28,10 @@
           <i class="fas fa-arrow-right"></i>
         </button>
         <button @click="editor.chain().focus().deleteRow().run()" title="Удалить строку">
-          <i class="fas fa-minus"></i>
+          <i class="fas fa-minus"></i> row
         </button>
         <button @click="editor.chain().focus().deleteColumn().run()" title="Удалить колонку">
-          <i class="fas fa-minus"></i>
+          <i class="fas fa-minus"></i> col
         </button>
         <button @click="editor.chain().focus().deleteTable().run()" title="Удалить таблицу">
           <i class="fas fa-trash"></i>
@@ -52,7 +52,7 @@
     <div v-if="showTableDialog" class="table-dialog">
       <div class="dialog-header">
         <span>Вставка таблицы</span>
-        <button @click="showTableDialog = false">✕</button>
+        <button @click="showTableDialog = false"><i class="fas fa-times"></i></button>
       </div>
       <div class="dialog-body">
         <label>Строки:</label>
@@ -65,8 +65,8 @@
     
     <div v-if="showFormulaInput" class="formula-input">
       <input v-model="formula" placeholder="Например: \frac{a}{b}" @keydown.enter="insertFormula" />
-      <button @click="insertFormula">Вставить</button>
-      <button @click="showFormulaInput = false">✕</button>
+      <button class="btn-primary" @click="insertFormula">Вставить</button>
+      <button class="btn-icon" @click="showFormulaInput = false"><i class="fas fa-times"></i></button>
     </div>
     
     <editor-content :editor="editor" class="editor-content" @paste="handlePaste" />
@@ -168,19 +168,20 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .editor-container {
-  background: rgba(255,255,255,0.03);
+  background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
   position: relative;
 }
 
 .editor-toolbar {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   padding: 8px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   flex-wrap: wrap;
+  background: #0a0a0a;
 }
 
 .editor-toolbar button {
@@ -189,121 +190,183 @@ onBeforeUnmount(() => {
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: #94A3B8;
+  color: #737373;
   cursor: pointer;
-  transition: all 0.2s;
-  font-size: 0.85rem;
+  transition: all 0.15s ease;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .editor-toolbar button:hover {
   background: rgba(255,255,255,0.06);
-  color: #F1F5F9;
+  color: #e5e5e5;
 }
 
 .editor-toolbar button.active {
-  background: rgba(167,139,250,0.15);
-  color: #A78BFA;
+  background: rgba(255,255,255,0.08);
+  color: #ffffff;
 }
 
 .table-dialog {
   position: absolute;
-  top: 40px;
+  top: 48px;
   left: 8px;
-  background: #1a1a2e;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 12px;
-  padding: 16px;
+  background: #111111;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 20px;
   z-index: 20;
-  min-width: 200px;
+  min-width: 220px;
+  box-shadow: 0 16px 32px rgba(0,0,0,0.4);
 }
 
 .dialog-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   font-weight: 600;
+  font-size: 0.9rem;
+  color: #e5e5e5;
 }
 
 .dialog-header button {
   background: none;
   border: none;
-  color: #94A3B8;
+  color: #525252;
   cursor: pointer;
+  font-size: 0.85rem;
+  padding: 4px;
+  transition: color 0.15s ease;
+}
+
+.dialog-header button:hover {
+  color: #e5e5e5;
 }
 
 .dialog-body {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 8px 12px;
-  margin-bottom: 12px;
+  gap: 10px 14px;
+  margin-bottom: 16px;
 }
 
 .dialog-body label {
   font-size: 0.8rem;
-  color: #94A3B8;
+  color: #a3a3a3;
   align-self: center;
+  font-weight: 500;
 }
 
 .dialog-body input {
-  padding: 6px 10px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 6px;
-  color: #F1F5F9;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  color: #e5e5e5;
   font-family: inherit;
   outline: none;
   width: 60px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.dialog-body input:focus {
+  border-color: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.04);
 }
 
 .btn-insert {
   width: 100%;
-  padding: 8px;
-  background: #A78BFA;
-  color: #0F0F1A;
-  border: none;
-  border-radius: 8px;
+  padding: 10px;
+  background: #ffffff;
+  color: #0a0a0a;
+  border: 1px solid #ffffff;
+  border-radius: 10px;
   font-family: inherit;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+}
+
+.btn-insert:hover {
+  background: #e5e5e5;
+  border-color: #e5e5e5;
 }
 
 .formula-input {
   padding: 12px 16px;
-  background: rgba(255,255,255,0.02);
+  background: #0a0a0a;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   display: flex;
   gap: 8px;
+  align-items: center;
 }
 
 .formula-input input {
   flex: 1;
-  padding: 8px 12px;
+  padding: 10px 14px;
   background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 8px;
-  color: #F1F5F9;
-  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  color: #e5e5e5;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
   outline: none;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
 }
 
-.formula-input button {
-  padding: 8px 16px;
-  background: #A78BFA;
-  color: #0F0F1A;
-  border: none;
-  border-radius: 8px;
+.formula-input input:focus {
+  border-color: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.04);
+}
+
+.formula-input input::placeholder {
+  color: #525252;
+}
+
+.formula-input .btn-primary {
+  padding: 10px 16px;
+  background: #ffffff;
+  color: #0a0a0a;
+  border: 1px solid #ffffff;
+  border-radius: 10px;
   cursor: pointer;
   font-family: inherit;
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.formula-input .btn-primary:hover {
+  background: #e5e5e5;
+  border-color: #e5e5e5;
+}
+
+.formula-input .btn-icon {
+  padding: 10px;
+  background: none;
+  border: none;
+  color: #525252;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: color 0.15s ease;
+}
+
+.formula-input .btn-icon:hover {
+  color: #e5e5e5;
 }
 
 .editor-content {
-  padding: 16px;
+  padding: 20px;
   min-height: 400px;
-  color: #F1F5F9;
+  color: #e5e5e5;
   line-height: 1.7;
   outline: none;
+  background: #0a0a0a;
 }
 
 .editor-content :deep(.ProseMirror) {
@@ -312,37 +375,67 @@ onBeforeUnmount(() => {
 }
 
 .editor-content :deep(.ProseMirror p) {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.editor-content :deep(.ProseMirror p.is-editor-empty:first-child::before) {
+  color: #525252;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
 }
 
 .editor-content :deep(.ProseMirror h2) {
-  margin: 16px 0 8px;
+  margin: 24px 0 12px;
   font-size: 1.3rem;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.editor-content :deep(.ProseMirror h3) {
+  margin: 20px 0 10px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e5e5e5;
+  letter-spacing: -0.01em;
 }
 
 .editor-content :deep(.ProseMirror ul),
 .editor-content :deep(.ProseMirror ol) {
   margin-left: 20px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.editor-content :deep(.ProseMirror li) {
+  margin-bottom: 4px;
 }
 
 .editor-content :deep(.ProseMirror table) {
   border-collapse: collapse;
   width: 100%;
-  margin: 16px 0;
+  margin: 20px 0;
+  font-size: 0.9rem;
 }
 
 .editor-content :deep(.ProseMirror th),
 .editor-content :deep(.ProseMirror td) {
-  border: 1px solid rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.08);
   padding: 8px 12px;
   min-width: 50px;
 }
 
+.editor-content :deep(.ProseMirror th) {
+  background: rgba(255,255,255,0.04);
+  font-weight: 600;
+  color: #e5e5e5;
+}
+
 .editor-content :deep(.ProseMirror img) {
   max-width: 100%;
-  border-radius: 8px;
-  margin: 8px 0;
+  border-radius: 10px;
+  margin: 12px 0;
 }
 
 .editor-content :deep(.ProseMirror .katex) {
@@ -351,5 +444,72 @@ onBeforeUnmount(() => {
 
 .editor-content :deep(.katex-mathml) {
   display: none;
+}
+
+.editor-content :deep(.ProseMirror blockquote) {
+  border-left: 2px solid rgba(255,255,255,0.15);
+  padding-left: 16px;
+  margin: 16px 0;
+  color: #737373;
+  font-style: italic;
+}
+
+.editor-content :deep(.ProseMirror code) {
+  background: rgba(255,255,255,0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  color: #e5e5e5;
+}
+
+.editor-content :deep(.ProseMirror pre) {
+  background: rgba(255,255,255,0.03);
+  padding: 16px;
+  border-radius: 10px;
+  margin: 16px 0;
+  overflow-x: auto;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.editor-content :deep(.ProseMirror pre code) {
+  background: none;
+  padding: 0;
+  color: #a3a3a3;
+}
+
+.editor-content :deep(.ProseMirror strong) {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.editor-content :deep(.ProseMirror a) {
+  color: #a3a3a3;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 768px) {
+  .editor-toolbar {
+    padding: 6px;
+    gap: 1px;
+  }
+  
+  .editor-toolbar button {
+    width: 28px;
+    height: 28px;
+    font-size: 0.75rem;
+  }
+  
+  .editor-content {
+    padding: 16px;
+    min-height: 300px;
+  }
+  
+  .table-dialog {
+    left: 4px;
+    right: 4px;
+    min-width: auto;
+  }
 }
 </style>
