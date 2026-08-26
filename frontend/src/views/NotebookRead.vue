@@ -1,6 +1,12 @@
 <template>
   <div class="notebook-read-page">
-    <Sidebar />
+    <Sidebar ref="sidebarRef" />
+    
+    <header class="mobile-header">
+      <button class="mobile-menu-btn" @click="sidebarRef?.toggle()">
+        <i class="fas fa-bars"></i>
+      </button>
+    </header>
     
     <div class="main-content">
       <header class="topbar">
@@ -38,12 +44,12 @@
         
         <div class="read-panel">
           <div v-if="!currentPage" class="read-empty">
-            <i class="fas fa-book-open"></i>
+            <div class="empty-icon"><i class="fas fa-book-open"></i></div>
             <p>Выбери страницу</p>
           </div>
           
           <div v-else>
-            <h1 class="page-title">{{ currentPage.title }}</h1>
+            <h1 class="page-heading">{{ currentPage.title }}</h1>
             <div class="page-content" v-html="renderContent(currentPage.content)"></div>
           </div>
         </div>
@@ -63,6 +69,7 @@ import katex from 'katex'
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const sidebarRef = ref(null)
 
 const notebook = ref(null)
 const sections = ref([])
@@ -133,6 +140,9 @@ onMounted(loadNotebook)
 .notebook-read-page {
   display: flex;
   min-height: 100vh;
+  background: #0a0a0a;
+  color: #fafafa;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 .main-content {
@@ -151,38 +161,49 @@ onMounted(loadNotebook)
 .back-btn {
   background: none;
   border: none;
-  color: #94A3B8;
+  color: #737373;
   cursor: pointer;
   font-family: inherit;
   font-size: 0.85rem;
   display: flex;
   align-items: center;
   gap: 8px;
+  transition: color 0.15s ease;
 }
 
 .back-btn:hover {
-  color: #F1F5F9;
+  color: #e5e5e5;
 }
 
 .page-title {
   flex: 1;
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  color: #64748B;
-  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.12em;
+  color: #525252;
+  text-align: center;
 }
 
 .btn-edit {
-  padding: 10px 20px;
-  background: #A78BFA;
-  color: #0F0F1A;
-  border: none;
-  border-radius: 12px;
+  padding: 8px 16px;
+  background: #ffffff;
+  color: #0a0a0a;
+  border: 1px solid #ffffff;
+  border-radius: 10px;
   font-family: inherit;
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 0.85rem;
   cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-edit:hover {
+  background: #e5e5e5;
+  border-color: #e5e5e5;
 }
 
 .read-layout {
@@ -195,10 +216,12 @@ onMounted(loadNotebook)
   border-right: 1px solid rgba(255,255,255,0.06);
   padding: 20px 16px;
   flex-shrink: 0;
+  overflow-y: auto;
+  background: #0a0a0a;
 }
 
 .section-item {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .section-header {
@@ -209,36 +232,48 @@ onMounted(loadNotebook)
   border-radius: 8px;
   cursor: pointer;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 500;
+  color: #737373;
+  transition: all 0.15s ease;
 }
 
 .section-header:hover {
   background: rgba(255,255,255,0.04);
+  color: #e5e5e5;
 }
 
-.section-header .fa-chevron-right {
-  transition: transform 0.2s;
-  font-size: 0.7rem;
+.section-header i {
+  font-size: 0.65rem;
+  transition: transform 0.2s ease;
+  color: #525252;
 }
 
-.section-header .fa-chevron-right.rotated {
+.section-header i.rotated {
   transform: rotate(90deg);
 }
 
+.section-header span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pages-list {
-  margin-left: 20px;
-  margin-top: 4px;
+  margin-left: 18px;
+  margin-top: 2px;
 }
 
 .page-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
-  border-radius: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 0.8rem;
-  color: #94A3B8;
+  color: #737373;
+  transition: all 0.15s ease;
 }
 
 .page-item:hover {
@@ -246,88 +281,125 @@ onMounted(loadNotebook)
 }
 
 .page-item.active {
-  background: rgba(167,139,250,0.15);
-  color: #A78BFA;
+  background: rgba(255,255,255,0.06);
+  color: #ffffff;
+}
+
+.page-item i {
+  font-size: 0.7rem;
+  color: #525252;
+}
+
+.page-item.active i {
+  color: #a3a3a3;
+}
+
+.page-item span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .read-panel {
   flex: 1;
-  padding: 32px;
+  padding: 32px 40px;
+  overflow-y: auto;
+  background: #0a0a0a;
 }
 
 .read-empty {
   text-align: center;
-  padding: 60px;
-  color: #64748B;
+  padding: 80px 20px;
+  color: #525252;
 }
 
-.read-empty i {
-  font-size: 3rem;
-  margin-bottom: 16px;
-  display: block;
+.empty-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: #a3a3a3;
 }
 
-.read-panel h1 {
-  font-size: 1.4rem;
-  font-weight: 800;
-  margin-bottom: 20px;
+.page-heading {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 24px;
+  color: #ffffff;
+  letter-spacing: -0.02em;
 }
 
 .page-content {
   font-size: 0.95rem;
   line-height: 1.7;
-  color: #94A3B8;
+  color: #a3a3a3;
 }
 
 .page-content :deep(.tiptap-content) {
   line-height: 1.7;
-  color: #94A3B8;
+  color: #a3a3a3;
 }
 
 .page-content :deep(.tiptap-content h2) {
   font-size: 1.3rem;
-  font-weight: 700;
-  margin: 16px 0 8px;
-  color: #F1F5F9;
+  font-weight: 600;
+  margin: 24px 0 12px;
+  color: #e5e5e5;
+  letter-spacing: -0.01em;
 }
 
 .page-content :deep(.tiptap-content h3) {
   font-size: 1.1rem;
-  font-weight: 700;
-  margin: 12px 0 6px;
-  color: #F1F5F9;
+  font-weight: 600;
+  margin: 20px 0 10px;
+  color: #e5e5e5;
+  letter-spacing: -0.01em;
 }
 
 .page-content :deep(.tiptap-content p) {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .page-content :deep(.tiptap-content ul),
 .page-content :deep(.tiptap-content ol) {
   margin-left: 20px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.page-content :deep(.tiptap-content li) {
+  margin-bottom: 4px;
 }
 
 .page-content :deep(.tiptap-content table) {
   border-collapse: collapse;
   width: 100%;
-  margin: 16px 0;
+  margin: 20px 0;
+  font-size: 0.9rem;
 }
 
 .page-content :deep(.tiptap-content th),
 .page-content :deep(.tiptap-content td) {
-  border: 1px solid rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.08);
   padding: 8px 12px;
 }
 
 .page-content :deep(.tiptap-content th) {
-  background: rgba(167,139,250,0.1);
-  font-weight: 700;
+  background: rgba(255,255,255,0.04);
+  font-weight: 600;
+  color: #e5e5e5;
 }
 
 .page-content :deep(.tiptap-content img) {
   max-width: 100%;
-  border-radius: 8px;
+  border-radius: 10px;
+  margin: 12px 0;
 }
 
 .page-content :deep(.tiptap-content .katex) {
@@ -339,47 +411,97 @@ onMounted(loadNotebook)
 }
 
 .page-content :deep(.tiptap-content blockquote) {
-  border-left: 3px solid #A78BFA;
+  border-left: 2px solid rgba(255,255,255,0.15);
   padding-left: 16px;
-  margin: 12px 0;
-  color: #94A3B8;
+  margin: 16px 0;
+  color: #737373;
+  font-style: italic;
 }
 
 .page-content :deep(.tiptap-content code) {
   background: rgba(255,255,255,0.06);
   padding: 2px 6px;
   border-radius: 4px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
   font-size: 0.85em;
+  color: #e5e5e5;
 }
 
 .page-content :deep(.tiptap-content pre) {
-  background: rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.03);
   padding: 16px;
-  border-radius: 12px;
-  margin: 12px 0;
+  border-radius: 10px;
+  margin: 16px 0;
   overflow-x: auto;
+  border: 1px solid rgba(255,255,255,0.06);
 }
 
 .page-content :deep(.tiptap-content pre code) {
   background: none;
   padding: 0;
+  color: #a3a3a3;
+}
+
+/* Mobile Header */
+.mobile-header {
+  display: none;
 }
 
 @media (max-width: 768px) {
   .main-content {
     margin-left: 0;
   }
+  
+  .topbar {
+    display: none;
+  }
+  
+  .mobile-header {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px 5px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    position: sticky;
+    top: 0;
+    background: #0a0a0a;
+    z-index: 50;
+  }
+  
+  .mobile-menu-btn {
+    background: none;
+    border: none;
+    color: #737373;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease;
+  }
+  
+  .mobile-menu-btn:hover {
+    color: #e5e5e5;
+  }
+  
   .read-layout {
     flex-direction: column;
   }
+  
   .sections-panel {
     width: 100%;
     border-right: none;
     border-bottom: 1px solid rgba(255,255,255,0.06);
-  }
-  .read-panel {
+    max-height: 280px;
     padding: 16px;
+  }
+  
+  .read-panel {
+    padding: 20px 16px;
+  }
+  
+  .page-heading {
+    font-size: 1.25rem;
   }
 }
 </style>

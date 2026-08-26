@@ -1,6 +1,12 @@
 <template>
   <div class="notebook-write-page">
-    <Sidebar />
+    <Sidebar ref="sidebarRef" />
+    
+    <header class="mobile-header">
+      <button class="mobile-menu-btn" @click="sidebarRef?.toggle()">
+        <i class="fas fa-bars"></i>
+      </button>
+    </header>
     
     <div class="main-content">
       <header class="topbar">
@@ -24,7 +30,7 @@
           </div>
           
           <div v-if="sections.length === 0" class="sections-empty">
-            <i class="fas fa-folder-open"></i>
+            <div class="empty-icon"><i class="fas fa-folder-open"></i></div>
             <p>Нет разделов</p>
           </div>
           
@@ -86,7 +92,7 @@
         
         <div class="editor-panel">
           <div v-if="!currentPage && sections.length > 0" class="editor-empty">
-            <i class="fas fa-file"></i>
+            <div class="empty-icon"><i class="fas fa-file"></i></div>
             <p>Выбери или создай страницу</p>
             <button class="btn-create" @click="addPage(0)">
               <i class="fas fa-plus"></i> Создать страницу
@@ -94,7 +100,7 @@
           </div>
           
           <div v-if="!currentPage && sections.length === 0" class="editor-empty">
-            <i class="fas fa-book"></i>
+            <div class="empty-icon"><i class="fas fa-book"></i></div>
             <p>Создай первый раздел</p>
             <button class="btn-create" @click="addSection">
               <i class="fas fa-plus"></i> Создать раздел
@@ -119,13 +125,24 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, onMounted, nextTick, onBeforeUnmount } from 'vue'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import { apiFetch } from '../api/client'
 import NotebookEditor from '../components/NotebookEditor.vue'
-import { onBeforeUnmount} from 'vue'
-import { onBeforeRouteLeave } from 'vue-router'
+
+const route = useRoute()
+const router = useRouter()
+const sidebarRef = ref(null)
+
+const notebook = ref(null)
+const sections = ref([])
+const openSections = ref([])
+const currentPage = ref(null)
+const saving = ref(false)
+const editingSectionId = ref(null)
+const sectionInput = ref(null)
+
 let autoSaveTimer = null
 
 function debouncedSave() {
@@ -156,17 +173,6 @@ onBeforeUnmount(() => {
 onBeforeRouteLeave(() => {
   if (route.params.id) saveNotebook()
 })
-
-const route = useRoute()
-const router = useRouter()
-
-const notebook = ref(null)
-const sections = ref([])
-const openSections = ref([])
-const currentPage = ref(null)
-const saving = ref(false)
-const editingSectionId = ref(null)
-const sectionInput = ref(null)
 
 async function loadNotebook() {
   try {
@@ -283,13 +289,15 @@ async function saveNotebook() {
     saving.value = false
   }
 }
-
 </script>
 
 <style scoped>
 .notebook-write-page {
   display: flex;
   min-height: 100vh;
+  background: #0a0a0a;
+  color: #fafafa;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 .main-content {
@@ -308,49 +316,53 @@ async function saveNotebook() {
 .back-btn {
   background: none;
   border: none;
-  color: #94A3B8;
+  color: #737373;
   cursor: pointer;
   font-family: inherit;
   font-size: 0.85rem;
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: color 0.2s;
+  transition: color 0.15s ease;
 }
 
 .back-btn:hover {
-  color: #F1F5F9;
+  color: #e5e5e5;
 }
 
 .page-title {
   flex: 1;
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  color: #64748B;
-  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.12em;
+  color: #525252;
+  text-align: center;
 }
 
 .btn-save {
-  padding: 10px 20px;
-  background: #A78BFA;
-  color: #0F0F1A;
-  border: none;
-  border-radius: 12px;
+  padding: 8px 16px;
+  background: #ffffff;
+  color: #0a0a0a;
+  border: 1px solid #ffffff;
+  border-radius: 10px;
   font-family: inherit;
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .btn-save:hover:not(:disabled) {
-  background: #8B5CF6;
-  transform: translateY(-1px);
+  background: #e5e5e5;
+  border-color: #e5e5e5;
 }
 
 .btn-save:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
@@ -360,11 +372,12 @@ async function saveNotebook() {
 }
 
 .sections-panel {
-  width: 300px;
+  width: 280px;
   border-right: 1px solid rgba(255,255,255,0.06);
   padding: 20px 16px;
   flex-shrink: 0;
   overflow-y: auto;
+  background: #0a0a0a;
 }
 
 .sections-header {
@@ -372,70 +385,84 @@ async function saveNotebook() {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 0.9rem;
-  color: #F1F5F9;
+  color: #e5e5e5;
 }
 
 .btn-add-section {
-  background: rgba(167,139,250,0.15);
-  border: none;
-  color: #A78BFA;
-  width: 30px;
-  height: 30px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  color: #a3a3a3;
+  width: 28px;
+  height: 28px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
 }
 
 .btn-add-section:hover {
-  background: rgba(167,139,250,0.25);
+  background: rgba(255,255,255,0.08);
+  color: #e5e5e5;
 }
 
 .sections-empty {
-  color: #64748B;
+  color: #525252;
   font-size: 0.85rem;
   text-align: center;
   padding: 40px 20px;
 }
 
-.sections-empty i {
-  font-size: 2rem;
-  margin-bottom: 8px;
-  display: block;
+.empty-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: #a3a3a3;
 }
 
 .section-item {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .section-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
-  border-radius: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 0.85rem;
-  font-weight: 600;
-  transition: all 0.2s;
-  color: #94A3B8;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  color: #737373;
 }
 
 .section-header:hover {
   background: rgba(255,255,255,0.04);
-  color: #F1F5F9;
+  color: #e5e5e5;
 }
 
 .section-header.active {
-  background: rgba(167,139,250,0.08);
-  color: #A78BFA;
+  background: rgba(255,255,255,0.06);
+  color: #ffffff;
 }
 
 .section-arrow {
-  font-size: 0.7rem;
-  transition: transform 0.2s;
+  font-size: 0.65rem;
+  transition: transform 0.2s ease;
   flex-shrink: 0;
+  color: #525252;
 }
 
 .section-arrow.rotated {
@@ -452,13 +479,13 @@ async function saveNotebook() {
 .section-title-input {
   flex: 1;
   padding: 4px 8px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid #A78BFA;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.12);
   border-radius: 6px;
-  color: #F1F5F9;
+  color: #ffffff;
   font-family: inherit;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 500;
   outline: none;
 }
 
@@ -466,7 +493,7 @@ async function saveNotebook() {
   display: flex;
   gap: 2px;
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity 0.15s ease;
 }
 
 .section-header:hover .section-actions {
@@ -476,38 +503,39 @@ async function saveNotebook() {
 .btn-icon {
   background: none;
   border: none;
-  color: #64748B;
+  color: #525252;
   cursor: pointer;
-  padding: 6px;
-  border-radius: 6px;
+  padding: 5px;
+  border-radius: 5px;
   font-size: 0.75rem;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
 }
 
 .btn-icon:hover {
-  background: rgba(255,255,255,0.06);
-  color: #F1F5F9;
+  background: rgba(255,255,255,0.04);
+  color: #e5e5e5;
 }
 
 .btn-icon.danger:hover {
-  color: #F87171;
+  color: #ef4444;
+  background: rgba(239,68,68,0.06);
 }
 
 .pages-list {
-  margin-left: 20px;
-  margin-top: 4px;
+  margin-left: 18px;
+  margin-top: 2px;
 }
 
 .page-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
-  border-radius: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 0.8rem;
-  color: #94A3B8;
-  transition: all 0.2s;
+  color: #737373;
+  transition: all 0.15s ease;
 }
 
 .page-item:hover {
@@ -515,8 +543,17 @@ async function saveNotebook() {
 }
 
 .page-item.active {
-  background: rgba(167,139,250,0.15);
-  color: #A78BFA;
+  background: rgba(255,255,255,0.06);
+  color: #ffffff;
+}
+
+.page-item i {
+  font-size: 0.7rem;
+  color: #525252;
+}
+
+.page-item.active i {
+  color: #a3a3a3;
 }
 
 .page-item span {
@@ -529,13 +566,13 @@ async function saveNotebook() {
 .btn-icon-mini {
   background: none;
   border: none;
-  color: #64748B;
+  color: #525252;
   cursor: pointer;
   padding: 2px 4px;
   border-radius: 4px;
   font-size: 0.7rem;
   opacity: 0;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
 }
 
 .page-item:hover .btn-icon-mini {
@@ -543,103 +580,167 @@ async function saveNotebook() {
 }
 
 .btn-icon-mini:hover {
-  color: #F87171;
+  color: #ef4444;
 }
 
 .btn-add-page {
   background: none;
   border: none;
-  color: #64748B;
+  color: #525252;
   cursor: pointer;
   font-family: inherit;
   font-size: 0.8rem;
-  padding: 8px 10px;
+  padding: 7px 10px;
   width: 100%;
   text-align: left;
-  border-radius: 8px;
-  transition: all 0.2s;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .btn-add-page:hover {
   background: rgba(255,255,255,0.04);
-  color: #A78BFA;
+  color: #a3a3a3;
 }
 
 .editor-panel {
   flex: 1;
-  padding: 32px;
+  padding: 32px 40px;
   overflow-y: auto;
+  background: #0a0a0a;
 }
 
 .editor-empty {
   text-align: center;
-  padding: 60px;
-  color: #64748B;
+  padding: 80px 20px;
+  color: #525252;
 }
 
-.editor-empty i {
-  font-size: 3rem;
-  margin-bottom: 16px;
-  display: block;
+.editor-empty .empty-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+}
+
+.editor-empty p {
+  font-size: 0.95rem;
+  margin-bottom: 20px;
 }
 
 .btn-create {
-  margin-top: 16px;
-  padding: 10px 20px;
-  background: #A78BFA;
-  color: #0F0F1A;
-  border: none;
-  border-radius: 12px;
+  padding: 10px 18px;
+  background: #ffffff;
+  color: #0a0a0a;
+  border: 1px solid #ffffff;
+  border-radius: 10px;
   font-family: inherit;
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .btn-create:hover {
-  background: #8B5CF6;
+  background: #e5e5e5;
+  border-color: #e5e5e5;
 }
 
 .page-header {
   display: flex;
   gap: 8px;
   align-items: flex-start;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .page-title-input {
   flex: 1;
   padding: 12px 16px;
   background: rgba(255,255,255,0.03);
-  border: 2px solid rgba(255,255,255,0.06);
-  border-radius: 12px;
-  color: #F1F5F9;
-  font-size: 1.2rem;
-  font-weight: 700;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 1.15rem;
+  font-weight: 600;
   font-family: inherit;
   outline: none;
-  transition: border-color 0.2s;
+  transition: all 0.2s ease;
+  letter-spacing: -0.01em;
 }
 
 .page-title-input:focus {
-  border-color: #A78BFA;
+  border-color: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.04);
+}
+
+.page-title-input::placeholder {
+  color: #525252;
+}
+
+/* Mobile Header */
+.mobile-header {
+  display: none;
 }
 
 @media (max-width: 768px) {
   .main-content {
     margin-left: 0;
   }
+  
+  .topbar {
+    display: none;
+  }
+  
+  .mobile-header {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px 5px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    position: sticky;
+    top: 0;
+    background: #0a0a0a;
+    z-index: 50;
+  }
+  
+  .mobile-menu-btn {
+    background: none;
+    border: none;
+    color: #737373;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease;
+  }
+  
+  .mobile-menu-btn:hover {
+    color: #e5e5e5;
+  }
+  
   .editor-layout {
     flex-direction: column;
   }
+  
   .sections-panel {
     width: 100%;
     border-right: none;
     border-bottom: 1px solid rgba(255,255,255,0.06);
-    max-height: 300px;
-  }
-  .editor-panel {
+    max-height: 280px;
     padding: 16px;
+  }
+  
+  .editor-panel {
+    padding: 20px 16px;
+  }
+  
+  .page-title-input {
+    font-size: 1rem;
   }
 }
 </style>
