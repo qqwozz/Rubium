@@ -14,6 +14,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
   api:
     build:
       context: ./api
@@ -35,11 +36,13 @@ services:
     networks:
       - app-network
 
-
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
     container_name: rubium_frontend
     restart: always
     ports:
