@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="frontend/public/logo.svg" alt="Rubium Logo" width="200"/>
+  <img src="assets/images/Rubium.png" alt="Rubium Logo" width="200"/>
 </div>
 <br>
 <p align="center">
