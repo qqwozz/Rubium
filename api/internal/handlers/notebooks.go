@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"api/internal/supabase"
+	"api/internal/validation"
 
 	"github.com/gin-gonic/gin"
 )
@@ -583,9 +584,26 @@ func (h *NotebooksHandler) IncrementViews(c *gin.Context) {
 }
 
 func (h *NotebooksHandler) GetCommunityNotebooks(c *gin.Context) {
-	sort := c.DefaultQuery("sort", "rating")
+	sortVal := c.DefaultQuery("sort", "rating")
+	if _, ok := validation.ValidSort(sortVal); !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный sort"})
+		return
+	}
+
 	search := c.Query("search")
-	limit := c.DefaultQuery("limit", "50")
+	if search != "" {
+		if _, ok := validation.SafeSearchString(search); !ok {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный поисковый запрос"})
+			return
+		}
+	}
+
+	limitVal := c.DefaultQuery("limit", "50")
+	limit, ok := validation.ValidLimit(limitVal)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "limit должен быть от 1 до 100"})
+		return
+	}
 
 	selectFields := "id,user_id,title,description,color,tags,is_public,average_rating,views_count,copies_count,created_at,updated_at"
 
@@ -595,10 +613,11 @@ func (h *NotebooksHandler) GetCommunityNotebooks(c *gin.Context) {
 	}
 
 	if search != "" {
-		filters = append(filters, fmt.Sprintf("or=(title.ilike.*%s*,description.ilike.*%s*)", search, search))
+		safeSearch, _ := validation.SafeSearchString(search)
+		filters = append(filters, fmt.Sprintf("or=(title.ilike.*%s*,description.ilike.*%s*)", safeSearch, safeSearch))
 	}
 
-	switch sort {
+	switch sortVal {
 	case "newest":
 		filters = append(filters, "order=created_at.desc")
 	case "popular":
@@ -607,7 +626,7 @@ func (h *NotebooksHandler) GetCommunityNotebooks(c *gin.Context) {
 		filters = append(filters, "order=average_rating.desc")
 	}
 
-	filters = append(filters, "limit="+limit)
+	filters = append(filters, fmt.Sprintf("limit=%d", limit))
 
 	endpoint := "notebooks?" + strings.Join(filters, "&")
 

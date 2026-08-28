@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
-	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"api/internal/supabase"
+	"api/internal/validation"
 
 	"github.com/gin-gonic/gin"
 )
@@ -33,33 +32,62 @@ func (h *TasksHandler) GetTasks(c *gin.Context) {
 	filters := []string{}
 
 	if subject := c.Query("subject"); subject != "" {
-		filters = append(filters, fmt.Sprintf("subject=eq.%s", url.QueryEscape(subject)))
+		if val, ok := validation.ValidSubject(subject); ok {
+			filters = append(filters, fmt.Sprintf("subject=eq.%s", val))
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный subject"})
+			return
+		}
 	}
 	if exam := c.Query("exam"); exam != "" {
-		filters = append(filters, fmt.Sprintf("exam_type=eq.%s", url.QueryEscape(exam)))
+		if val, ok := validation.ValidExam(exam); ok {
+			filters = append(filters, fmt.Sprintf("exam_type=eq.%s", val))
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный exam"})
+			return
+		}
 	}
 	if taskType := c.Query("type"); taskType != "" {
-		filters = append(filters, fmt.Sprintf("task_type=eq.%s", url.QueryEscape(taskType)))
+		if val, ok := validation.ValidTaskType(taskType); ok {
+			filters = append(filters, fmt.Sprintf("task_type=eq.%s", val))
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный type"})
+			return
+		}
 	}
 	if topic := c.Query("topic"); topic != "" {
-		filters = append(filters, fmt.Sprintf("topic=eq.%s", url.QueryEscape(topic)))
+		if val, ok := validation.SafeString(topic); ok {
+			filters = append(filters, fmt.Sprintf("topic=eq.%s", val))
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный topic"})
+			return
+		}
 	}
 	if difficulty := c.Query("difficulty"); difficulty != "" {
-		filters = append(filters, fmt.Sprintf("difficulty=lte.%s", url.QueryEscape(difficulty)))
+		if val, ok := validation.ValidDifficulty(difficulty); ok {
+			filters = append(filters, fmt.Sprintf("difficulty=lte.%s", val))
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный difficulty"})
+			return
+		}
 	}
 	if taskNumber := c.Query("task_number"); taskNumber != "" {
-		filters = append(filters, fmt.Sprintf("task_number=eq.%s", url.QueryEscape(taskNumber)))
+		if val, ok := validation.ValidTaskNumber(taskNumber); ok {
+			filters = append(filters, fmt.Sprintf("task_number=eq.%s", val))
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный task_number"})
+			return
+		}
 	}
 
 	limit := 1
 	if l := c.Query("limit"); l != "" {
-		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
+		if parsed, ok := validation.ValidLimit(l); ok {
 			limit = parsed
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "limit должен быть от 1 до 100"})
+			return
 		}
-	}
-	const maxLimit = 100
-	if limit > maxLimit {
-		limit = maxLimit
 	}
 
 	endpoint := "tasks?select=*"
@@ -67,20 +95,21 @@ func (h *TasksHandler) GetTasks(c *gin.Context) {
 		endpoint += "&" + strings.Join(filters, "&")
 	}
 
+	// Добавляем limit на уровне БД, а не в памяти
+	endpoint += fmt.Sprintf("&limit=%d", limit)
+
 	var tasks []map[string]interface{}
 	if err := h.client.Query(endpoint, false, &tasks); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	rand.Shuffle(len(tasks), func(i, j int) {
-		tasks[i], tasks[j] = tasks[j], tasks[i]
-	})
-
-	if limit > len(tasks) {
-		limit = len(tasks)
+	// shuffle только если limit небольшой и данных мало
+	if len(tasks) > 0 && len(tasks) <= limit {
+		rand.Shuffle(len(tasks), func(i, j int) {
+			tasks[i], tasks[j] = tasks[j], tasks[i]
+		})
 	}
-	tasks = tasks[:limit]
 
 	c.JSON(http.StatusOK, gin.H{
 		"tasks": tasks,
