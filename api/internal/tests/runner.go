@@ -3,6 +3,7 @@
 package tests
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -124,11 +125,12 @@ func sectionConfig(url, anonKey, serviceKey string) section {
 func sectionDB(url, anonKey, serviceKey string) section {
 	s := section{name: "База данных"}
 	client := supabase.NewClient(url, anonKey, serviceKey)
+	ctx := context.Background()
 
 	// Тест: подключение (anon)
 	start := time.Now()
 	var tasks []map[string]interface{}
-	err := client.Query("tasks?select=id&limit=1", false, &tasks)
+	err := client.Query(ctx, "tasks?select=id&limit=1", false, &tasks)
 	elapsed := time.Since(start)
 	s.subtests = append(s.subtests, subtest{
 		name: fmt.Sprintf("Подключение (%s)", elapsed.Round(time.Millisecond)),
@@ -139,7 +141,7 @@ func sectionDB(url, anonKey, serviceKey string) section {
 	// Тест: подключение (service key)
 	if serviceKey != "" {
 		var tasks2 []map[string]interface{}
-		err := client.Query("tasks?select=id&limit=1", true, &tasks2)
+		err := client.Query(ctx, "tasks?select=id&limit=1", true, &tasks2)
 		s.subtests = append(s.subtests, subtest{
 			name: "Service key работает",
 			pass: err == nil && len(tasks2) > 0,
@@ -149,7 +151,7 @@ func sectionDB(url, anonKey, serviceKey string) section {
 
 	// Тест: фильтр по предмету
 	var infoTasks []map[string]interface{}
-	err = client.Query("tasks?select=id&subject=eq.informatics&limit=1", false, &infoTasks)
+	err = client.Query(ctx, "tasks?select=id&subject=eq.informatics&limit=1", false, &infoTasks)
 	s.subtests = append(s.subtests, subtest{
 		name: "Фильтр subject=informatics",
 		pass: err == nil && len(infoTasks) > 0,
@@ -158,7 +160,7 @@ func sectionDB(url, anonKey, serviceKey string) section {
 
 	// Тест: фильтр по теме
 	var mathTasks []map[string]interface{}
-	err = client.Query("tasks?select=id&subject=eq.math&limit=1", false, &mathTasks)
+	err = client.Query(ctx, "tasks?select=id&subject=eq.math&limit=1", false, &mathTasks)
 	s.subtests = append(s.subtests, subtest{
 		name: "Фильтр subject=math",
 		pass: err == nil && len(mathTasks) > 0,
@@ -233,10 +235,11 @@ func sectionChecker() section {
 func sectionEndpoints(url, anonKey string) section {
 	s := section{name: "HTTP-эндпоинты"}
 	client := supabase.NewClient(url, anonKey, "")
+	ctx := context.Background()
 
 	// --- GET /api/v1/tasks ---
 	var tasks []map[string]interface{}
-	err := client.Query("tasks?select=*&subject=eq.informatics&limit=1", false, &tasks)
+	err := client.Query(ctx, "tasks?select=*&subject=eq.informatics&limit=1", false, &tasks)
 	s.subtests = append(s.subtests, subtest{
 		name: "GET tasks?subject=informatics",
 		pass: err == nil && len(tasks) > 0,
@@ -244,7 +247,7 @@ func sectionEndpoints(url, anonKey string) section {
 	})
 
 	var mathTasks []map[string]interface{}
-	err = client.Query("tasks?select=*&subject=eq.math&limit=1", false, &mathTasks)
+	err = client.Query(ctx, "tasks?select=*&subject=eq.math&limit=1", false, &mathTasks)
 	s.subtests = append(s.subtests, subtest{
 		name: "GET tasks?subject=math",
 		pass: err == nil && len(mathTasks) > 0,
@@ -273,7 +276,7 @@ func sectionEndpoints(url, anonKey string) section {
 	if len(mathTasks) > 0 {
 		taskID := mathTasks[0]["id"].(string)
 		var checkTask []map[string]interface{}
-		err := client.Query("tasks?select=answer,task_type&id=eq."+taskID, false, &checkTask)
+		err := client.Query(ctx, "tasks?select=answer,task_type&id=eq."+taskID, false, &checkTask)
 		if err == nil && len(checkTask) > 0 {
 			answer := checkTask[0]["answer"].(string)
 			taskType := checkTask[0]["task_type"].(string)

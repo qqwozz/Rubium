@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -58,7 +59,7 @@ func (h *CheckHandler) Check(c *gin.Context) {
 		return
 	}
 
-	task, err := h.getTask(req.TaskID)
+	task, err := h.getTask(c.Request.Context(), req.TaskID)
 	if err != nil {
 		if errors.Is(err, ErrTaskNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "задание не найдено"})
@@ -110,10 +111,10 @@ func (h *CheckHandler) Check(c *gin.Context) {
 	})
 }
 
-func (h *CheckHandler) getTask(taskID string) (map[string]interface{}, error) {
+func (h *CheckHandler) getTask(ctx context.Context, taskID string) (map[string]interface{}, error) {
 	var tasks []map[string]interface{}
 	endpoint := fmt.Sprintf("tasks?select=*&id=eq.%s&limit=1", taskID)
-	err := h.client.Query(endpoint, false, &tasks)
+	err := h.client.Query(ctx, endpoint, false, &tasks)
 	if err != nil {
 		return nil, err
 	}

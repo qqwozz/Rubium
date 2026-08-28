@@ -1,6 +1,7 @@
 package supabase
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -40,7 +41,7 @@ func TestClient_Query(t *testing.T) {
 
 	client := NewClient(srv.URL, "anon", "service")
 	var tasks []map[string]interface{}
-	err := client.Query("tasks", false, &tasks)
+	err := client.Query(context.Background(), "tasks", false, &tasks)
 	if err != nil {
 		t.Fatalf("Query failed: %v", err)
 	}
@@ -55,7 +56,7 @@ func TestClient_Post(t *testing.T) {
 
 	client := NewClient(srv.URL, "anon", "service")
 	var result map[string]interface{}
-	err := client.Post("tasks", true, map[string]interface{}{"title": "New"}, &result)
+	err := client.Post(context.Background(), "tasks", true, map[string]interface{}{"title": "New"}, &result)
 	if err != nil {
 		t.Fatalf("Post failed: %v", err)
 	}
@@ -69,7 +70,7 @@ func TestClient_Patch(t *testing.T) {
 	defer srv.Close()
 
 	client := NewClient(srv.URL, "anon", "service")
-	err := client.Patch("tasks?id=eq.1", true, map[string]interface{}{"title": "Updated"})
+	err := client.Patch(context.Background(), "tasks?id=eq.1", true, map[string]interface{}{"title": "Updated"})
 	if err != nil {
 		t.Fatalf("Patch failed: %v", err)
 	}
@@ -80,7 +81,7 @@ func TestClient_Delete(t *testing.T) {
 	defer srv.Close()
 
 	client := NewClient(srv.URL, "anon", "service")
-	err := client.Delete("tasks?id=eq.1", true)
+	err := client.Delete(context.Background(), "tasks?id=eq.1", true)
 	if err != nil {
 		t.Fatalf("Delete failed: %v", err)
 	}
@@ -99,7 +100,7 @@ func TestClient_RPC(t *testing.T) {
 
 	client := NewClient(srv.URL, "anon", "service")
 	var result map[string]interface{}
-	err := client.RPC("my_func", true, map[string]interface{}{}, &result)
+	err := client.RPC(context.Background(), "my_func", true, map[string]interface{}{}, &result)
 	if err != nil {
 		t.Fatalf("RPC failed: %v", err)
 	}
@@ -120,7 +121,7 @@ func TestClient_AuthUser(t *testing.T) {
 	defer srv.Close()
 
 	client := NewClient(srv.URL, "anon", "service")
-	uid, err := client.AuthUser("good-token")
+	uid, err := client.AuthUser(context.Background(), "good-token")
 	if err != nil {
 		t.Fatalf("AuthUser failed: %v", err)
 	}
@@ -128,7 +129,7 @@ func TestClient_AuthUser(t *testing.T) {
 		t.Errorf("expected user-1, got %s", uid)
 	}
 
-	_, err = client.AuthUser("bad-token")
+	_, err = client.AuthUser(context.Background(), "bad-token")
 	if err == nil {
 		t.Error("expected error for bad token")
 	}
@@ -142,7 +143,7 @@ func TestClient_RawQuery_ServerError(t *testing.T) {
 	defer srv.Close()
 
 	client := NewClient(srv.URL, "anon", "service")
-	_, err := client.RawQuery("tasks", false)
+	_, err := client.RawQuery(context.Background(), "tasks", false)
 	if err == nil {
 		t.Error("expected error for 500 response")
 	}

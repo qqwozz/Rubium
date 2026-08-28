@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -98,12 +99,12 @@ func (r notebookRow) toResponse(includeContent bool) gin.H {
 	return resp
 }
 
-func (h *NotebooksHandler) getRubiumUserID(authID string) (string, error) {
+func (h *NotebooksHandler) getRubiumUserID(ctx context.Context, authID string) (string, error) {
 	var users []struct {
 		ID string `json:"id"`
 	}
 	usersEndpoint := fmt.Sprintf("rubium_users?select=id&auth_id=eq.%s", authID)
-	rawUsers, err := h.client.RawQuery(usersEndpoint, false)
+	rawUsers, err := h.client.RawQuery(ctx, usersEndpoint, false)
 	if err != nil {
 		return "", err
 	}
@@ -127,7 +128,7 @@ func (h *NotebooksHandler) GetNotebooks(c *gin.Context) {
 	}
 	authID := userID.(string)
 
-	rubiumUserID, err := h.getRubiumUserID(authID)
+	rubiumUserID, err := h.getRubiumUserID(c.Request.Context(), authID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -146,7 +147,7 @@ func (h *NotebooksHandler) GetNotebooks(c *gin.Context) {
 
 	endpoint := "notebooks?" + strings.Join(filters, "&")
 
-	rawNotebooks, err := h.client.RawQuery(endpoint, true)
+	rawNotebooks, err := h.client.RawQuery(c.Request.Context(), endpoint, true)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -179,7 +180,7 @@ func (h *NotebooksHandler) GetNotebookByID(c *gin.Context) {
 
 	var rows []notebookRow
 	endpoint := fmt.Sprintf("notebooks?select=*&id=eq.%s&limit=1", id)
-	if err := h.client.Query(endpoint, true, &rows); err != nil {
+	if err := h.client.Query(c.Request.Context(), endpoint, true, &rows); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -201,7 +202,7 @@ func (h *NotebooksHandler) GetNotebookByID(c *gin.Context) {
 		return
 	}
 
-	rubiumUserID, err := h.getRubiumUserID(uid.(string))
+	rubiumUserID, err := h.getRubiumUserID(c.Request.Context(), uid.(string))
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
@@ -221,7 +222,6 @@ type CreateNotebookRequest struct {
 	Color       string   `json:"color"`
 	Tags        []string `json:"tags"`
 	IsPublic    bool     `json:"is_public"`
-	// UserID УДАЛЁН — берём из контекста авторизации
 }
 
 func (h *NotebooksHandler) CreateNotebook(c *gin.Context) {
@@ -231,14 +231,13 @@ func (h *NotebooksHandler) CreateNotebook(c *gin.Context) {
 		return
 	}
 
-	// Берём auth_id из контекста middleware, а не из тела запроса
 	authID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "требуется авторизация"})
 		return
 	}
 
-	rubiumUserID, err := h.getRubiumUserID(authID.(string))
+	rubiumUserID, err := h.getRubiumUserID(c.Request.Context(), authID.(string))
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
@@ -261,7 +260,7 @@ func (h *NotebooksHandler) CreateNotebook(c *gin.Context) {
 	payload["is_public"] = req.IsPublic
 
 	var rows []notebookRow
-	if err := h.client.Post("notebooks", true, payload, &rows); err != nil {
+	if err := h.client.Post(c.Request.Context(), "notebooks", true, payload, &rows); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -291,13 +290,13 @@ func (h *NotebooksHandler) UpdateNotebook(c *gin.Context) {
 
 	authID := c.MustGet("user_id").(string)
 
-	rubiumUserID, err := h.getRubiumUserID(authID)
+	rubiumUserID, err := h.getRubiumUserID(c.Request.Context(), authID)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
 	}
 
-	owner, err := h.getOwner(id)
+	owner, err := h.getOwner(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "тетрадь не найдена"})
 		return
@@ -340,7 +339,7 @@ func (h *NotebooksHandler) UpdateNotebook(c *gin.Context) {
 	updates["updated_at"] = time.Now().UTC().Format(time.RFC3339)
 
 	endpoint := fmt.Sprintf("notebooks?id=eq.%s", id)
-	if err := h.client.Patch(endpoint, true, updates); err != nil {
+	if err := h.client.Patch(c.Request.Context(), endpoint, true, updates); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -357,13 +356,13 @@ func (h *NotebooksHandler) DeleteNotebook(c *gin.Context) {
 
 	authID := c.MustGet("user_id").(string)
 
-	rubiumUserID, err := h.getRubiumUserID(authID)
+	rubiumUserID, err := h.getRubiumUserID(c.Request.Context(), authID)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
 	}
 
-	owner, err := h.getOwner(id)
+	owner, err := h.getOwner(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "тетрадь не найдена"})
 		return
@@ -374,7 +373,7 @@ func (h *NotebooksHandler) DeleteNotebook(c *gin.Context) {
 	}
 
 	endpoint := fmt.Sprintf("notebooks?id=eq.%s", id)
-	if err := h.client.Delete(endpoint, true); err != nil {
+	if err := h.client.Delete(c.Request.Context(), endpoint, true); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -391,7 +390,7 @@ func (h *NotebooksHandler) CopyNotebook(c *gin.Context) {
 
 	authID := c.MustGet("user_id").(string)
 
-	rubiumUserID, err := h.getRubiumUserID(authID)
+	rubiumUserID, err := h.getRubiumUserID(c.Request.Context(), authID)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
@@ -399,7 +398,7 @@ func (h *NotebooksHandler) CopyNotebook(c *gin.Context) {
 
 	var rows []notebookRow
 	endpoint := fmt.Sprintf("notebooks?select=*&id=eq.%s&limit=1", id)
-	if err := h.client.Query(endpoint, true, &rows); err != nil {
+	if err := h.client.Query(c.Request.Context(), endpoint, true, &rows); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -427,7 +426,7 @@ func (h *NotebooksHandler) CopyNotebook(c *gin.Context) {
 	}
 
 	var newRows []notebookRow
-	if err := h.client.Post("notebooks", true, payload, &newRows); err != nil {
+	if err := h.client.Post(c.Request.Context(), "notebooks", true, payload, &newRows); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -436,12 +435,9 @@ func (h *NotebooksHandler) CopyNotebook(c *gin.Context) {
 		return
 	}
 
-	// Atomic increment через RPC вместо read-modify-write
-	if err := h.client.RPC("increment_notebook_copies", true, map[string]interface{}{
+	if err := h.client.RPC(c.Request.Context(), "increment_notebook_copies", true, map[string]interface{}{
 		"notebook_id": id,
 	}, nil); err != nil {
-		// Не ломаем пользователю создание копии, если счётчик не обновился
-		// но логируем (в реальном проекте — в structured logger)
 		_ = err
 	}
 
@@ -461,7 +457,7 @@ func (h *NotebooksHandler) RateNotebook(c *gin.Context) {
 
 	authID := c.MustGet("user_id").(string)
 
-	rubiumUserID, err := h.getRubiumUserID(authID)
+	rubiumUserID, err := h.getRubiumUserID(c.Request.Context(), authID)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
@@ -479,7 +475,7 @@ func (h *NotebooksHandler) RateNotebook(c *gin.Context) {
 
 	var rows []notebookRow
 	endpoint := fmt.Sprintf("notebooks?select=id,user_id,is_public,average_rating,ratings_count&id=eq.%s&limit=1", id)
-	if err := h.client.Query(endpoint, true, &rows); err != nil {
+	if err := h.client.Query(c.Request.Context(), endpoint, true, &rows); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -498,12 +494,11 @@ func (h *NotebooksHandler) RateNotebook(c *gin.Context) {
 		return
 	}
 
-	// Правильный взвешенный расчёт среднего
 	newCount := nb.RatingsCount + 1
 	newAvg := (nb.AverageRating*float64(nb.RatingsCount) + float64(req.Rating)) / float64(newCount)
 
 	patchEndpoint := fmt.Sprintf("notebooks?id=eq.%s", id)
-	if err := h.client.Patch(patchEndpoint, true, map[string]interface{}{
+	if err := h.client.Patch(c.Request.Context(), patchEndpoint, true, map[string]interface{}{
 		"average_rating": newAvg,
 		"ratings_count":  newCount,
 	}); err != nil {
@@ -526,7 +521,7 @@ func (h *NotebooksHandler) GetRating(c *gin.Context) {
 
 	var rows []notebookRow
 	endpoint := fmt.Sprintf("notebooks?select=id,user_id,is_public,average_rating&id=eq.%s&limit=1", id)
-	if err := h.client.Query(endpoint, true, &rows); err != nil {
+	if err := h.client.Query(c.Request.Context(), endpoint, true, &rows); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -549,7 +544,7 @@ func (h *NotebooksHandler) GetRating(c *gin.Context) {
 		return
 	}
 
-	rubiumUserID, err := h.getRubiumUserID(uid.(string))
+	rubiumUserID, err := h.getRubiumUserID(c.Request.Context(), uid.(string))
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
@@ -572,8 +567,7 @@ func (h *NotebooksHandler) IncrementViews(c *gin.Context) {
 		return
 	}
 
-	// Atomic increment через RPC вместо race-prone read-modify-write
-	if err := h.client.RPC("increment_notebook_views", true, map[string]interface{}{
+	if err := h.client.RPC(c.Request.Context(), "increment_notebook_views", true, map[string]interface{}{
 		"notebook_id": id,
 	}, nil); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -630,7 +624,7 @@ func (h *NotebooksHandler) GetCommunityNotebooks(c *gin.Context) {
 
 	endpoint := "notebooks?" + strings.Join(filters, "&")
 
-	rawNotebooks, err := h.client.RawQuery(endpoint, true)
+	rawNotebooks, err := h.client.RawQuery(c.Request.Context(), endpoint, true)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -645,17 +639,15 @@ func (h *NotebooksHandler) GetCommunityNotebooks(c *gin.Context) {
 		return
 	}
 
-	// Собираем user_ids
 	userIDs := make([]string, 0, len(rows))
 	for _, r := range rows {
 		userIDs = append(userIDs, r.UserID)
 	}
 
-	// Загружаем авторов
 	authors := make(map[string]gin.H)
 	if len(userIDs) > 0 {
 		usersEndpoint := fmt.Sprintf("rubium_users?select=id,first_name,last_name,email,avatar_url&id=in.(%s)", strings.Join(userIDs, ","))
-		rawUsers, err := h.client.RawQuery(usersEndpoint, false)
+		rawUsers, err := h.client.RawQuery(c.Request.Context(), usersEndpoint, false)
 		if err == nil {
 			if len(rawUsers) > 0 && rawUsers[0] == '{' {
 				rawUsers = append([]byte("["), append(rawUsers, []byte("]")...)...)
@@ -700,10 +692,10 @@ func (h *NotebooksHandler) GetCommunityNotebooks(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"notebooks": notebooks})
 }
 
-func (h *NotebooksHandler) getOwner(id string) (string, error) {
+func (h *NotebooksHandler) getOwner(ctx context.Context, id string) (string, error) {
 	var rows []notebookRow
 	endpoint := fmt.Sprintf("notebooks?select=user_id&id=eq.%s&limit=1", id)
-	if err := h.client.Query(endpoint, true, &rows); err != nil {
+	if err := h.client.Query(ctx, endpoint, true, &rows); err != nil {
 		return "", err
 	}
 	if len(rows) == 0 {

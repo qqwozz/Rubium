@@ -99,7 +99,7 @@ func (h *TasksHandler) GetTasks(c *gin.Context) {
 	endpoint += fmt.Sprintf("&limit=%d", limit)
 
 	var tasks []map[string]interface{}
-	if err := h.client.Query(endpoint, false, &tasks); err != nil {
+	if err := h.client.Query(c.Request.Context(), endpoint, false, &tasks); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -127,7 +127,7 @@ func (h *TasksHandler) GetTaskByID(c *gin.Context) {
 
 	var tasks []map[string]interface{}
 	endpoint := fmt.Sprintf("tasks?select=*&id=eq.%s&limit=1", id)
-	if err := h.client.Query(endpoint, false, &tasks); err != nil {
+	if err := h.client.Query(c.Request.Context(), endpoint, false, &tasks); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -211,7 +211,7 @@ func (h *TasksHandler) UpdateTask(c *gin.Context) {
 	}
 
 	endpoint := fmt.Sprintf("tasks?id=eq.%s", id)
-	if err := h.client.Patch(endpoint, true, updates); err != nil {
+	if err := h.client.Patch(c.Request.Context(), endpoint, true, updates); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -235,7 +235,7 @@ func (h *TasksHandler) DeleteTask(c *gin.Context) {
 
 	var tasks []map[string]interface{}
 	checkEndpoint := fmt.Sprintf("tasks?select=id&id=eq.%s&limit=1", id)
-	if err := h.client.Query(checkEndpoint, false, &tasks); err != nil {
+	if err := h.client.Query(c.Request.Context(), checkEndpoint, false, &tasks); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка базы данных"})
 		return
 	}
@@ -245,7 +245,7 @@ func (h *TasksHandler) DeleteTask(c *gin.Context) {
 	}
 
 	endpoint := fmt.Sprintf("tasks?id=eq.%s", id)
-	if err := h.client.Delete(endpoint, true); err != nil {
+	if err := h.client.Delete(c.Request.Context(), endpoint, true); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

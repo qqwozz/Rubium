@@ -3,6 +3,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -61,7 +62,6 @@ func postJSON(t *testing.T, r *gin.Engine, url string, body interface{}) (int, m
 func TestCheck_MathTask_Correct(t *testing.T) {
 	r := setupCheckServer(t)
 
-	// Берём ID математического задания из БД
 	taskID := getMathTaskID(t)
 
 	code, resp := postJSON(t, r, "/api/v1/check", map[string]string{
@@ -101,13 +101,11 @@ func TestCheck_InformaticsTask(t *testing.T) {
 	r := setupCheckServer(t)
 	taskID := getInformaticsTaskID(t)
 
-	// Это задание на программирование (answer="-), должно идти в Python
 	code, resp := postJSON(t, r, "/api/v1/check", map[string]string{
 		"task_id": taskID,
 		"answer":  "print(sum(x for x in [18,192,104,117,0] if 100<=x<=999 and x%4==0))",
 	})
 
-	// Может вернуть 500 если Python не запущен — это ожидаемо
 	if code == http.StatusOK {
 		t.Logf("check result: %v", resp["correct"])
 	} else {
@@ -191,7 +189,6 @@ func TestCheck_NonexistentTask(t *testing.T) {
 
 // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
 
-// getMathTaskID — достаёт ID первого математического задания из БД
 func getMathTaskID(t *testing.T) string {
 	t.Helper()
 	if err := godotenv.Load("../../.env"); err != nil {
@@ -205,14 +202,13 @@ func getMathTaskID(t *testing.T) string {
 	)
 
 	var tasks []map[string]interface{}
-	err := client.Query("tasks?select=id&subject=eq.math&limit=1", false, &tasks)
+	err := client.Query(context.Background(), "tasks?select=id&subject=eq.math&limit=1", false, &tasks)
 	if err != nil || len(tasks) == 0 {
 		t.Skip("нет математических заданий в БД")
 	}
 	return tasks[0]["id"].(string)
 }
 
-// getInformaticsTaskID — достаёт ID первого задания по информатике
 func getInformaticsTaskID(t *testing.T) string {
 	t.Helper()
 	if err := godotenv.Load("../../.env"); err != nil {
@@ -226,7 +222,7 @@ func getInformaticsTaskID(t *testing.T) string {
 	)
 
 	var tasks []map[string]interface{}
-	err := client.Query("tasks?select=id&subject=eq.informatics&limit=1", false, &tasks)
+	err := client.Query(context.Background(), "tasks?select=id&subject=eq.informatics&limit=1", false, &tasks)
 	if err != nil || len(tasks) == 0 {
 		t.Skip("нет заданий по информатике в БД")
 	}
