@@ -136,7 +136,7 @@ func (h *NotebooksHandler) GetNotebooks(c *gin.Context) {
 		return
 	}
 
-	selectFields := "id,user_id,title,description,color,tags,is_public,average_rating,views_count,copies_count,created_at,updated_at,content"
+	selectFields := "id,user_id,title,description,color,tags,is_public,average_rating,ratings_count,views_count,copies_count,created_at,updated_at,content"
 
 	filters := []string{
 		"select=" + selectFields,
@@ -658,7 +658,7 @@ func (h *NotebooksHandler) GetCommunityNotebooks(c *gin.Context) {
 		return
 	}
 
-	selectFields := "id,user_id,title,description,color,tags,is_public,average_rating,views_count,copies_count,created_at,updated_at"
+	selectFields := "id,user_id,title,description,color,tags,is_public,average_rating,ratings_count,views_count,copies_count,created_at,updated_at"
 
 	filters := []string{
 		"select=" + selectFields,
