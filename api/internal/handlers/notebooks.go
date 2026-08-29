@@ -473,6 +473,38 @@ func (h *NotebooksHandler) RateNotebook(c *gin.Context) {
 		return
 	}
 
+	// Проверяем, не оценивал ли уже пользователь
+	var userRows []struct {
+		RatedNotebooks map[string]int `json:"rated_notebooks"`
+	}
+	userEndpoint := fmt.Sprintf("rubium_users?select=rated_notebooks&id=eq.%s&limit=1", rubiumUserID)
+	rawUser, err := h.client.RawQuery(c.Request.Context(), userEndpoint, false)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if len(rawUser) > 0 && rawUser[0] == '{' {
+		rawUser = append([]byte("["), append(rawUser, []byte("]")...)...)
+	}
+	if err := json.Unmarshal(rawUser, &userRows); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if len(userRows) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "пользователь не найден"})
+		return
+	}
+
+	ratedNotebooks := userRows[0].RatedNotebooks
+	if ratedNotebooks == nil {
+		ratedNotebooks = make(map[string]int)
+	}
+
+	if _, exists := ratedNotebooks[id]; exists {
+		c.JSON(http.StatusForbidden, gin.H{"error": "вы уже оценивали эту тетрадь"})
+		return
+	}
+
 	var rows []notebookRow
 	endpoint := fmt.Sprintf("notebooks?select=id,user_id,is_public,average_rating,ratings_count&id=eq.%s&limit=1", id)
 	if err := h.client.Query(c.Request.Context(), endpoint, true, &rows); err != nil {
@@ -504,6 +536,16 @@ func (h *NotebooksHandler) RateNotebook(c *gin.Context) {
 	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Сохраняем оценку пользователя
+	ratedNotebooks[id] = req.Rating
+	userPatchEndpoint := fmt.Sprintf("rubium_users?id=eq.%s", rubiumUserID)
+	if err := h.client.Patch(c.Request.Context(), userPatchEndpoint, false, map[string]interface{}{
+		"rated_notebooks": ratedNotebooks,
+	}); err != nil {
+		// Не критично — логируем, но не ломаем ответ
+		fmt.Printf("⚠ не удалось сохранить оценку пользователя %s: %v\n", rubiumUserID, err)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
