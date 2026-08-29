@@ -1,93 +1,91 @@
 <template>
   <div class="profile-page">
-    <Sidebar ref="sidebarRef" />
-    
-    <header class="mobile-header">
-      <button class="mobile-menu-btn" @click="sidebarRef?.toggle()">
-        <i class="fas fa-bars"></i>
-      </button>
-    </header>
-    
-    <div class="main-content">
-      <header class="topbar">
-        <span class="page-title">Профиль</span>
-      </header>
-      
-      <div class="content">
-        <div class="profile-header">
-          <div class="avatar" @click="triggerFileInput">
-            <img v-if="auth.profile?.avatar_url" :src="auth.profile.avatar_url" alt="Аватар">
-            <span v-else>{{ (auth.profile?.first_name || auth.userName || 'У')[0]?.toUpperCase() }}</span>
-            <div class="avatar-overlay">
-              <i class="fas fa-camera"></i>
+    <MobileHeader @toggle="sidebarRef?.toggle()" />
+
+    <div class="page-body">
+      <Sidebar ref="sidebarRef" />
+
+      <div class="main-content">
+        <header class="topbar">
+          <span class="page-title">Профиль</span>
+        </header>
+
+        <div class="content">
+          <div class="profile-header">
+            <div class="avatar" @click="triggerFileInput">
+              <img v-if="auth.profile?.avatar_url" :src="auth.profile.avatar_url" alt="Аватар">
+              <span v-else>{{ (auth.profile?.first_name || auth.userName || 'У')[0]?.toUpperCase() }}</span>
+              <div class="avatar-overlay">
+                <i class="fas fa-camera"></i>
+              </div>
+            </div>
+            <input ref="fileInput" type="file" accept="image/*" hidden @change="uploadAvatar">
+
+            <div class="profile-info">
+              <h1>{{ getFullName() }}</h1>
+              <p>{{ auth.user?.email }}</p>
+              <div class="profile-badges">
+                <span v-if="auth.isAdmin" class="badge">
+                  <i class="fas fa-shield-halved"></i> Администратор
+                </span>
+                <span class="badge secondary">
+                  <i class="fas fa-calendar"></i> С нами с {{ formatDate(auth.profile?.created_at) }}
+                </span>
+              </div>
             </div>
           </div>
-          <input ref="fileInput" type="file" accept="image/*" hidden @change="uploadAvatar">
-          
-          <div class="profile-info">
-            <h1>{{ getFullName() }}</h1>
-            <p>{{ auth.user?.email }}</p>
-            <div class="profile-badges">
-              <span v-if="auth.isAdmin" class="badge">
-                <i class="fas fa-shield-halved"></i> Администратор
-              </span>
-              <span class="badge secondary">
-                <i class="fas fa-calendar"></i> С нами с {{ formatDate(auth.profile?.created_at) }}
-              </span>
+
+          <div class="quick-actions">
+            <router-link to="/notebooks" class="quick-card">
+              <i class="fas fa-book"></i>
+              <span>Мои тетради</span>
+              <i class="fas fa-chevron-right"></i>
+            </router-link>
+          </div>
+
+          <div v-if="pinnedNotebook" class="pinned-section">
+            <h2>Закреплённая тетрадь</h2>
+            <div class="pinned-card" @click="router.push(`/notebook/${pinnedNotebook.id}`)">
+              <div class="pinned-color" :style="{ background: pinnedNotebook.color || '#525252' }"></div>
+              <div>
+                <div class="pinned-title">{{ pinnedNotebook.title }}</div>
+                <div class="pinned-meta">{{ pinnedNotebook.pages_count || 0 }} страниц</div>
+              </div>
             </div>
           </div>
-        </div>
-        
-        <div class="quick-actions">
-          <router-link to="/notebooks" class="quick-card">
-            <i class="fas fa-book"></i>
-            <span>Мои тетради</span>
-            <i class="fas fa-chevron-right"></i>
-          </router-link>
-        </div>
-        
-        <div v-if="pinnedNotebook" class="pinned-section">
-          <h2>Закреплённая тетрадь</h2>
-          <div class="pinned-card" @click="router.push(`/notebook/${pinnedNotebook.id}`)">
-            <div class="pinned-color" :style="{ background: pinnedNotebook.color || '#525252' }"></div>
-            <div>
-              <div class="pinned-title">{{ pinnedNotebook.title }}</div>
-              <div class="pinned-meta">{{ pinnedNotebook.pages_count || 0 }} страниц</div>
+
+          <div class="settings-section">
+            <h2>Настройки</h2>
+
+            <div class="settings-form">
+              <div class="form-group">
+                <label>Имя</label>
+                <input v-model="editFirstName" type="text" placeholder="Имя">
+              </div>
+
+              <div class="form-group">
+                <label>Фамилия</label>
+                <input v-model="editLastName" type="text" placeholder="Фамилия">
+              </div>
+
+              <div class="form-group">
+                <label>Email</label>
+                <input v-model="editEmail" type="email" placeholder="Email" disabled>
+                <small class="form-hint">Email менять нельзя — это твой логин</small>
+              </div>
+
+              <button class="btn-save" @click="saveProfile" :disabled="saving">
+                <i v-if="saving" class="fas fa-spinner fa-spin"></i>
+                <span v-else><i class="fas fa-check"></i> Сохранить</span>
+              </button>
             </div>
           </div>
-        </div>
-        
-        <div class="settings-section">
-          <h2>Настройки</h2>
-          
-          <div class="settings-form">
-            <div class="form-group">
-              <label>Имя</label>
-              <input v-model="editFirstName" type="text" placeholder="Имя">
-            </div>
-            
-            <div class="form-group">
-              <label>Фамилия</label>
-              <input v-model="editLastName" type="text" placeholder="Фамилия">
-            </div>
-            
-            <div class="form-group">
-              <label>Email</label>
-              <input v-model="editEmail" type="email" placeholder="Email" disabled>
-              <small class="form-hint">Email менять нельзя — это твой логин</small>
-            </div>
-            
-            <button class="btn-save" @click="saveProfile" :disabled="saving">
-              <i v-if="saving" class="fas fa-spinner fa-spin"></i>
-              <span v-else><i class="fas fa-check"></i> Сохранить</span>
+
+          <div class="profile-actions">
+            <button class="btn-logout" @click="auth.logout()">
+              <i class="fas fa-sign-out-alt"></i> Выйти
             </button>
           </div>
-        </div>
-        
-        <div class="profile-actions">
-          <button class="btn-logout" @click="auth.logout()">
-            <i class="fas fa-sign-out-alt"></i> Выйти
-          </button>
         </div>
       </div>
     </div>
@@ -98,6 +96,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
+import MobileHeader from '../components/MobileHeader.vue'
 import { useAuthStore } from '../stores/auth'
 import { supabase } from '../api/supabase'
 
@@ -133,37 +132,37 @@ function triggerFileInput() {
 async function uploadAvatar(event) {
   const file = event.target.files?.[0]
   if (!file) return
-  
+
   try {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
-    
+
     const userId = auth.profile?.id
     if (!userId) return
-    
+
     const fileExt = file.name.split('.').pop()
     const filePath = `avatars/${userId}.${fileExt}`
-    
+
     const { error: uploadError } = await supabase.storage
       .from('avatars')
       .upload(filePath, file, {
         upsert: true,
         contentType: file.type
       })
-    
+
     if (uploadError) throw uploadError
-    
+
     const { data: { publicUrl } } = supabase.storage
       .from('avatars')
       .getPublicUrl(filePath)
-    
+
     const { error: updateError } = await supabase
       .from('rubium_users')
       .update({ avatar_url: publicUrl })
       .eq('id', userId)
-    
+
     if (updateError) throw updateError
-    
+
     await auth.loadProfile()
   } catch (e) {
     console.error(e)
@@ -178,7 +177,7 @@ async function loadPinnedNotebook(id) {
       .select('*')
       .eq('id', id)
       .single()
-    
+
     pinnedNotebook.value = data
   } catch (e) {
     console.error(e)
@@ -196,7 +195,7 @@ async function saveProfile() {
   try {
     const userId = auth.profile?.id
     if (!userId) throw new Error('Нет профиля')
-    
+
     const { error } = await supabase
       .from('rubium_users')
       .update({
@@ -204,9 +203,9 @@ async function saveProfile() {
         last_name: editLastName.value
       })
       .eq('id', userId)
-    
+
     if (error) throw error
-    
+
     await auth.loadProfile()
   } catch (e) {
     console.error(e)
@@ -218,7 +217,7 @@ async function saveProfile() {
 
 onMounted(() => {
   initForm()
-  
+
   if (auth.profile?.pinned_notebook_id) {
     loadPinnedNotebook(auth.profile.pinned_notebook_id)
   }
@@ -228,10 +227,16 @@ onMounted(() => {
 <style scoped>
 .profile-page {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background: #0a0a0a;
   color: #fafafa;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.page-body {
+  display: flex;
+  flex: 1;
 }
 
 .main-content {
@@ -256,10 +261,6 @@ onMounted(() => {
   max-width: 720px;
   margin: 0 auto;
   padding: 48px 48px 96px;
-}
-
-.mobile-header {
-  display: none;
 }
 
 .profile-header {
@@ -556,52 +557,28 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
+  .page-body {
+    display: block;
+  }
+
   .main-content {
     margin-left: 0;
   }
-  
+
   .topbar {
     display: none;
   }
-  
-  .mobile-header {
-    display: flex;
-    align-items: flex-start;
-    padding: 10px 5px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    position: sticky;
-    top: 0;
-    background: #0a0a0a;
-    z-index: 50;
-  }
-  
-  .mobile-menu-btn {
-    background: none;
-    border: none;
-    color: #737373;
-    font-size: 1.1rem;
-    cursor: pointer;
-    padding: 4px 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.15s ease;
-  }
-  
-  .mobile-menu-btn:hover {
-    color: #e5e5e5;
-  }
-  
+
   .content {
     padding: 32px 24px 64px;
   }
-  
+
   .profile-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
   }
-  
+
   .avatar {
     width: 64px;
     height: 64px;

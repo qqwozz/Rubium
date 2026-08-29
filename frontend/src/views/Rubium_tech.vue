@@ -1,73 +1,71 @@
 <template>
   <div class="rubium-tech-page">
-    <Sidebar ref="sidebarRef" />
-    
-    <header class="mobile-header">
-      <button class="mobile-menu-btn" @click="sidebarRef?.toggle()">
-        <i class="fas fa-bars"></i>
-      </button>
-    </header>
-    
-    <div class="main-content">
-      <header class="topbar">
-        <span class="page-title">Rubium Tech</span>
-      </header>
-      
-      <div class="content">
-        <div class="tech-header">
-          <div class="tech-icon">
-            <i class="fas fa-laptop-code"></i>
+    <MobileHeader @toggle="sidebarRef?.toggle()" />
+
+    <div class="page-body">
+      <Sidebar ref="sidebarRef" />
+
+      <div class="main-content">
+        <header class="topbar">
+          <span class="page-title">Rubium Tech</span>
+        </header>
+
+        <div class="content">
+          <div class="tech-header">
+            <div class="tech-icon">
+              <i class="fas fa-laptop-code"></i>
+            </div>
+            <h1>Rubium Tech</h1>
+            <p>Закрытое комьюнити для тех, кто хочет получить реальный опыт разработки.</p>
           </div>
-          <h1>Rubium Tech</h1>
-          <p>Закрытое комьюнити для тех, кто хочет получить реальный опыт разработки.</p>
-        </div>
-        
-        <div class="features-grid">
-          <div class="feature-item">
-            <div class="feature-icon"><i class="fas fa-tasks"></i></div>
-            <div class="feature-content">
-              <h3>Уникальные идеи</h3>
-              <p>Каждый может предложить идеи развития. От дизайна и коммерции до технических моментов.</p>
+
+          <div class="features-grid">
+            <div class="feature-item">
+              <div class="feature-icon"><i class="fas fa-tasks"></i></div>
+              <div class="feature-content">
+                <h3>Уникальные идеи</h3>
+                <p>Каждый может предложить идеи развития. От дизайна и коммерции до технических моментов.</p>
+              </div>
+            </div>
+
+            <div class="feature-item">
+              <div class="feature-icon"><i class="fas fa-code-branch"></i></div>
+              <div class="feature-content">
+                <h3>Контрибуторство</h3>
+                <p>Коммиты в коммерческий продукт. Твой код видят реальные пользователи.</p>
+              </div>
+            </div>
+
+            <div class="feature-item">
+              <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+              <div class="feature-content">
+                <h3>Рост и скиллы</h3>
+                <p>Помогаем прокачивать навыки через код-ревью и менторство.</p>
+              </div>
+            </div>
+
+            <div class="feature-item">
+              <div class="feature-icon"><i class="fas fa-folder-open"></i></div>
+              <div class="feature-content">
+                <h3>Портфолио</h3>
+                <p>Собираем портфолио вместе. Работы в Rubium — это сильный кейс для работодателя.</p>
+              </div>
             </div>
           </div>
-          
-          <div class="feature-item">
-            <div class="feature-icon"><i class="fas fa-code-branch"></i></div>
-            <div class="feature-content">
-              <h3>Контрибуторство</h3>
-              <p>Коммиты в коммерческий продукт. Твой код видят реальные пользователи.</p>
-            </div>
-          </div>
-          
-          <div class="feature-item">
-            <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
-            <div class="feature-content">
-              <h3>Рост и скиллы</h3>
-              <p>Помогаем прокачивать навыки через код-ревью и менторство.</p>
-            </div>
-          </div>
-          
-          <div class="feature-item">
-            <div class="feature-icon"><i class="fas fa-folder-open"></i></div>
-            <div class="feature-content">
-              <h3>Портфолио</h3>
-              <p>Собираем портфолио вместе. Работы в Rubium — это сильный кейс для работодателя.</p>
-            </div>
-          </div>
-        </div>
-        
-        <div class="join-section">
-          <h2>Ты не просто наблюдаешь. Ты строишь Rubium.</h2>
-          
-          <div class="join-actions">
-            <a href="https://t.me/+5KS-7mS6aDw0NDJi" target="_blank" class="btn-join">
-              <i class="fab fa-telegram"></i> Присоединиться
-            </a>
-            
-            <div class="contacts">
-              <span>По вопросам:</span>
-              <a href="https://t.me/KantervilleGhost" target="_blank">@KantervilleGhost</a>
-              <a href="https://t.me/onixxed" target="_blank">@onixxed</a>
+
+          <div class="join-section">
+            <h2>Ты не просто наблюдаешь. Ты строишь Rubium.</h2>
+
+            <div class="join-actions">
+              <a href="https://t.me/+5KS-7mS6aDw0NDJi" target="_blank" class="btn-join">
+                <i class="fab fa-telegram"></i> Присоединиться
+              </a>
+
+              <div class="contacts">
+                <span>По вопросам:</span>
+                <a href="https://t.me/KantervilleGhost" target="_blank">@KantervilleGhost</a>
+                <a href="https://t.me/onixxed" target="_blank">@onixxed</a>
+              </div>
             </div>
           </div>
         </div>
@@ -78,6 +76,7 @@
 
 <script setup>
 import Sidebar from '../components/Sidebar.vue'
+import MobileHeader from '../components/MobileHeader.vue'
 import { ref } from 'vue'
 
 const sidebarRef = ref(null)
@@ -86,10 +85,16 @@ const sidebarRef = ref(null)
 <style scoped>
 .rubium-tech-page {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background: #0a0a0a;
   color: #fafafa;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.page-body {
+  display: flex;
+  flex: 1;
 }
 
 .main-content {
@@ -114,10 +119,6 @@ const sidebarRef = ref(null)
   max-width: 720px;
   margin: 0 auto;
   padding: 48px 48px 96px;
-}
-
-.mobile-header {
-  display: none;
 }
 
 .tech-header {
@@ -251,51 +252,27 @@ const sidebarRef = ref(null)
 }
 
 @media (max-width: 768px) {
+  .page-body {
+    display: block;
+  }
+
   .main-content {
     margin-left: 0;
   }
-  
+
   .topbar {
     display: none;
   }
-  
-  .mobile-header {
-    display: flex;
-    align-items: flex-start;
-    padding: 10px 5px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    position: sticky;
-    top: 0;
-    background: #0a0a0a;
-    z-index: 50;
-  }
-  
-  .mobile-menu-btn {
-    background: none;
-    border: none;
-    color: #737373;
-    font-size: 1.1rem;
-    cursor: pointer;
-    padding: 4px 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.15s ease;
-  }
-  
-  .mobile-menu-btn:hover {
-    color: #e5e5e5;
-  }
-  
+
   .content {
     padding: 32px 24px 64px;
   }
-  
+
   .features-grid {
     grid-template-columns: 1fr;
     gap: 24px;
   }
-  
+
   .join-section {
     padding: 32px 24px;
   }

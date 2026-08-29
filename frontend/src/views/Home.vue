@@ -1,145 +1,142 @@
 <template>
   <div class="home-page">
-    <Sidebar ref="sidebarRef" />
+    <MobileHeader @toggle="sidebarRef?.toggle()" />
     
-    <!-- Mobile Header -->
-    <header class="mobile-header">
-      <button class="mobile-menu-btn" @click="sidebarRef?.toggle()">
-        <i class="fas fa-bars"></i>
-      </button>
-    </header>
-    
-    <div class="main-content">
-      <header class="topbar">
-        <span class="page-title">Главная</span>
-      </header>
+    <div class="page-body">
+      <Sidebar ref="sidebarRef" />
       
-      <div class="content">
-        <!-- Hero -->
-        <section class="hero">
-          <p class="hero-greeting">Готов к новым вершинам?</p>
-          <h1 class="hero-name">{{ auth.userName }}</h1>
-          <div class="hero-actions">
-            <router-link to="/notebooks" class="btn btn-primary">
-              <i class="fa-solid fa-book"></i> К моим тетрадям
-            </router-link>
-            <router-link to="/community" class="btn btn-secondary">
-              <i class="fa-solid fa-globe"></i> В каталог тетрадей
-            </router-link>
-          </div>
-        </section>
+      <div class="main-content">
+        <header class="topbar">
+          <span class="page-title">Главная</span>
+        </header>
+        
+        <div class="content">
+          <!-- Hero -->
+          <section class="hero">
+            <p class="hero-greeting">Готов к новым вершинам?</p>
+            <h1 class="hero-name">{{ auth.userName }}</h1>
+            <div class="hero-actions">
+              <router-link to="/notebooks" class="btn btn-primary">
+                <i class="fa-solid fa-book"></i> К моим тетрадям
+              </router-link>
+              <router-link to="/community" class="btn btn-secondary">
+                <i class="fa-solid fa-globe"></i> В каталог тетрадей
+              </router-link>
+            </div>
+          </section>
 
-        <!-- О Rubium -->
-        <section class="section">
-          <h2 class="section-title">О Rubium</h2>
-          <p class="section-body">
-            <strong>Rubium</strong> — это образовательная среда нового поколения, созданная студентами для студентов. Она объединяет подготовку к экзаменам, обмен знаниями и доступ к реальным карьерным возможностям в одном цифровом пространстве. Здесь каждый учится, растёт и строит свой путь к сильному будущему.
-          </p>
-        </section>
+          <!-- О Rubium -->
+          <section class="section">
+            <h2 class="section-title">О Rubium</h2>
+            <p class="section-body">
+              <strong>Rubium</strong> — это образовательная среда нового поколения, созданная студентами для студентов. Она объединяет подготовку к экзаменам, обмен знаниями и доступ к реальным карьерным возможностям в одном цифровом пространстве. Здесь каждый учится, растёт и строит свой путь к сильному будущему.
+            </p>
+          </section>
 
-        <!-- Возможности -->
-        <section class="section">
-          <h2 class="section-title">Возможности</h2>
-          <div class="features-grid">
-            <div class="feature-item">
-              <div class="feature-icon"><i class="fas fa-book"></i></div>
-              <div class="feature-content">
-                <h3>Рабочая тетрадь</h3>
-                <p>Пиши конспекты с формулами и таблицами. Автосохранение включено.</p>
+          <!-- Возможности -->
+          <section class="section">
+            <h2 class="section-title">Возможности</h2>
+            <div class="features-grid">
+              <div class="feature-item">
+                <div class="feature-icon"><i class="fas fa-book"></i></div>
+                <div class="feature-content">
+                  <h3>Рабочая тетрадь</h3>
+                  <p>Пиши конспекты с формулами и таблицами. Автосохранение включено.</p>
+                </div>
               </div>
-            </div>
-            <div class="feature-item">
-              <div class="feature-icon"><i class="fas fa-globe"></i></div>
-              <div class="feature-content">
-                <h3>Сообщество</h3>
-                <p>Находи публичные тетради, сохраняй их себе и делись своими конспектами.</p>
+              <div class="feature-item">
+                <div class="feature-icon"><i class="fas fa-globe"></i></div>
+                <div class="feature-content">
+                  <h3>Сообщество</h3>
+                  <p>Находи публичные тетради, сохраняй их себе и делись своими конспектами.</p>
+                </div>
               </div>
-            </div>
-            <div class="feature-item">
-              <div class="feature-icon"><i class="fas fa-graduation-cap"></i></div>
-              <div class="feature-content">
-                <h3>Каталог курсов</h3>
-                <p>Бесплатные курсы от MIT, Stanford, Harvard и других университетов.</p>
+              <div class="feature-item">
+                <div class="feature-icon"><i class="fas fa-graduation-cap"></i></div>
+                <div class="feature-content">
+                  <h3>Каталог курсов</h3>
+                  <p>Бесплатные курсы от MIT, Stanford, Harvard и других университетов.</p>
+                </div>
               </div>
-            </div>
-            <div class="feature-item">
-              <div class="feature-icon"><i class="fas fa-rocket"></i></div>
-              <div class="feature-content">
-                <h3>Развитие</h3>
-                <p>Подготовка к экзаменам, обмен знаниями и путь к карьере — всё в одном пространстве.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- С чего начать -->
-        <section class="section">
-          <h2 class="section-title">С чего начать</h2>
-          <div class="steps-list">
-            <div class="step">
-              <span class="step-num">01</span>
-              <div class="step-content">
-                <h3>Создай аккаунт</h3>
-                <p>Это займёт меньше минуты</p>
-              </div>
-            </div>
-            <div class="step">
-              <span class="step-num">02</span>
-              <div class="step-content">
-                <h3>Веди тетрадь</h3>
-                <p>Сохраняй конспекты и делись ими</p>
-              </div>
-            </div>
-            <div class="step">
-              <span class="step-num">03</span>
-              <div class="step-content">
-                <h3>Ищи возможности</h3>
-                <p>Выбери курс в каталоге и конспектируй его тут</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Telegram -->
-        <section class="section">
-          <h2 class="section-title">Наши Telegram-каналы</h2>
-          <div class="links-list">
-            <a href="https://t.me/rubium_edu" target="_blank" class="link-row">
-              <div class="link-icon"><i class="fab fa-telegram"></i></div>
-              <div class="link-text">
-                <h3>Rubium</h3>
-                <p>Новости, обновления и анонсы платформы. Будь в курсе всего первым.</p>
-              </div>
-              <i class="fas fa-arrow-up-right-from-square link-arrow"></i>
-            </a>
-            <a href="https://t.me/+5KS-7mS6aDw0NDJi" target="_blank" class="link-row">
-              <div class="link-icon"><i class="fas fa-laptop-code"></i></div>
-              <div class="link-text">
-                <h3>Rubium Tech</h3>
-                <p>Хочешь быть частью команды разработчиков? Попробуй себя в реальном проекте.</p>
-              </div>
-              <i class="fas fa-arrow-up-right-from-square link-arrow"></i>
-            </a>
-          </div>
-        </section>
-
-        <!-- Создатели -->
-        <section class="section">
-          <h2 class="section-title">Создатели</h2>
-          <div class="devs-list">
-            <div v-for="dev in developers" :key="dev.name" class="dev-row">
-              <img :src="dev.avatar" :alt="dev.name" class="dev-avatar" loading="lazy">
-              <div class="dev-info">
-                <h4>{{ dev.name }}</h4>
-                <div class="dev-links">
-                  <a :href="`https://github.com/${dev.github}`" target="_blank">GitHub</a>
-                  <a :href="`https://t.me/${dev.telegram}`" target="_blank">Telegram</a>
-                  <a :href="dev.website" target="_blank">Веб-сайт</a>
+              <div class="feature-item">
+                <div class="feature-icon"><i class="fas fa-rocket"></i></div>
+                <div class="feature-content">
+                  <h3>Развитие</h3>
+                  <p>Подготовка к экзаменам, обмен знаниями и путь к карьере — всё в одном пространстве.</p>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+
+          <!-- С чего начать -->
+          <section class="section">
+            <h2 class="section-title">С чего начать</h2>
+            <div class="steps-list">
+              <div class="step">
+                <span class="step-num">01</span>
+                <div class="step-content">
+                  <h3>Создай аккаунт</h3>
+                  <p>Это займёт меньше минуты</p>
+                </div>
+              </div>
+              <div class="step">
+                <span class="step-num">02</span>
+                <div class="step-content">
+                  <h3>Веди тетрадь</h3>
+                  <p>Сохраняй конспекты и делись ими</p>
+                </div>
+              </div>
+              <div class="step">
+                <span class="step-num">03</span>
+                <div class="step-content">
+                  <h3>Ищи возможности</h3>
+                  <p>Выбери курс в каталоге и конспектируй его тут</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Telegram -->
+          <section class="section">
+            <h2 class="section-title">Наши Telegram-каналы</h2>
+            <div class="links-list">
+              <a href="https://t.me/rubium_edu" target="_blank" class="link-row">
+                <div class="link-icon"><i class="fab fa-telegram"></i></div>
+                <div class="link-text">
+                  <h3>Rubium</h3>
+                  <p>Новости, обновления и анонсы платформы. Будь в курсе всего первым.</p>
+                </div>
+                <i class="fas fa-arrow-up-right-from-square link-arrow"></i>
+              </a>
+              <a href="https://t.me/+5KS-7mS6aDw0NDJi" target="_blank" class="link-row">
+                <div class="link-icon"><i class="fas fa-laptop-code"></i></div>
+                <div class="link-text">
+                  <h3>Rubium Tech</h3>
+                  <p>Хочешь быть частью команды разработчиков? Попробуй себя в реальном проекте.</p>
+                </div>
+                <i class="fas fa-arrow-up-right-from-square link-arrow"></i>
+              </a>
+            </div>
+          </section>
+
+          <!-- Создатели -->
+          <section class="section">
+            <h2 class="section-title">Создатели</h2>
+            <div class="devs-list">
+              <div v-for="dev in developers" :key="dev.name" class="dev-row">
+                <img :src="dev.avatar" :alt="dev.name" class="dev-avatar" loading="lazy">
+                <div class="dev-info">
+                  <h4>{{ dev.name }}</h4>
+                  <div class="dev-links">
+                    <a :href="`https://github.com/${dev.github}`" target="_blank">GitHub</a>
+                    <a :href="`https://t.me/${dev.telegram}`" target="_blank">Telegram</a>
+                    <a :href="dev.website" target="_blank">Веб-сайт</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   </div>
@@ -148,6 +145,7 @@
 <script setup>
 import { ref } from 'vue'
 import Sidebar from '../components/Sidebar.vue'
+import MobileHeader from '../components/MobileHeader.vue'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
@@ -174,10 +172,16 @@ const developers = [
 <style scoped>
 .home-page {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background: #0a0a0a;
   color: #fafafa;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.page-body {
+  display: flex;
+  flex: 1;
 }
 
 .main-content {
@@ -204,12 +208,6 @@ const developers = [
   padding: 48px 48px 96px;
 }
 
-/* Mobile Header */
-.mobile-header {
-  display: none;
-}
-
-/* Hero */
 .hero {
   padding: 32px 0 64px;
 }
@@ -271,7 +269,6 @@ const developers = [
   border-color: rgba(255,255,255,0.2);
 }
 
-/* Sections */
 .section {
   margin-bottom: 80px;
 }
@@ -296,7 +293,6 @@ const developers = [
   font-weight: 600;
 }
 
-/* Features */
 .features-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -335,7 +331,6 @@ const developers = [
   line-height: 1.5;
 }
 
-/* Steps */
 .steps-list {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -368,7 +363,6 @@ const developers = [
   line-height: 1.5;
 }
 
-/* Links (Telegram) */
 .links-list {
   display: flex;
   flex-direction: column;
@@ -378,23 +372,16 @@ const developers = [
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 18px 0;
+  padding: 18px 12px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   text-decoration: none;
   color: inherit;
   transition: background 0.2s ease;
-  margin: 0 -12px;
-  padding-left: 12px;
-  padding-right: 12px;
   border-radius: 8px;
 }
 
 .link-row:hover {
   background: rgba(255,255,255,0.02);
-}
-
-.link-row:first-child {
-  padding-top: 12px;
 }
 
 .link-icon {
@@ -438,7 +425,6 @@ const developers = [
   color: #a3a3a3;
 }
 
-/* Devs */
 .devs-list {
   display: flex;
   flex-direction: column;
@@ -484,50 +470,17 @@ const developers = [
   color: #a3a3a3;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
+  .page-body {
+    display: block;
+  }
+  
   .main-content {
     margin-left: 0;
   }
   
   .topbar {
     display: none;
-  }
-  
-  .mobile-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    padding: 10px 5px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    position: sticky;
-    top: 0;
-    background: #0a0a0a;
-    z-index: 50;
-  }
-  
-  .mobile-logo {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #ffffff;
-    letter-spacing: -0.02em;
-  }
-  
-  .mobile-menu-btn {
-    background: none;
-    border: none;
-    color: #737373;
-    font-size: 1.1rem;
-    cursor: pointer;
-    padding: 4px 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.15s ease;
-  }
-  
-  .mobile-menu-btn:hover {
-    color: #e5e5e5;
   }
   
   .content {

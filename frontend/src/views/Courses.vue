@@ -1,57 +1,55 @@
 <template>
   <div class="courses-page">
-    <Sidebar ref="sidebarRef" />
-    
-    <header class="mobile-header">
-      <button class="mobile-menu-btn" @click="sidebarRef?.toggle()">
-        <i class="fas fa-bars"></i>
-      </button>
-    </header>
-    
-    <div class="main-content">
-      <header class="topbar">
-        <span class="page-title">Курсы</span>
-      </header>
-      
-      <div class="content">
-        <div class="courses-header">
-          <h1>Курсы</h1>
-          <p>Бесплатные и платные курсы от лучших университетов и компаний мира</p>
-        </div>
-        
-        <div v-if="filteredCourses.length" class="courses-grid">
-          <a 
-            v-for="course in filteredCourses" 
-            :key="course.id"
-            :href="course.url"
-            target="_blank"
-            class="course-card"
-          >
-            <div class="course-header">
-              <div class="course-university">{{ course.university }}</div>
-              <span class="course-badge" :class="course.free ? 'free' : 'paid'">
-                {{ course.free ? 'Бесплатно' : 'Платно' }}
-              </span>
-            </div>
-            
-            <h3>{{ course.name }}</h3>
-            <p>{{ course.description }}</p>
-            
-            <div class="course-footer">
-              <div class="course-subjects">
-                <span v-for="subj in course.subjects.slice(0, 3)" :key="subj" class="subject-tag">
-                  {{ subj }}
+    <MobileHeader @toggle="sidebarRef?.toggle()" />
+
+    <div class="page-body">
+      <Sidebar ref="sidebarRef" />
+
+      <div class="main-content">
+        <header class="topbar">
+          <span class="page-title">Курсы</span>
+        </header>
+
+        <div class="content">
+          <div class="courses-header">
+            <h1>Курсы</h1>
+            <p>Бесплатные и платные курсы от лучших университетов и компаний мира</p>
+          </div>
+
+          <div v-if="filteredCourses.length" class="courses-grid">
+            <a 
+              v-for="course in filteredCourses" 
+              :key="course.id"
+              :href="course.url"
+              target="_blank"
+              class="course-card"
+            >
+              <div class="course-header">
+                <div class="course-university">{{ course.university }}</div>
+                <span class="course-badge" :class="course.free ? 'free' : 'paid'">
+                  {{ course.free ? 'Бесплатно' : 'Платно' }}
                 </span>
               </div>
-              <div class="course-rating">
-                <i class="fas fa-star"></i> {{ course.rating }}
+
+              <h3>{{ course.name }}</h3>
+              <p>{{ course.description }}</p>
+
+              <div class="course-footer">
+                <div class="course-subjects">
+                  <span v-for="subj in course.subjects.slice(0, 3)" :key="subj" class="subject-tag">
+                    {{ subj }}
+                  </span>
+                </div>
+                <div class="course-rating">
+                  <i class="fas fa-star"></i> {{ course.rating }}
+                </div>
               </div>
-            </div>
-          </a>
-        </div>
-        
-        <div v-else class="empty-state">
-          <p>Нет курсов в этой категории</p>
+            </a>
+          </div>
+
+          <div v-else class="empty-state">
+            <p>Нет курсов в этой категории</p>
+          </div>
         </div>
       </div>
     </div>
@@ -61,6 +59,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import Sidebar from '../components/Sidebar.vue'
+import MobileHeader from '../components/MobileHeader.vue'
 import coursesData from '../assets/courses.json'
 
 const courses = ref(coursesData)
@@ -82,10 +81,16 @@ const filteredCourses = computed(() => {
 <style scoped>
 .courses-page {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background: #0a0a0a;
   color: #fafafa;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.page-body {
+  display: flex;
+  flex: 1;
 }
 
 .main-content {
@@ -110,10 +115,6 @@ const filteredCourses = computed(() => {
   max-width: 900px;
   margin: 0 auto;
   padding: 48px 48px 96px;
-}
-
-.mobile-header {
-  display: none;
 }
 
 .courses-header {
@@ -279,46 +280,22 @@ const filteredCourses = computed(() => {
 }
 
 @media (max-width: 768px) {
+  .page-body {
+    display: block;
+  }
+
   .main-content {
     margin-left: 0;
   }
-  
+
   .topbar {
     display: none;
   }
-  
-  .mobile-header {
-    display: flex;
-    align-items: flex-start;
-    padding: 10px 5px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    position: sticky;
-    top: 0;
-    background: #0a0a0a;
-    z-index: 50;
-  }
-  
-  .mobile-menu-btn {
-    background: none;
-    border: none;
-    color: #737373;
-    font-size: 1.1rem;
-    cursor: pointer;
-    padding: 4px 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.15s ease;
-  }
-  
-  .mobile-menu-btn:hover {
-    color: #e5e5e5;
-  }
-  
+
   .content {
     padding: 32px 24px 64px;
   }
-  
+
   .courses-grid {
     grid-template-columns: 1fr;
   }

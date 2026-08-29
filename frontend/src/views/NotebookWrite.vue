@@ -1,122 +1,121 @@
 <template>
   <div class="notebook-write-page">
-    <ThinSidebar ref="sidebarRef" />
-    
-    <header class="mobile-header">
-      <button class="mobile-menu-btn" @click="sidebarRef?.toggle()">
-        <i class="fas fa-bars"></i>
-      </button>
-    </header>
-    
-    <div class="main-content">
-      <header class="topbar">
-        <button class="back-btn" @click="router.push('/notebooks')">
-          <i class="fas fa-arrow-left"></i> К тетрадям
-        </button>
-        <span class="page-title">{{ notebook?.title || 'Тетрадь' }}</span>
-        <button class="btn-save" @click="saveNotebook" :disabled="saving">
-          <i v-if="saving" class="fas fa-spinner fa-spin"></i>
-          <span v-else><i class="fas fa-check"></i> Сохранить</span>
-        </button>
-      </header>
-      
-      <div class="editor-layout">
-        <div class="sections-panel">
-          <div class="sections-header">
-            <span>Разделы</span>
-            <button class="btn-add-section" @click="addSection" title="Добавить раздел">
-              <i class="fas fa-plus"></i>
-            </button>
-          </div>
-          
-          <div v-if="sections.length === 0" class="sections-empty">
-            <div class="empty-icon"><i class="fas fa-folder-open"></i></div>
-            <p>Нет разделов</p>
-          </div>
-          
-          <div v-for="(section, si) in sections" :key="section.id" class="section-item">
-            <div class="section-header" :class="{ active: openSections.includes(section.id) }">
-              <i 
-                class="fas fa-chevron-right section-arrow" 
-                :class="{ rotated: openSections.includes(section.id) }"
-                @click="toggleSection(section.id)"
-              ></i>
-              
-              <input 
-                v-if="editingSectionId === section.id"
-                v-model="section.title"
-                class="section-title-input"
-                @blur="editingSectionId = null"
-                @keydown.enter="editingSectionId = null"
-                @keydown.esc="editingSectionId = null"
-                ref="sectionInput"
-              />
-              <span 
-                v-else
-                class="section-title"
-                @click="toggleSection(section.id)"
-                @dblclick="startEditSection(section.id)"
-              >{{ section.title }}</span>
-              
-              <div class="section-actions">
-                <button class="btn-icon" @click.stop="startEditSection(section.id)" title="Переименовать">
-                  <i class="fas fa-pen"></i>
-                </button>
-                <button class="btn-icon danger" @click.stop="deleteSection(si)" title="Удалить">
-                  <i class="fas fa-trash"></i>
-                </button>
-              </div>
-            </div>
-            
-            <div v-if="openSections.includes(section.id)" class="pages-list">
-              <div 
-                v-for="page in section.pages" 
-                :key="page.id"
-                class="page-item"
-                :class="{ active: currentPage?.id === page.id }"
-                @click="selectPage(page)"
-              >
-                <i class="fas fa-file"></i>
-                <span>{{ page.title || 'Без названия' }}</span>
-                <button class="btn-icon-mini" @click.stop="deletePage(si, page.id)" title="Удалить страницу">
-                  <i class="fas fa-times"></i>
-                </button>
-              </div>
-              
-              <button class="btn-add-page" @click="addPage(si)">
-                <i class="fas fa-plus"></i> Страница
+    <MobileHeader v-if="isMobile" @toggle="mobileSidebarRef?.toggle()" />
+
+    <div class="page-body">
+      <ThinSidebar v-if="!isMobile" ref="sidebarRef" />
+      <Sidebar v-if="isMobile" ref="mobileSidebarRef" />
+
+      <div class="main-content">
+        <header class="topbar">
+          <button class="back-btn" @click="router.push('/notebooks')">
+            <i class="fas fa-arrow-left"></i> К тетрадям
+          </button>
+          <span class="page-title">{{ notebook?.title || 'Тетрадь' }}</span>
+          <button class="btn-save" @click="saveNotebook" :disabled="saving">
+            <i v-if="saving" class="fas fa-spinner fa-spin"></i>
+            <span v-else><i class="fas fa-check"></i> Сохранить</span>
+          </button>
+        </header>
+
+        <div class="editor-layout">
+          <div class="sections-panel">
+            <div class="sections-header">
+              <span>Разделы</span>
+              <button class="btn-add-section" @click="addSection" title="Добавить раздел">
+                <i class="fas fa-plus"></i>
               </button>
             </div>
-          </div>
-        </div>
-        
-        <div class="editor-panel">
-          <div v-if="!currentPage && sections.length > 0" class="editor-empty">
-            <div class="empty-icon"><i class="fas fa-file"></i></div>
-            <p>Выбери или создай страницу</p>
-            <button class="btn-create" @click="addPage(0)">
-              <i class="fas fa-plus"></i> Создать страницу
-            </button>
-          </div>
-          
-          <div v-if="!currentPage && sections.length === 0" class="editor-empty">
-            <div class="empty-icon"><i class="fas fa-book"></i></div>
-            <p>Создай первый раздел</p>
-            <button class="btn-create" @click="addSection">
-              <i class="fas fa-plus"></i> Создать раздел
-            </button>
-          </div>
-          
-          <div v-if="currentPage" class="editor-content">
-            <div class="page-header">
-              <input 
-                v-model="currentPage.title" 
-                class="page-title-input" 
-                placeholder="Заголовок страницы"
-              >
+
+            <div v-if="sections.length === 0" class="sections-empty">
+              <div class="empty-icon"><i class="fas fa-folder-open"></i></div>
+              <p>Нет разделов</p>
             </div>
-            
-            <NotebookEditor v-model="currentPage.content" />
+
+            <div v-for="(section, si) in sections" :key="section.id" class="section-item">
+              <div class="section-header" :class="{ active: openSections.includes(section.id) }">
+                <i 
+                  class="fas fa-chevron-right section-arrow" 
+                  :class="{ rotated: openSections.includes(section.id) }"
+                  @click="toggleSection(section.id)"
+                ></i>
+
+                <input 
+                  v-if="editingSectionId === section.id"
+                  v-model="section.title"
+                  class="section-title-input"
+                  @blur="editingSectionId = null"
+                  @keydown.enter="editingSectionId = null"
+                  @keydown.esc="editingSectionId = null"
+                  ref="sectionInput"
+                />
+                <span 
+                  v-else
+                  class="section-title"
+                  @click="toggleSection(section.id)"
+                  @dblclick="startEditSection(section.id)"
+                >{{ section.title }}</span>
+
+                <div class="section-actions">
+                  <button class="btn-icon" @click.stop="startEditSection(section.id)" title="Переименовать">
+                    <i class="fas fa-pen"></i>
+                  </button>
+                  <button class="btn-icon danger" @click.stop="deleteSection(si)" title="Удалить">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div v-if="openSections.includes(section.id)" class="pages-list">
+                <div 
+                  v-for="page in section.pages" 
+                  :key="page.id"
+                  class="page-item"
+                  :class="{ active: currentPage?.id === page.id }"
+                  @click="selectPage(page)"
+                >
+                  <i class="fas fa-file"></i>
+                  <span>{{ page.title || 'Без названия' }}</span>
+                  <button class="btn-icon-mini" @click.stop="deletePage(si, page.id)" title="Удалить страницу">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+
+                <button class="btn-add-page" @click="addPage(si)">
+                  <i class="fas fa-plus"></i> Страница
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="editor-panel">
+            <div v-if="!currentPage && sections.length > 0" class="editor-empty">
+              <div class="empty-icon"><i class="fas fa-file"></i></div>
+              <p>Выбери или создай страницу</p>
+              <button class="btn-create" @click="addPage(0)">
+                <i class="fas fa-plus"></i> Создать страницу
+              </button>
+            </div>
+
+            <div v-if="!currentPage && sections.length === 0" class="editor-empty">
+              <div class="empty-icon"><i class="fas fa-book"></i></div>
+              <p>Создай первый раздел</p>
+              <button class="btn-create" @click="addSection">
+                <i class="fas fa-plus"></i> Создать раздел
+              </button>
+            </div>
+
+            <div v-if="currentPage" class="editor-content">
+              <div class="page-header">
+                <input 
+                  v-model="currentPage.title" 
+                  class="page-title-input" 
+                  placeholder="Заголовок страницы"
+                >
+              </div>
+
+              <NotebookEditor v-model="currentPage.content" />
+            </div>
           </div>
         </div>
       </div>
@@ -128,13 +127,16 @@
 import { ref, onMounted, nextTick, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
+import ThinSidebar from '../components/ThinSidebar.vue'
+import MobileHeader from '../components/MobileHeader.vue'
 import { apiFetch } from '../api/client'
 import NotebookEditor from '../components/NotebookEditor.vue'
-import ThinSidebar from '../components/ThinSidebar.vue'
 
 const route = useRoute()
 const router = useRouter()
 const sidebarRef = ref(null)
+const mobileSidebarRef = ref(null)
+const isMobile = ref(false)
 
 const notebook = ref(null)
 const sections = ref([])
@@ -145,6 +147,10 @@ const editingSectionId = ref(null)
 const sectionInput = ref(null)
 
 let autoSaveTimer = null
+
+function checkMobile() {
+  isMobile.value = window.innerWidth <= 768
+}
 
 function debouncedSave() {
   if (autoSaveTimer) clearTimeout(autoSaveTimer)
@@ -161,11 +167,14 @@ function handleKeydown(event) {
 }
 
 onMounted(() => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
   loadNotebook()
   window.addEventListener('keydown', handleKeydown)
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('resize', checkMobile)
   window.removeEventListener('keydown', handleKeydown)
   if (autoSaveTimer) clearTimeout(autoSaveTimer)
   if (route.params.id) saveNotebook()
@@ -244,20 +253,6 @@ function deletePage(sectionIndex, pageId) {
   }
 }
 
-function deleteCurrentPage() {
-  if (!currentPage.value) return
-  if (confirm(`Удалить страницу "${currentPage.value.title}"?`)) {
-    for (const section of sections.value) {
-      const index = section.pages.findIndex(p => p.id === currentPage.value.id)
-      if (index > -1) {
-        section.pages.splice(index, 1)
-        break
-      }
-    }
-    currentPage.value = null
-  }
-}
-
 function addPage(sectionIndex) {
   const newPage = {
     id: `page-${Date.now()}`,
@@ -275,7 +270,7 @@ function selectPage(page) {
 
 async function saveNotebook() {
   if (!route.params.id) return
-  
+
   saving.value = true
   try {
     await apiFetch(`/notebooks/${route.params.id}`, {
@@ -295,10 +290,16 @@ async function saveNotebook() {
 <style scoped>
 .notebook-write-page {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background: #0a0a0a;
   color: #fafafa;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.page-body {
+  display: flex;
+  flex: 1;
 }
 
 .main-content {
@@ -682,52 +683,23 @@ async function saveNotebook() {
   color: #525252;
 }
 
-/* Mobile Header */
-.mobile-header {
-  display: none;
-}
-
 @media (max-width: 768px) {
+  .page-body {
+    display: block;
+  }
+
   .main-content {
     margin-left: 0;
   }
-  
+
   .topbar {
     display: none;
   }
-  
-  .mobile-header {
-    display: flex;
-    align-items: flex-start;
-    padding: 10px 5px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    position: sticky;
-    top: 0;
-    background: #0a0a0a;
-    z-index: 50;
-  }
-  
-  .mobile-menu-btn {
-    background: none;
-    border: none;
-    color: #737373;
-    font-size: 1.1rem;
-    cursor: pointer;
-    padding: 4px 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.15s ease;
-  }
-  
-  .mobile-menu-btn:hover {
-    color: #e5e5e5;
-  }
-  
+
   .editor-layout {
     flex-direction: column;
   }
-  
+
   .sections-panel {
     width: 100%;
     border-right: none;
@@ -735,11 +707,11 @@ async function saveNotebook() {
     max-height: 280px;
     padding: 16px;
   }
-  
+
   .editor-panel {
     padding: 20px 16px;
   }
-  
+
   .page-title-input {
     font-size: 1rem;
   }

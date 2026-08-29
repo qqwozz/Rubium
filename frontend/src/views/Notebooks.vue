@@ -1,55 +1,53 @@
 <template>
   <div class="notebooks-page">
-    <Sidebar ref="sidebarRef" />
-    
-    <header class="mobile-header">
-      <button class="mobile-menu-btn" @click="sidebarRef?.toggle()">
-        <i class="fas fa-bars"></i>
-      </button>
-    </header>
-    
-    <div class="main-content">
-      <header class="topbar">
-        <span class="page-title">Тетради</span>
-      </header>
-      
-      <div class="content">
-        <div class="notebooks-header">
-          <h1>Мои тетради</h1>
-          <button class="btn-create" @click="openCreateModal">
-            <i class="fas fa-plus"></i> Создать
-          </button>
-        </div>
-        
-        <div v-if="loading" class="loading">
-          <div class="spinner"></div>
-          <span>Загружаем...</span>
-        </div>
-        
-        <div v-else-if="notebooks.length === 0" class="empty-state">
-          <div class="empty-icon"><i class="fas fa-book-open"></i></div>
-          <h3>У тебя пока нет тетрадей</h3>
-          <p>Создай первую — начни вести конспекты</p>
-        </div>
-        
-        <div v-else class="notebooks-grid">
-          <div v-for="notebook in notebooks" :key="notebook.id" class="notebook-card" @click="openNotebook(notebook)">
-            <div class="notebook-color" :style="{ background: notebook.color || '#525252' }"></div>
-            <div class="notebook-info">
-              <div class="notebook-title-row">
-                <div class="notebook-title">{{ notebook.title }}</div>
-                <button class="btn-edit" @click.stop="openEditModal(notebook)">
-                  <i class="fas fa-gear"></i>
-                </button>
-              </div>
-              <div v-if="notebook.description" class="notebook-description">{{ notebook.description }}</div>
-              <div class="notebook-meta">
-                <span>{{ notebook.pages_count || 0 }} страниц</span>
-                <span v-if="notebook.is_public"><i class="fas fa-globe"></i> Публичная</span>
-                <span v-else><i class="fas fa-lock"></i> Приватная</span>
-              </div>
-              <div v-if="notebook.tags && notebook.tags.length" class="notebook-tags">
-                <span v-for="tag in notebook.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</span>
+    <MobileHeader @toggle="sidebarRef?.toggle()" />
+
+    <div class="page-body">
+      <Sidebar ref="sidebarRef" />
+
+      <div class="main-content">
+        <header class="topbar">
+          <span class="page-title">Тетради</span>
+        </header>
+
+        <div class="content">
+          <div class="notebooks-header">
+            <h1>Мои тетради</h1>
+            <button class="btn-create" @click="openCreateModal">
+              <i class="fas fa-plus"></i> Создать
+            </button>
+          </div>
+
+          <div v-if="loading" class="loading">
+            <div class="spinner"></div>
+            <span>Загружаем...</span>
+          </div>
+
+          <div v-else-if="notebooks.length === 0" class="empty-state">
+            <div class="empty-icon"><i class="fas fa-book-open"></i></div>
+            <h3>У тебя пока нет тетрадей</h3>
+            <p>Создай первую — начни вести конспекты</p>
+          </div>
+
+          <div v-else class="notebooks-grid">
+            <div v-for="notebook in notebooks" :key="notebook.id" class="notebook-card" @click="openNotebook(notebook)">
+              <div class="notebook-color" :style="{ background: notebook.color || '#525252' }"></div>
+              <div class="notebook-info">
+                <div class="notebook-title-row">
+                  <div class="notebook-title">{{ notebook.title }}</div>
+                  <button class="btn-edit" @click.stop="openEditModal(notebook)">
+                    <i class="fas fa-gear"></i>
+                  </button>
+                </div>
+                <div v-if="notebook.description" class="notebook-description">{{ notebook.description }}</div>
+                <div class="notebook-meta">
+                  <span>{{ notebook.pages_count || 0 }} страниц</span>
+                  <span v-if="notebook.is_public"><i class="fas fa-globe"></i> Публичная</span>
+                  <span v-else><i class="fas fa-lock"></i> Приватная</span>
+                </div>
+                <div v-if="notebook.tags && notebook.tags.length" class="notebook-tags">
+                  <span v-for="tag in notebook.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -158,6 +156,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
+import MobileHeader from '../components/MobileHeader.vue'
 import { apiFetch } from '../api/client'
 import { supabase } from '../api/supabase'
 import tagsRaw from '../assets/tags.txt?raw'
@@ -306,10 +305,16 @@ onMounted(() => { loadTags(); loadNotebooks() })
 <style scoped>
 .notebooks-page {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background: #0a0a0a;
   color: #fafafa;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.page-body {
+  display: flex;
+  flex: 1;
 }
 
 .main-content { margin-left: 240px; flex: 1; }
@@ -332,8 +337,6 @@ onMounted(() => { loadTags(); loadNotebooks() })
   margin: 0 auto;
   padding: 48px 48px 96px;
 }
-
-.mobile-header { display: none; }
 
 .notebooks-header {
   display: flex;
@@ -687,38 +690,16 @@ onMounted(() => { loadTags(); loadNotebooks() })
 .modal-enter-from .modal-card, .modal-leave-to .modal-card { transform: scale(0.97); }
 
 @media (max-width: 768px) {
+  .page-body {
+    display: block;
+  }
+
   .main-content { margin-left: 0; }
   .topbar { display: none; }
-  
-  .mobile-header {
-    display: flex;
-    align-items: flex-start;
-    padding: 10px 5px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    position: sticky;
-    top: 0;
-    background: #0a0a0a;
-    z-index: 50;
-  }
-  
-  .mobile-menu-btn {
-    background: none;
-    border: none;
-    color: #737373;
-    font-size: 1.1rem;
-    cursor: pointer;
-    padding: 4px 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.15s ease;
-  }
-  
-  .mobile-menu-btn:hover { color: #e5e5e5; }
-  
+
   .content { padding: 32px 24px 64px; }
   .notebooks-grid { grid-template-columns: 1fr; }
-  
+
   .modal-actions { flex-direction: column; }
   .btn-cancel, .btn-save, .btn-delete { width: 100%; justify-content: center; }
   .btn-delete { margin-right: 0; order: 3; }

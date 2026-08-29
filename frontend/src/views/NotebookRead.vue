@@ -1,56 +1,55 @@
 <template>
   <div class="notebook-read-page">
-    <ThinSidebar ref="sidebarRef" />
-    
-    <header class="mobile-header">
-      <button class="mobile-menu-btn" @click="sidebarRef?.toggle()">
-        <i class="fas fa-bars"></i>
-      </button>
-    </header>
-    
-    <div class="main-content">
-      <header class="topbar">
-        <button class="back-btn" @click="router.back()">
-          <i class="fas fa-arrow-left"></i> Назад
-        </button>
-        <span class="page-title">{{ notebook?.title || 'Просмотр' }}</span>
-        <button v-if="isOwner" class="btn-edit" @click="router.push(`/notebook/${route.params.id}/edit`)">
-          <i class="fas fa-pencil"></i> Редактировать
-        </button>
-      </header>
-      
-      <div class="read-layout">
-        <div class="sections-panel">
-          <div v-for="section in sections" :key="section.id" class="section-item">
-            <div class="section-header" @click="toggleSection(section.id)">
-              <i class="fas fa-chevron-right" :class="{ rotated: openSections.includes(section.id) }"></i>
-              <span>{{ section.title }}</span>
-            </div>
-            
-            <div v-if="openSections.includes(section.id)" class="pages-list">
-              <div 
-                v-for="page in section.pages" 
-                :key="page.id"
-                class="page-item"
-                :class="{ active: currentPage?.id === page.id }"
-                @click="selectPage(page)"
-              >
-                <i class="fas fa-file"></i>
-                <span>{{ page.title || 'Без названия' }}</span>
+    <MobileHeader v-if="isMobile" @toggle="mobileSidebarRef?.toggle()" />
+
+    <div class="page-body">
+      <ThinSidebar v-if="!isMobile" ref="sidebarRef" />
+      <Sidebar v-if="isMobile" ref="mobileSidebarRef" />
+
+      <div class="main-content">
+        <header class="topbar">
+          <button class="back-btn" @click="router.back()">
+            <i class="fas fa-arrow-left"></i> Назад
+          </button>
+          <span class="page-title">{{ notebook?.title || 'Просмотр' }}</span>
+          <button v-if="isOwner" class="btn-edit" @click="router.push(`/notebook/${route.params.id}/edit`)">
+            <i class="fas fa-pencil"></i> Редактировать
+          </button>
+        </header>
+
+        <div class="read-layout">
+          <div class="sections-panel">
+            <div v-for="section in sections" :key="section.id" class="section-item">
+              <div class="section-header" @click="toggleSection(section.id)">
+                <i class="fas fa-chevron-right" :class="{ rotated: openSections.includes(section.id) }"></i>
+                <span>{{ section.title }}</span>
+              </div>
+
+              <div v-if="openSections.includes(section.id)" class="pages-list">
+                <div 
+                  v-for="page in section.pages" 
+                  :key="page.id"
+                  class="page-item"
+                  :class="{ active: currentPage?.id === page.id }"
+                  @click="selectPage(page)"
+                >
+                  <i class="fas fa-file"></i>
+                  <span>{{ page.title || 'Без названия' }}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        
-        <div class="read-panel">
-          <div v-if="!currentPage" class="read-empty">
-            <div class="empty-icon"><i class="fas fa-book-open"></i></div>
-            <p>Выбери страницу</p>
-          </div>
-          
-          <div v-else>
-            <h1 class="page-heading">{{ currentPage.title }}</h1>
-            <div class="page-content" v-html="renderContent(currentPage.content)"></div>
+
+          <div class="read-panel">
+            <div v-if="!currentPage" class="read-empty">
+              <div class="empty-icon"><i class="fas fa-book-open"></i></div>
+              <p>Выбери страницу</p>
+            </div>
+
+            <div v-else>
+              <h1 class="page-heading">{{ currentPage.title }}</h1>
+              <div class="page-content" v-html="renderContent(currentPage.content)"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -59,18 +58,21 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
+import ThinSidebar from '../components/ThinSidebar.vue'
+import MobileHeader from '../components/MobileHeader.vue'
 import { apiFetch } from '../api/client'
 import { useAuthStore } from '../stores/auth'
 import katex from 'katex'
-import ThinSidebar from '../components/ThinSidebar.vue'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const sidebarRef = ref(null)
+const mobileSidebarRef = ref(null)
+const isMobile = ref(false)
 
 const notebook = ref(null)
 const sections = ref([])
@@ -81,11 +83,15 @@ const isOwner = computed(() => {
   return notebook.value?.user_id === auth.user?.id
 })
 
+function checkMobile() {
+  isMobile.value = window.innerWidth <= 768
+}
+
 function renderContent(html) {
   if (!html) return ''
-  
+
   let result = html
-  
+
   result = result.replace(/\$\$([\s\S]*?)\$\$/g, (_, formula) => {
     try { 
       return katex.renderToString(formula, { displayMode: true, throwOnError: false }) 
@@ -93,7 +99,7 @@ function renderContent(html) {
       return formula 
     }
   })
-  
+
   result = result.replace(/\$([^\$\n]+?)\$/g, (_, formula) => {
     try { 
       return katex.renderToString(formula, { displayMode: false, throwOnError: false }) 
@@ -101,7 +107,7 @@ function renderContent(html) {
       return formula 
     }
   })
-  
+
   return `<div class="tiptap-content">${result}</div>`
 }
 
@@ -134,16 +140,30 @@ async function loadNotebook() {
   }
 }
 
-onMounted(loadNotebook)
+onMounted(() => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+  loadNotebook()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', checkMobile)
+})
 </script>
 
 <style scoped>
 .notebook-read-page {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background: #0a0a0a;
   color: #fafafa;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.page-body {
+  display: flex;
+  flex: 1;
 }
 
 .main-content {
@@ -443,52 +463,23 @@ onMounted(loadNotebook)
   color: #a3a3a3;
 }
 
-/* Mobile Header */
-.mobile-header {
-  display: none;
-}
-
 @media (max-width: 768px) {
+  .page-body {
+    display: block;
+  }
+
   .main-content {
     margin-left: 0;
   }
-  
+
   .topbar {
     display: none;
   }
-  
-  .mobile-header {
-    display: flex;
-    align-items: flex-start;
-    padding: 10px 5px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    position: sticky;
-    top: 0;
-    background: #0a0a0a;
-    z-index: 50;
-  }
-  
-  .mobile-menu-btn {
-    background: none;
-    border: none;
-    color: #737373;
-    font-size: 1.1rem;
-    cursor: pointer;
-    padding: 4px 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.15s ease;
-  }
-  
-  .mobile-menu-btn:hover {
-    color: #e5e5e5;
-  }
-  
+
   .read-layout {
     flex-direction: column;
   }
-  
+
   .sections-panel {
     width: 100%;
     border-right: none;
@@ -496,11 +487,11 @@ onMounted(loadNotebook)
     max-height: 280px;
     padding: 16px;
   }
-  
+
   .read-panel {
     padding: 20px 16px;
   }
-  
+
   .page-heading {
     font-size: 1.25rem;
   }

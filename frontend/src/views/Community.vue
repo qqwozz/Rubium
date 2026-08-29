@@ -1,83 +1,64 @@
 <template>
   <div class="community-page">
-    <Sidebar ref="sidebarRef" />
-    
-    <!-- Mobile Header -->
-    <header class="mobile-header">
-      <button class="mobile-menu-btn" @click="sidebarRef?.toggle()">
-        <i class="fas fa-bars"></i>
-      </button>
-    </header>
-    
-    <div class="main-content">
-      <header class="topbar">
-        <span class="page-title">Каталог тетрадей</span>
-      </header>
-      
-      <div class="content">
-        <div class="community-header">
-          <h1>Публичные тетради</h1>
-          <p>Находи конспекты других учеников и делись своими</p>
-        </div>
-        
-        <div class="controls-row">
-          <div class="search-bar">
-            <i class="fas fa-search search-icon"></i>
-            <input 
-              v-model="searchQuery" 
-              type="text" 
-              placeholder="Поиск по названию или тегам..."
-              @keydown.enter="loadNotebooks"
-            >
+    <MobileHeader @toggle="sidebarRef?.toggle()" />
+
+    <div class="page-body">
+      <Sidebar ref="sidebarRef" />
+
+      <div class="main-content">
+        <header class="topbar">
+          <span class="page-title">Каталог тетрадей</span>
+        </header>
+
+        <div class="content">
+          <div class="community-header">
+            <h1>Публичные тетради</h1>
+            <p>Находи конспекты других учеников и делись своими</p>
           </div>
-          
-          <div class="sort-row">
-            <button 
-              v-for="sort in sorts" 
-              :key="sort.value"
-              class="sort-btn"
-              :class="{ active: currentSort === sort.value }"
-              @click="currentSort = sort.value; loadNotebooks()"
-            >
-              {{ sort.label }}
-            </button>
+
+          <div class="controls-row">
+            <div class="search-bar">
+              <i class="fas fa-search search-icon"></i>
+              <input v-model="searchQuery" type="text" placeholder="Поиск по названию или тегам..." @keydown.enter="loadNotebooks">
+            </div>
+
+            <div class="sort-row">
+              <button v-for="sort in sorts" :key="sort.value" class="sort-btn" :class="{ active: currentSort === sort.value }" @click="currentSort = sort.value; loadNotebooks()">
+                {{ sort.label }}
+              </button>
+            </div>
           </div>
-        </div>
-        
-        <div v-if="loading" class="loading">
-          <div class="spinner"></div>
-          <span>Загружаем тетради...</span>
-        </div>
-        
-        <div v-else-if="notebooks.length === 0" class="empty-state">
-          <div class="empty-icon"><i class="fas fa-book-open"></i></div>
-          <h3>Нет публичных тетрадей</h3>
-          <p>Стань первым — создай тетрадь и опубликуй её!</p>
-        </div>
-        
-        <div v-else class="notebooks-grid">
-          <div 
-            v-for="notebook in notebooks" 
-            :key="notebook.id" 
-            class="notebook-card"
-            @click="openNotebook(notebook)"
-          >
-            <div class="notebook-color" :style="{ background: notebook.color || '#525252' }"></div>
-            <div class="notebook-info">
-              <div class="notebook-title">
-                {{ notebook.title }}
-                <i v-if="notebook.is_verified" class="fas fa-check-circle verified-badge-icon" title="От разработчика"></i>
-              </div>
-              <div v-if="notebook.description" class="notebook-description">
-                {{ truncateText(notebook.description, 50) }}
-              </div>
-              <div class="notebook-footer">
-                <div class="notebook-rating">
-                  <i class="fas fa-star"></i> {{ formatRating(notebook.average_rating) }}
-                  <span class="rating-count">({{ notebook.ratings_count || 0 }})</span>
+
+          <div v-if="loading" class="loading">
+            <div class="spinner"></div>
+            <span>Загружаем тетради...</span>
+          </div>
+
+          <div v-else-if="notebooks.length === 0" class="empty-state">
+            <div class="empty-icon"><i class="fas fa-book-open"></i></div>
+            <h3>Нет публичных тетрадей</h3>
+            <p>Стань первым — создай тетрадь и опубликуй её!</p>
+          </div>
+
+          <div v-else class="notebooks-grid">
+            <div v-for="notebook in notebooks" :key="notebook.id" class="notebook-card" @click="openNotebook(notebook)">
+              <div class="notebook-color" :style="{ background: notebook.color || '#525252' }"></div>
+              <div class="notebook-info">
+                <div class="notebook-title">
+                  {{ notebook.title }}
+                  <i v-if="notebook.is_verified" class="fas fa-check-circle verified-badge-icon" title="От разработчика"></i>
                 </div>
-                <div v-if="notebook.tags && notebook.tags.length" class="notebook-tags">
-                  <span v-for="tag in notebook.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</span>
+                <div v-if="notebook.description" class="notebook-description">
+                  {{ truncateText(notebook.description, 50) }}
+                </div>
+                <div class="notebook-footer">
+                  <div class="notebook-rating">
+                    <i class="fas fa-star"></i> {{ formatRating(notebook.average_rating) }}
+                    <span class="rating-count">({{ notebook.ratings_count || 0 }})</span>
+                  </div>
+                  <div v-if="notebook.tags && notebook.tags.length" class="notebook-tags">
+                    <span v-for="tag in notebook.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -85,7 +66,7 @@
         </div>
       </div>
     </div>
-    
+
     <Teleport to="body">
       <Transition name="modal">
         <div v-if="selectedNotebook" class="modal" @click.self="selectedNotebook = null">
@@ -102,7 +83,7 @@
                 <i class="fas fa-times"></i>
               </button>
             </div>
-            
+
             <div class="modal-body">
               <div v-if="selectedNotebook.description" class="modal-description">
                 <p>{{ selectedNotebook.description }}</p>
@@ -110,8 +91,8 @@
 
               <div class="modal-author">
                 <div class="author-avatar">
-                    <img v-if="getAuthorAvatar(selectedNotebook.author)" :src="getAuthorAvatar(selectedNotebook.author)" alt="Аватар">
-                    <span v-else>{{ getInitial(selectedNotebook.author) }}</span>
+                  <img v-if="getAuthorAvatar(selectedNotebook.author)" :src="getAuthorAvatar(selectedNotebook.author)" alt="Аватар">
+                  <span v-else>{{ getInitial(selectedNotebook.author) }}</span>
                 </div>
                 <div>
                   <div class="author-name">{{ getAuthorFullName(selectedNotebook.author) }}</div>
@@ -123,11 +104,11 @@
                 <span class="stat-item"><i class="fas fa-star"></i> {{ formatRating(selectedNotebook.average_rating) }} ({{ selectedNotebook.ratings_count || 0 }})</span>
                 <span class="stat-item"><i class="fas fa-eye"></i> {{ selectedNotebook.views_count || 0 }}</span>
               </div>
-              
+
               <div v-if="selectedNotebook.tags?.length" class="modal-tags">
                 <span v-for="tag in selectedNotebook.tags" :key="tag" class="tag">{{ tag }}</span>
               </div>
-              
+
               <div class="modal-actions">
                 <button class="btn-open" @click="incrementViews">
                   <i class="fas fa-book-open"></i> Открыть
@@ -146,13 +127,7 @@
           <div class="modal-card rate-modal">
             <h2>Оценить тетрадь</h2>
             <div class="rate-stars">
-              <button 
-                v-for="star in 5" 
-                :key="star"
-                class="star-btn"
-                :class="{ active: star <= rateValue }"
-                @click="rateValue = star"
-              >
+              <button v-for="star in 5" :key="star" class="star-btn" :class="{ active: star <= rateValue }" @click="rateValue = star">
                 <i class="fas fa-star"></i>
               </button>
             </div>
@@ -183,6 +158,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
+import MobileHeader from '../components/MobileHeader.vue'
 import { apiFetch } from '../api/client'
 
 const router = useRouter()
@@ -242,9 +218,9 @@ async function loadNotebooks() {
     const params = new URLSearchParams()
     if (searchQuery.value.trim()) params.append('search', searchQuery.value.trim())
     params.append('sort', currentSort.value)
-    
+
     const data = await apiFetch(`/notebooks/community?${params}`)
-    
+
     notebooks.value = (data.notebooks || []).map(n => ({
       ...n,
       is_verified: n.author?.email === DEVELOPER_EMAIL
@@ -268,12 +244,12 @@ function openRateModal() {
 
 async function incrementViews() {
   if (!selectedNotebook.value?.id) return
-  
+
   try {
     await apiFetch(`/notebooks/${selectedNotebook.value.id}/view`, {
       method: 'POST'
     })
-    
+
     router.push(`/notebook/${selectedNotebook.value.id}`)
   } catch (e) {
     console.error(e)
@@ -283,13 +259,13 @@ async function incrementViews() {
 
 async function submitRate() {
   if (!selectedNotebook.value) return
-  
+
   try {
     await apiFetch(`/notebooks/${selectedNotebook.value.id}/rate`, {
       method: 'POST',
       body: JSON.stringify({ rating: rateValue.value })
     })
-    
+
     showRateModal.value = false
     selectedNotebook.value = null
     await loadNotebooks()
@@ -306,10 +282,16 @@ onMounted(loadNotebooks)
 <style scoped>
 .community-page {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background: #0a0a0a;
   color: #fafafa;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.page-body {
+  display: flex;
+  flex: 1;
 }
 
 .main-content {
@@ -334,11 +316,6 @@ onMounted(loadNotebooks)
   max-width: 900px;
   margin: 0 auto;
   padding: 48px 48px 96px;
-}
-
-/* Mobile Header */
-.mobile-header {
-  display: none;
 }
 
 .community-header {
@@ -894,48 +871,16 @@ onMounted(loadNotebooks)
 }
 
 @media (max-width: 768px) {
+  .page-body {
+    display: block;
+  }
+  
   .main-content {
     margin-left: 0;
   }
   
   .topbar {
     display: none;
-  }
-  
-  .mobile-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    padding: 10px 5px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    position: sticky;
-    top: 0;
-    background: #0a0a0a;
-    z-index: 50;
-  }
-  
-  .mobile-logo {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #ffffff;
-    letter-spacing: -0.02em;
-  }
-  
-  .mobile-menu-btn {
-    background: none;
-    border: none;
-    color: #737373;
-    font-size: 1.1rem;
-    cursor: pointer;
-    padding: 4px 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.15s ease;
-  }
-  
-  .mobile-menu-btn:hover {
-    color: #e5e5e5;
   }
   
   .content {

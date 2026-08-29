@@ -35,9 +35,6 @@
             <span v-else>{{ auth.userName[0]?.toUpperCase() || 'У' }}</span>
           </div>
         </router-link>
-        <button class="thin-link" data-tooltip="Выйти" @click="auth.logout()">
-          <i class="fas fa-sign-out-alt"></i>
-        </button>
       </template>
       <template v-else>
         <router-link to="/login" class="thin-link" data-tooltip="Войти">
