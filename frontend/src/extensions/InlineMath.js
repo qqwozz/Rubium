@@ -1,4 +1,3 @@
-// InlineMath.js
 import { Node } from '@tiptap/core'
 import katex from 'katex'
 

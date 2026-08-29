@@ -41,6 +41,9 @@
       <button @click="showFormulaInput = !showFormulaInput" title="Формула">
         <i class="fas fa-square-root-variable"></i>
       </button>
+      <button @click="showLinkInput = !showLinkInput" title="Ссылка">
+        <i class="fas fa-link"></i>
+      </button>
       <button @click="editor.chain().focus().undo().run()">
         <i class="fas fa-undo"></i>
       </button>
@@ -68,6 +71,12 @@
       <button class="btn-primary" @click="insertFormula">Вставить</button>
       <button class="btn-icon" @click="showFormulaInput = false"><i class="fas fa-times"></i></button>
     </div>
+
+    <div v-if="showLinkInput" class="formula-input">
+      <input v-model="linkUrl" placeholder="https://..." @keydown.enter="insertLink" />
+      <button class="btn-primary" @click="insertLink">Вставить</button>
+      <button class="btn-icon" @click="showLinkInput = false"><i class="fas fa-times"></i></button>
+    </div>
     
     <editor-content :editor="editor" class="editor-content" @paste="handlePaste" />
   </div>
@@ -85,6 +94,7 @@ import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
 import Image from '@tiptap/extension-image'
 import InlineMath from '../extensions/InlineMath'
+import Link from '@tiptap/extension-link'
 
 const props = defineProps({
   modelValue: {
@@ -113,7 +123,8 @@ const editor = useEditor({
     TableRow,
     TableHeader,
     TableCell,
-    Image
+    Image,
+    Link.configure({ openOnClick: true })
   ],
   onUpdate: ({ editor }) => {
     emit('update:modelValue', editor.getHTML())
@@ -137,21 +148,63 @@ function insertFormula() {
   }
 }
 
-function handlePaste(event) {
+import { supabase } from '../api/supabase'
+import { useAuthStore } from '../stores/auth'
+
+const auth = useAuthStore()
+
+async function handlePaste(event) {
   const items = event.clipboardData?.items
   if (items) {
     for (const item of items) {
       if (item.type.startsWith('image/')) {
-        const file = item.getAsFile()
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          editor.value.chain().focus().setImage({ src: e.target.result }).run()
-        }
-        reader.readAsDataURL(file)
         event.preventDefault()
+        
+        const file = item.getAsFile()
+        if (!file) continue
+        
+        try {
+          const userId = auth.profile?.id || 'user'
+          const fileExt = file.name.split('.').pop() || 'png'
+          const filePath = `notebooks/${userId}/${Date.now()}.${fileExt}`
+          
+          const { error: uploadError } = await supabase.storage
+            .from('notebook_images')
+            .upload(filePath, file)
+          
+          if (uploadError) throw uploadError
+          
+          const { data: { publicUrl } } = supabase.storage
+            .from('notebook_images')
+            .getPublicUrl(filePath)
+          
+          editor.value.chain().focus().setImage({ src: publicUrl }).run()
+        } catch (e) {
+          console.error(e)
+        }
         return
       }
     }
+  }
+}
+
+const showLinkInput = ref(false)
+const linkUrl = ref('')
+
+function insertLink() {
+  if (linkUrl.value) {
+    const { state } = editor.value
+    const { from, to } = state.selection
+    
+    if (from === to) {
+      // Нет выделения — вставляем URL как текст
+      editor.value.chain().focus().insertContent(`<a href="${linkUrl.value}">${linkUrl.value}</a>`).run()
+    } else {
+      editor.value.chain().focus().setLink({ href: linkUrl.value }).run()
+    }
+    
+    linkUrl.value = ''
+    showLinkInput.value = false
   }
 }
 
