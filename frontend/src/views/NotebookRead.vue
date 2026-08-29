@@ -1,6 +1,6 @@
 <template>
   <div class="notebook-read-page">
-    <Sidebar ref="sidebarRef" />
+    <ThinSidebar ref="sidebarRef" />
     
     <header class="mobile-header">
       <button class="mobile-menu-btn" @click="sidebarRef?.toggle()">
@@ -65,6 +65,7 @@ import Sidebar from '../components/Sidebar.vue'
 import { apiFetch } from '../api/client'
 import { useAuthStore } from '../stores/auth'
 import katex from 'katex'
+import ThinSidebar from '../components/ThinSidebar.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -146,7 +147,7 @@ onMounted(loadNotebook)
 }
 
 .main-content {
-  margin-left: 240px;
+  margin-left: 64px;
   flex: 1;
 }
 

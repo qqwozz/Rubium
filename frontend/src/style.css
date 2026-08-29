@@ -1,53 +1,30 @@
 :root {
-  --bg: #0F0F1A;
-  --surface: rgba(255,255,255,0.03);
-  --glass: rgba(255,255,255,0.04);
-  --glass-border: rgba(255,255,255,0.06);
-  --brand: #A78BFA;
-  --accent: #F472B6;
-  --success: #34D399;
-  --warning: #FBBF24;
-  --danger: #F87171;
-  --text: #F1F5F9;
-  --text-secondary: #94A3B8;
-  --text-muted: #64748B;
+  --bg: #0a0a0a;
+  --surface: rgba(255,255,255,0.02);
+  --surface-hover: rgba(255,255,255,0.04);
+  --border: rgba(255,255,255,0.06);
+  --border-hover: rgba(255,255,255,0.1);
+  --text: #fafafa;
+  --text-secondary: #e5e5e5;
+  --text-muted: #a3a3a3;
+  --text-dim: #737373;
+  --text-faint: #525252;
+  --accent: #ffffff;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
 }
 
-body::before {
-  content: '';
-  position: fixed;
-  top: -300px;
-  left: -300px;
-  width: 800px;
-  height: 800px;
-  background: radial-gradient(circle, rgba(167,139,250,0.06), transparent 70%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-body::after {
-  content: '';
-  position: fixed;
-  bottom: -250px;
-  right: -250px;
-  width: 700px;
-  height: 700px;
-  background: radial-gradient(circle, rgba(244,114,182,0.05), transparent 70%);
-  pointer-events: none;
-  z-index: 0;
-}
-
+/* Invert images for dark theme */
 .task-content img,
 .solution img,
 .page-content img {
@@ -66,4 +43,29 @@ body::after {
 
 .katex-mathml {
   display: none !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.12);
+}
+
+/* Selection */
+::selection {
+  background: rgba(255,255,255,0.12);
+  color: #ffffff;
 }
