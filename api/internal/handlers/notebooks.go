@@ -564,7 +564,7 @@ func (h *NotebooksHandler) GetRating(c *gin.Context) {
 	}
 
 	var rows []notebookRow
-	endpoint := fmt.Sprintf("notebooks?select=id,user_id,is_public,average_rating&id=eq.%s&limit=1", id)
+	endpoint := fmt.Sprintf("notebooks?select=id,user_id,is_public,average_rating,ratings_count&id=eq.%s&limit=1", id)
 	if err := h.client.Query(c.Request.Context(), endpoint, true, &rows); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -578,6 +578,7 @@ func (h *NotebooksHandler) GetRating(c *gin.Context) {
 	if nb.IsPublic {
 		c.JSON(http.StatusOK, gin.H{
 			"average_rating": nb.AverageRating,
+			"ratings_count":  nb.RatingsCount,
 		})
 		return
 	}
@@ -601,6 +602,7 @@ func (h *NotebooksHandler) GetRating(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"average_rating": nb.AverageRating,
+		"ratings_count":  nb.RatingsCount,
 	})
 }
 
