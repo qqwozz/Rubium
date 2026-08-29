@@ -126,6 +126,7 @@ func corsMiddleware() gin.HandlerFunc {
 		"http://localhost:3000": true,
 		"http://127.0.0.1:5500": true,
 		"http://127.0.0.1:5080": true,
+		"http://localhost:5173": true,
 		"http://rubium.tech":    true,
 		"https://rubium.tech":   true,
 	}
