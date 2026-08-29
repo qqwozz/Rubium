@@ -90,9 +90,11 @@ func (r notebookRow) toResponse(includeContent bool) gin.H {
 		"views_count":    r.ViewsCount,
 		"copies_count":   r.CopiesCount,
 		"average_rating": r.AverageRating,
+		"ratings_count":  r.RatingsCount,
 		"created_at":     r.CreatedAt,
 		"updated_at":     r.UpdatedAt,
 	}
+
 	if includeContent {
 		resp["content"] = r.Content
 	}
