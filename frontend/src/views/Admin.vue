@@ -137,6 +137,15 @@ import { ref, onMounted } from 'vue'
 import Sidebar from '../components/Sidebar.vue'
 import { useAuthStore } from '../stores/auth'
 import { supabase } from '../api/supabase'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+onMounted(() => {
+  if (!auth.isAdmin) {
+    router.push('/')
+  }
+})
 
 const auth = useAuthStore()
 const sidebarRef = ref(null)
