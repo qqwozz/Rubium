@@ -172,7 +172,7 @@ const rateValue = ref(5)
 const notification = ref(null)
 const sidebarRef = ref(null)
 
-const DEVELOPER_EMAIL = 'nsdmlk@yandex.ru'
+const DEVELOPER_EMAILS = ['nsdmlk@yandex.ru', 'offconix@gmail.com']
 
 const sorts = [
   { value: 'rating', label: 'По рейтингу' },
@@ -223,7 +223,7 @@ async function loadNotebooks() {
 
     notebooks.value = (data.notebooks || []).map(n => ({
       ...n,
-      is_verified: n.author?.email === DEVELOPER_EMAIL
+      is_verified: DEVELOPER_EMAILS.includes(n.author?.email)
     }))
   } catch (e) {
     console.error(e)
