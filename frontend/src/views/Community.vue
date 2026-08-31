@@ -172,7 +172,7 @@ const rateValue = ref(5)
 const notification = ref(null)
 const sidebarRef = ref(null)
 
-const DEVELOPER_EMAILS = ['nsdmlk@yandex.ru', 'offconix@gmail.com']
+const DEVELOPER_EMAILS = ['nsdmlk@yandex.ru', 'offconix@gmail.com', 'oleg.veter.08@mail.ru']
 
 const sorts = [
   { value: 'rating', label: 'По рейтингу' },
