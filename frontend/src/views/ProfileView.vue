@@ -27,28 +27,38 @@
               </div>
 
               <div class="profile-info">
-                <h1>{{ getFullName() }}</h1>
-                <p v-if="profile.bio" class="bio">{{ profile.bio }}</p>
-                <div class="profile-stats">
-                  <div class="stat">
-                    <span class="stat-value">{{ notebooks.length }}</span>
-                    <span class="stat-label">Тетрадей</span>
-                  </div>
-                  <div class="stat">
-                    <span class="stat-value">{{ averageRating }}</span>
-                    <span class="stat-label">Рейтинг</span>
-                  </div>
-                  <div class="stat">
-                    <span class="stat-value">{{ totalViews }}</span>
-                    <span class="stat-label">Просмотров</span>
-                  </div>
-                </div>
+                <h1>
+                  {{ getFullName() }}
+                  <i v-if="isDeveloper" class="fas fa-check-circle verified-badge-icon" title="Разработчик"></i>
+                </h1>
+                <p class="profile-email">{{ profile.email }}</p>
               </div>
             </div>
 
-            <div v-if="notebooks.length > 0" class="notebooks-section">
+            <div v-if="profile.bio" class="bio-section">
+              <p>{{ profile.bio }}</p>
+            </div>
+
+            <div class="stats-section">
+              <div class="stat">
+                <span class="stat-value">{{ notebooks.length }}</span>
+                <span class="stat-label">Тетрадей</span>
+              </div>
+              <div class="stat-divider"></div>
+              <div class="stat">
+                <span class="stat-value">{{ averageRating }}</span>
+                <span class="stat-label">Рейтинг</span>
+              </div>
+              <div class="stat-divider"></div>
+              <div class="stat">
+                <span class="stat-value">{{ totalViews }}</span>
+                <span class="stat-label">Просмотров</span>
+              </div>
+            </div>
+
+            <div class="notebooks-section">
               <h2>Публичные тетради</h2>
-              <div class="notebooks-grid">
+              <div v-if="notebooks.length > 0" class="notebooks-grid">
                 <div 
                   v-for="nb in notebooks" 
                   :key="nb.id" 
@@ -69,11 +79,11 @@
                   <i class="fas fa-chevron-right card-arrow"></i>
                 </div>
               </div>
-            </div>
 
-            <div v-else class="empty">
-              <div class="empty-icon"><i class="fas fa-book"></i></div>
-              <p>Нет публичных тетрадей</p>
+              <div v-else class="empty">
+                <div class="empty-icon"><i class="fas fa-book"></i></div>
+                <p>Нет публичных тетрадей</p>
+              </div>
             </div>
           </template>
         </div>
@@ -95,6 +105,12 @@ const profile = ref(null)
 const notebooks = ref([])
 const loading = ref(true)
 const sidebarRef = ref(null)
+
+const DEVELOPER_EMAILS = ['nsdmlk@yandex.ru', 'offconix@gmail.com', 'oleg.veter.08@mail.ru']
+
+const isDeveloper = computed(() => {
+  return DEVELOPER_EMAILS.includes(profile.value?.email)
+})
 
 const averageRating = computed(() => {
   if (notebooks.value.length === 0) return '0.0'
@@ -130,7 +146,7 @@ async function loadProfile() {
   try {
     const { data: userData, error: userError } = await supabase
       .from('rubium_users')
-      .select('id, first_name, last_name, avatar_url, bio, created_at')
+      .select('id, first_name, last_name, avatar_url, bio, email, created_at')
       .eq('id', route.params.id)
       .single()
 
@@ -242,21 +258,21 @@ onMounted(loadProfile)
 
 .profile-header {
   display: flex;
-  gap: 24px;
-  margin-bottom: 40px;
-  align-items: flex-start;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 32px;
 }
 
 .avatar {
-  width: 96px;
-  height: 96px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   background: #1a1a1a;
   border: 1px solid rgba(255,255,255,0.08);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
+  font-size: 1.6rem;
   font-weight: 600;
   color: #a3a3a3;
   flex-shrink: 0;
@@ -269,42 +285,61 @@ onMounted(loadProfile)
   object-fit: cover;
 }
 
-.profile-info {
-  flex: 1;
-  min-width: 0;
-  padding-top: 4px;
-}
-
 .profile-info h1 {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #ffffff;
-  margin-bottom: 12px;
   letter-spacing: -0.02em;
-}
-
-.bio {
-  color: #737373;
-  font-size: 0.9rem;
-  margin-bottom: 20px;
-  line-height: 1.6;
-}
-
-.profile-stats {
   display: flex;
-  gap: 32px;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.verified-badge-icon {
+  color: #a3a3a3;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+.profile-email {
+  color: #525252;
+  font-size: 0.85rem;
+}
+
+.bio-section {
+  margin-bottom: 32px;
+}
+
+.bio-section p {
+  color: #a3a3a3;
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.stats-section {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 40px;
+  padding: 20px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
 }
 
 .stat {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex: 1;
+  text-align: center;
 }
 
 .stat-value {
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  color: #737373;
+  color: #ffffff;
   letter-spacing: -0.01em;
 }
 
@@ -314,6 +349,13 @@ onMounted(loadProfile)
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 500;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 36px;
+  background: rgba(255,255,255,0.06);
+  flex-shrink: 0;
 }
 
 .notebooks-section h2 {
@@ -349,7 +391,7 @@ onMounted(loadProfile)
 
 .notebook-color {
   width: 4px;
-  height: 48px;
+  height: auto;
   border-radius: 2px;
   flex-shrink: 0;
   align-self: stretch;
@@ -438,25 +480,31 @@ onMounted(loadProfile)
     flex-direction: column;
     align-items: center;
     text-align: center;
+    gap: 16px;
   }
 
   .avatar {
-    width: 80px;
-    height: 80px;
-    font-size: 1.6rem;
+    width: 72px;
+    height: 72px;
+    font-size: 1.4rem;
   }
 
-  .profile-info {
-    padding-top: 0;
-  }
-
-  .profile-stats {
+  .profile-info h1 {
+    font-size: 1.3rem;
     justify-content: center;
-    gap: 24px;
+  }
+
+  .stats-section {
+    gap: 12px;
+    padding: 16px;
   }
 
   .stat-value {
     font-size: 1.3rem;
+  }
+
+  .stat-label {
+    font-size: 0.68rem;
   }
 }
 </style>
