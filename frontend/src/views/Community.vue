@@ -160,6 +160,7 @@ import { useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import MobileHeader from '../components/MobileHeader.vue'
 import { apiFetch } from '../api/client'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
 const notebooks = ref([])
@@ -242,14 +243,20 @@ function openRateModal() {
   showRateModal.value = true
 }
 
+const auth = useAuthStore()
+
 async function incrementViews() {
   if (!selectedNotebook.value?.id) return
+
+  if (!auth.isAuthenticated) {
+    showNotification('Войди в аккаунт, чтобы открыть тетрадь', 'error')
+    return
+  }
 
   try {
     await apiFetch(`/notebooks/${selectedNotebook.value.id}/view`, {
       method: 'POST'
     })
-
     router.push(`/notebook/${selectedNotebook.value.id}`)
   } catch (e) {
     console.error(e)
@@ -259,6 +266,11 @@ async function incrementViews() {
 
 async function submitRate() {
   if (!selectedNotebook.value) return
+
+  if (!auth.isAuthenticated) {
+    showNotification('Войди в аккаунт, чтобы оценить тетрадь', 'error')
+    return
+  }
 
   try {
     await apiFetch(`/notebooks/${selectedNotebook.value.id}/rate`, {
