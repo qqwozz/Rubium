@@ -14,7 +14,9 @@ const routes = [
   { path: '/admin', name: 'admin', component: () => import('../views/Admin.vue'), meta: { requiresAuth: true } },
   { path: '/rubium_tech', name: 'rubium_tech', component: () => import('../views/Rubium_tech.vue'), meta: { requiresAuth: false } },
   { path: '/courses', name: 'courses', component: () => import('../views/Courses.vue'), meta: { requiresAuth: false } },
-  { path: '/verify-email', name: 'VerifyEmail', component: () => import('../views/VerifyEmail.vue') }
+  { path: '/verify-email', name: 'VerifyEmail', component: () => import('../views/VerifyEmail.vue') },
+  { path: '/update-password', name: 'update-password', component: () => import('../views/UpdatePassword.vue') },
+  { path: '/forgot-password', name: 'forgot-password', component: () => import('../views/ForgotPassword.vue') }
 ]
 
 const router = createRouter({

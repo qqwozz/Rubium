@@ -5,6 +5,9 @@
 <script setup>
 import { onMounted } from 'vue'
 import { useAuthStore } from './stores/auth'
+import { supabase } from './api/supabase'
+
+const auth = useAuthStore()
 
 const handleEmailConfirmation = async () => {
   const params = new URLSearchParams(window.location.search)
@@ -17,14 +20,13 @@ const handleEmailConfirmation = async () => {
       type: 'signup'
     })
     if (!error) {
-      window.location.href = '/' // Redirect to Home
+      window.location.href = '/'
     }
   }
 }
 
-const auth = useAuthStore()
-
 onMounted(() => {
   auth.init()
+  handleEmailConfirmation()
 })
 </script>

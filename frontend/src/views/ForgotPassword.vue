@@ -2,41 +2,36 @@
   <div class="login-page">
     <div class="login-card">
       <div class="login-brand">Rubium</div>
-      <p class="login-subtitle">Войди, чтобы продолжить</p>
+      <p class="login-subtitle">Восстановление пароля</p>
       
-      <form @submit.prevent="handleLogin">
+      <form @submit.prevent="handleReset">
         <div class="form-group">
           <label>Email</label>
           <input v-model="email" type="email" required placeholder="user@example.com">
         </div>
         
-        <div class="form-group">
-          <label>Пароль</label>
-          <input v-model="password" type="password" required placeholder="••••••••">
-        </div>
-        
         <button type="submit" class="btn-login" :disabled="loading">
           <i v-if="loading" class="fas fa-spinner fa-spin"></i>
-          <span v-else>Войти</span>
+          <span v-else>Отправить ссылку</span>
         </button>
       </form>
       
       <p class="register-link">
-        Нет аккаунта? <router-link to="/register">Зарегистрируйся</router-link>
+        Вспомнил пароль? <router-link to="/login">Войти</router-link>
       </p>
-      <!-- <p class="register-link">
-        <a href="#" @click.prevent="router.push('/forgot-password')">Забыл пароль?</a>
-      </p> -->
     </div>
     
     <Teleport to="body">
       <Transition name="banner">
+        <div v-if="success" class="banner success-banner" @click="success = ''">
+          <i class="fas fa-check-circle"></i>
+          <span>Ссылка отправлена. Проверь почту.</span>
+        </div>
+      </Transition>
+      <Transition name="banner">
         <div v-if="error" class="banner error-banner" @click="error = ''">
           <i class="fas fa-exclamation-circle"></i>
           <span>{{ error }}</span>
-          <button class="banner-close" @click.stop="error = ''">
-            <i class="fas fa-times"></i>
-          </button>
         </div>
       </Transition>
     </Teleport>
@@ -45,42 +40,39 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
-
-const router = useRouter()
-const auth = useAuthStore()
+import { supabase } from '../api/supabase'
 
 const email = ref('')
-const password = ref('')
 const loading = ref(false)
 const error = ref('')
+const success = ref('')
 
 function getErrorMessage(e) {
   const msg = e.message?.toLowerCase() || ''
   
-  if (msg.includes('fetch') || msg.includes('socket') || msg.includes('network') || msg.includes('failed to')) {
+  if (msg.includes('fetch') || msg.includes('socket') || msg.includes('network')) {
     return 'Проблемы с сетью. Проверь подключение.'
-  }
-  if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
-    return 'Неверный email или пароль.'
-  }
-  if (msg.includes('email not confirmed')) {
-    return 'Email не подтверждён. Проверь почту.'
   }
   if (msg.includes('rate limit') || msg.includes('too many')) {
     return 'Слишком много попыток. Подожди немного.'
   }
-  return e.message || 'Ошибка входа'
+  return e.message || 'Ошибка'
 }
 
-async function handleLogin() {
+async function handleReset() {
   loading.value = true
   error.value = ''
+  success.value = ''
   
   try {
-    await auth.login(email.value, password.value)
-    router.push('/')
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.value, {
+      redirectTo: 'https://rubium.tech/update-password'
+    })
+    
+    if (resetError) throw resetError
+    
+    success.value = 'Ссылка отправлена. Проверь почту.'
+    setTimeout(() => { success.value = '' }, 5000)
   } catch (e) {
     error.value = getErrorMessage(e)
     setTimeout(() => { error.value = '' }, 5000)

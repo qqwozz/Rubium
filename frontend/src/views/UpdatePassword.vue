@@ -2,88 +2,74 @@
   <div class="login-page">
     <div class="login-card">
       <div class="login-brand">Rubium</div>
-      <p class="login-subtitle">Войди, чтобы продолжить</p>
+      <p class="login-subtitle">Новый пароль</p>
       
-      <form @submit.prevent="handleLogin">
+      <form @submit.prevent="handleUpdate">
         <div class="form-group">
-          <label>Email</label>
-          <input v-model="email" type="email" required placeholder="user@example.com">
-        </div>
-        
-        <div class="form-group">
-          <label>Пароль</label>
-          <input v-model="password" type="password" required placeholder="••••••••">
+          <label>Новый пароль</label>
+          <input v-model="password" type="password" required minlength="8" placeholder="Минимум 8 символов">
         </div>
         
         <button type="submit" class="btn-login" :disabled="loading">
           <i v-if="loading" class="fas fa-spinner fa-spin"></i>
-          <span v-else>Войти</span>
+          <span v-else>Сохранить</span>
         </button>
       </form>
       
-      <p class="register-link">
-        Нет аккаунта? <router-link to="/register">Зарегистрируйся</router-link>
-      </p>
-      <!-- <p class="register-link">
-        <a href="#" @click.prevent="router.push('/forgot-password')">Забыл пароль?</a>
-      </p> -->
+      <p v-if="error" class="error-text">{{ error }}</p>
     </div>
-    
-    <Teleport to="body">
-      <Transition name="banner">
-        <div v-if="error" class="banner error-banner" @click="error = ''">
-          <i class="fas fa-exclamation-circle"></i>
-          <span>{{ error }}</span>
-          <button class="banner-close" @click.stop="error = ''">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-      </Transition>
-    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import { supabase } from '../api/supabase'
 
 const router = useRouter()
-const auth = useAuthStore()
-
-const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
 
-function getErrorMessage(e) {
-  const msg = e.message?.toLowerCase() || ''
+onMounted(async () => {
+  // Получаем токены из URL
+  const hash = window.location.hash
+  const params = new URLSearchParams(hash.substring(1))
   
-  if (msg.includes('fetch') || msg.includes('socket') || msg.includes('network') || msg.includes('failed to')) {
-    return 'Проблемы с сетью. Проверь подключение.'
+  const accessToken = params.get('access_token')
+  const refreshToken = params.get('refresh_token')
+  
+  if (accessToken && refreshToken) {
+    try {
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken
+      })
+      
+      if (sessionError) throw sessionError
+      
+      // Очищаем URL
+      window.history.replaceState(null, '', '/update-password')
+    } catch (e) {
+      console.error(e)
+    }
   }
-  if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
-    return 'Неверный email или пароль.'
-  }
-  if (msg.includes('email not confirmed')) {
-    return 'Email не подтверждён. Проверь почту.'
-  }
-  if (msg.includes('rate limit') || msg.includes('too many')) {
-    return 'Слишком много попыток. Подожди немного.'
-  }
-  return e.message || 'Ошибка входа'
-}
+})
 
-async function handleLogin() {
+async function handleUpdate() {
   loading.value = true
   error.value = ''
   
   try {
-    await auth.login(email.value, password.value)
-    router.push('/')
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: password.value
+    })
+    
+    if (updateError) throw updateError
+    
+    router.push('/login')
   } catch (e) {
-    error.value = getErrorMessage(e)
-    setTimeout(() => { error.value = '' }, 5000)
+    error.value = e.message || 'Ошибка'
   } finally {
     loading.value = false
   }

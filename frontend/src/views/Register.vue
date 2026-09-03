@@ -127,6 +127,24 @@ const hasLowerCase = computed(() => /[a-z]/.test(password.value))
 const isLatinOnly = computed(() => /^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+$/.test(password.value))
 const isPasswordValid = computed(() => hasMinLength.value && hasUpperCase.value && hasLowerCase.value && isLatinOnly.value)
 
+function getErrorMessage(e) {
+  const msg = e.message?.toLowerCase() || ''
+  
+  if (msg.includes('fetch') || msg.includes('socket') || msg.includes('network') || msg.includes('failed to')) {
+    return 'Проблемы с сетью. Проверь подключение.'
+  }
+  if (msg.includes('already registered') || msg.includes('already exists')) {
+    return 'Этот email уже зарегистрирован.'
+  }
+  if (msg.includes('rate limit') || msg.includes('too many')) {
+    return 'Слишком много попыток. Подожди немного.'
+  }
+  if (msg.includes('password')) {
+    return 'Пароль не соответствует требованиям.'
+  }
+  return e.message || 'Ошибка регистрации'
+}
+
 function validatePassword() {
   if (password.value.length > 0 && !isLatinOnly.value) {
     error.value = 'Пароль может содержать только латинские буквы, цифры и спецсимволы'
@@ -183,7 +201,7 @@ async function handleRegister() {
       router.push('/')
     }
   } catch (e) {
-    error.value = e.message || 'Ошибка регистрации'
+    error.value = getErrorMessage(e)
     setTimeout(() => { error.value = '' }, 5000)
   } finally {
     loading.value = false
