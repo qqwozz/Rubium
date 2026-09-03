@@ -113,9 +113,10 @@ const isDeveloper = computed(() => {
 })
 
 const averageRating = computed(() => {
-  if (notebooks.value.length === 0) return '0.0'
-  const sum = notebooks.value.reduce((acc, nb) => acc + (nb.average_rating || 0), 0)
-  return (sum / notebooks.value.length).toFixed(1)
+  const rated = notebooks.value.filter(nb => nb.average_rating > 0)
+  if (rated.length === 0) return '0.0'
+  const sum = rated.reduce((acc, nb) => acc + nb.average_rating, 0)
+  return (sum / rated.length).toFixed(1)
 })
 
 const totalViews = computed(() => {
