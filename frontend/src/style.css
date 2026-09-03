@@ -24,15 +24,6 @@ body {
   overflow-x: hidden;
 }
 
-/* Invert images for dark theme */
-.task-content img,
-.solution img,
-.page-content img {
-  filter: invert(1) brightness(0.9);
-  max-width: 50%;
-  vertical-align: middle;
-}
-
 .task-content img.math,
 .solution img.math {
   filter: invert(1) brightness(0.9);

@@ -16,6 +16,15 @@
       <button @click="editor.chain().focus().toggleOrderedList().run()" :class="{ active: editor.isActive('orderedList') }">
         <i class="fas fa-list-ol"></i>
       </button>
+      <button @click="editor.chain().focus().setTextAlign('left').run()" :class="{ active: editor.isActive({ textAlign: 'left' }) }">
+        <i class="fas fa-align-left"></i>
+      </button>
+      <button @click="editor.chain().focus().setTextAlign('center').run()" :class="{ active: editor.isActive({ textAlign: 'center' }) }">
+        <i class="fas fa-align-center"></i>
+      </button>
+      <button @click="editor.chain().focus().setTextAlign('right').run()" :class="{ active: editor.isActive({ textAlign: 'right' }) }">
+        <i class="fas fa-align-right"></i>
+      </button>
       <button @click="showTableDialog = true" title="Таблица">
         <i class="fas fa-table"></i>
       </button>
@@ -78,7 +87,7 @@
       <button class="btn-icon" @click="showLinkInput = false"><i class="fas fa-times"></i></button>
     </div>
     
-    <editor-content :editor="editor" class="editor-content" @paste="handlePaste" />
+    <editor-content :editor="editor" class="editor-content" />
   </div>
 </template>
 
@@ -92,9 +101,12 @@ import Table from '@tiptap/extension-table'
 import TableRow from '@tiptap/extension-table-row'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
-import Image from '@tiptap/extension-image'
+import TipTapImage from '@tiptap/extension-image'
+import TextAlign from '@tiptap/extension-text-align'
 import InlineMath from '../extensions/InlineMath'
 import Link from '@tiptap/extension-link'
+import { supabase } from '../api/supabase'
+import { useAuthStore } from '../stores/auth'
 
 const props = defineProps({
   modelValue: {
@@ -105,11 +117,15 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
+const auth = useAuthStore()
+
 const showTableDialog = ref(false)
 const tableRows = ref(3)
 const tableCols = ref(3)
 const showFormulaInput = ref(false)
 const formula = ref('')
+const showLinkInput = ref(false)
+const linkUrl = ref('')
 const isInTable = ref(false)
 
 const editor = useEditor({
@@ -123,16 +139,105 @@ const editor = useEditor({
     TableRow,
     TableHeader,
     TableCell,
-    Image,
+    TipTapImage,
+    TextAlign.configure({ types: ['heading', 'paragraph'] }),
     Link.configure({ openOnClick: true })
   ],
+  editorProps: {
+    handlePaste: (view, event) => {
+      const items = event.clipboardData?.items
+      if (!items) return false
+      
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          event.preventDefault()
+          uploadImage(item.getAsFile())
+          return true
+        }
+      }
+      return false
+    }
+  },
   onUpdate: ({ editor }) => {
     emit('update:modelValue', editor.getHTML())
+    setTimeout(addCopyButtons, 0)
   },
   onSelectionUpdate: ({ editor }) => {
     isInTable.value = editor.isActive('table')
   }
 })
+
+async function compressImage(file, maxWidth = 1200, quality = 0.8) {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        let width = img.width
+        let height = img.height
+        
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width
+          width = maxWidth
+        }
+        
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, width, height)
+        
+        canvas.toBlob((blob) => {
+          resolve(new File([blob], file.name, { type: 'image/jpeg' }))
+        }, 'image/jpeg', quality)
+      }
+      img.src = e.target.result
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
+async function uploadImage(file) {
+  if (!file) return
+  
+  try {
+    const compressedFile = await compressImage(file)
+    const userId = auth.user?.id || auth.profile?.id
+    const filePath = `${userId}/${Date.now()}.jpg`
+    
+    const { error: uploadError } = await supabase.storage
+      .from('notebook_images')
+      .upload(filePath, compressedFile)
+    
+    if (uploadError) throw uploadError
+    
+    const { data: { publicUrl } } = supabase.storage
+      .from('notebook_images')
+      .getPublicUrl(filePath)
+    
+    editor.value.chain().focus().setImage({ src: publicUrl }).run()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+function addCopyButtons() {
+  document.querySelectorAll('.editor-content pre').forEach(pre => {
+    if (pre.querySelector('.copy-code-btn')) return
+    
+    const btn = document.createElement('button')
+    btn.className = 'copy-code-btn'
+    btn.innerHTML = '<i class="fas fa-copy"></i>'
+    btn.onclick = async () => {
+      const code = pre.querySelector('code')?.innerText || ''
+      await navigator.clipboard.writeText(code)
+      btn.innerHTML = '<i class="fas fa-check"></i>'
+      setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i>' }, 2000)
+    }
+    pre.style.position = 'relative'
+    pre.appendChild(btn)
+  })
+}
 
 function insertTable() {
   editor.value.chain().focus().insertTable({ rows: tableRows.value, cols: tableCols.value, withHeaderRow: true }).run()
@@ -148,56 +253,12 @@ function insertFormula() {
   }
 }
 
-import { supabase } from '../api/supabase'
-import { useAuthStore } from '../stores/auth'
-
-const auth = useAuthStore()
-
-async function handlePaste(event) {
-  const items = event.clipboardData?.items
-  if (items) {
-    for (const item of items) {
-      if (item.type.startsWith('image/')) {
-        event.preventDefault()
-        
-        const file = item.getAsFile()
-        if (!file) continue
-        
-        try {
-          const userId = auth.profile?.id || 'user'
-          const fileExt = file.name.split('.').pop() || 'png'
-          const filePath = `notebooks/${userId}/${Date.now()}.${fileExt}`
-          
-          const { error: uploadError } = await supabase.storage
-            .from('notebook_images')
-            .upload(filePath, file)
-          
-          if (uploadError) throw uploadError
-          
-          const { data: { publicUrl } } = supabase.storage
-            .from('notebook_images')
-            .getPublicUrl(filePath)
-          
-          editor.value.chain().focus().setImage({ src: publicUrl }).run()
-        } catch (e) {
-          console.error(e)
-        }
-        return
-      }
-    }
-  }
-}
-
-const showLinkInput = ref(false)
-const linkUrl = ref('')
-
 function insertLink() {
   if (linkUrl.value) {
     const { state } = editor.value
     const { from, to } = state.selection
     
     if (from === to) {
-      // Нет выделения — вставляем URL как текст
       editor.value.chain().focus().insertContent(`<a href="${linkUrl.value}">${linkUrl.value}</a>`).run()
     } else {
       editor.value.chain().focus().setLink({ href: linkUrl.value }).run()
@@ -523,12 +584,36 @@ onBeforeUnmount(() => {
   margin: 16px 0;
   overflow-x: auto;
   border: 1px solid rgba(255,255,255,0.06);
+  position: relative;
 }
 
 .editor-content :deep(.ProseMirror pre code) {
   background: none;
   padding: 0;
   color: #a3a3a3;
+}
+
+.editor-content :deep(.copy-code-btn) {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(255,255,255,0.06);
+  border: none;
+  color: #737373;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editor-content :deep(.copy-code-btn:hover) {
+  background: rgba(255,255,255,0.12);
+  color: #e5e5e5;
 }
 
 .editor-content :deep(.ProseMirror strong) {
