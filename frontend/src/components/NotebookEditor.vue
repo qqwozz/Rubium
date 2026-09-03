@@ -7,14 +7,34 @@
       <button @click="editor.chain().focus().toggleItalic().run()" :class="{ active: editor.isActive('italic') }">
         <i class="fas fa-italic"></i>
       </button>
-      <button @click="editor.chain().focus().toggleHeading({ level: 2 }).run()" :class="{ active: editor.isActive('heading', { level: 2 }) }">
-        <i class="fas fa-heading"></i>
+      <button @click="editor.chain().focus().toggleUnderline().run()" :class="{ active: editor.isActive('underline') }">
+        <i class="fas fa-underline"></i>
       </button>
+      <button @click="editor.chain().focus().toggleHighlight().run()" :class="{ active: editor.isActive('highlight') }">
+        <i class="fas fa-highlighter"></i>
+      </button>
+      
+      <div class="heading-dropdown">
+        <button @click="showHeadingMenu = !showHeadingMenu" class="heading-btn">
+          <i class="fas fa-heading"></i>
+        </button>
+        <div v-if="showHeadingMenu" class="heading-menu">
+          <button @click="setHeading(1)">H1</button>
+          <button @click="setHeading(2)">H2</button>
+          <button @click="setHeading(3)">H3</button>
+          <button @click="setHeading(4)">H4</button>
+          <button @click="setParagraph">Обычный</button>
+        </div>
+      </div>
+      
       <button @click="editor.chain().focus().toggleBulletList().run()" :class="{ active: editor.isActive('bulletList') }">
         <i class="fas fa-list-ul"></i>
       </button>
       <button @click="editor.chain().focus().toggleOrderedList().run()" :class="{ active: editor.isActive('orderedList') }">
         <i class="fas fa-list-ol"></i>
+      </button>
+      <button @click="editor.chain().focus().toggleTaskList().run()" :class="{ active: editor.isActive('taskList') }">
+        <i class="fas fa-tasks"></i>
       </button>
       <button @click="editor.chain().focus().setTextAlign('left').run()" :class="{ active: editor.isActive({ textAlign: 'left' }) }">
         <i class="fas fa-align-left"></i>
@@ -24,6 +44,15 @@
       </button>
       <button @click="editor.chain().focus().setTextAlign('right').run()" :class="{ active: editor.isActive({ textAlign: 'right' }) }">
         <i class="fas fa-align-right"></i>
+      </button>
+      <button @click="editor.chain().focus().toggleSuperscript().run()" :class="{ active: editor.isActive('superscript') }">
+        <i class="fas fa-superscript"></i>
+      </button>
+      <button @click="editor.chain().focus().toggleSubscript().run()" :class="{ active: editor.isActive('subscript') }">
+        <i class="fas fa-subscript"></i>
+      </button>
+      <button @click="editor.chain().focus().toggleCodeBlock().run()" :class="{ active: editor.isActive('codeBlock') }">
+        <i class="fas fa-code"></i>
       </button>
       <button @click="showTableDialog = true" title="Таблица">
         <i class="fas fa-table"></i>
@@ -103,6 +132,19 @@ import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
 import TipTapImage from '@tiptap/extension-image'
 import TextAlign from '@tiptap/extension-text-align'
+import Highlight from '@tiptap/extension-highlight'
+import TaskList from '@tiptap/extension-task-list'
+import TaskItem from '@tiptap/extension-task-item'
+import Underline from '@tiptap/extension-underline'
+import Subscript from '@tiptap/extension-subscript'
+import Superscript from '@tiptap/extension-superscript'
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
+import { createLowlight, common } from 'lowlight'
+import python from 'highlight.js/lib/languages/python'
+import javascript from 'highlight.js/lib/languages/javascript'
+import typescript from 'highlight.js/lib/languages/typescript'
+import cpp from 'highlight.js/lib/languages/cpp'
+import java from 'highlight.js/lib/languages/java'
 import InlineMath from '../extensions/InlineMath'
 import Link from '@tiptap/extension-link'
 import { supabase } from '../api/supabase'
@@ -118,6 +160,12 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const auth = useAuthStore()
+const lowlight = createLowlight(common)
+lowlight.register('python', python)
+lowlight.register('javascript', javascript)
+lowlight.register('typescript', typescript)
+lowlight.register('cpp', cpp)
+lowlight.register('java', java)
 
 const showTableDialog = ref(false)
 const tableRows = ref(3)
@@ -127,11 +175,18 @@ const formula = ref('')
 const showLinkInput = ref(false)
 const linkUrl = ref('')
 const isInTable = ref(false)
+const showHeadingMenu = ref(false)
 
 const editor = useEditor({
   content: props.modelValue,
   extensions: [
-    StarterKit,
+    StarterKit.configure({
+      codeBlock: false
+    }),
+    CodeBlockLowlight.configure({
+      lowlight,
+      defaultLanguage: null
+    }),
     InlineMath,
     Placeholder.configure({ placeholder: 'Пиши конспект...' }),
     Typography,
@@ -141,6 +196,12 @@ const editor = useEditor({
     TableCell,
     TipTapImage,
     TextAlign.configure({ types: ['heading', 'paragraph'] }),
+    Highlight,
+    TaskList,
+    TaskItem.configure({ nested: true }),
+    Underline,
+    Subscript,
+    Superscript,
     Link.configure({ openOnClick: true })
   ],
   editorProps: {
@@ -166,6 +227,16 @@ const editor = useEditor({
     isInTable.value = editor.isActive('table')
   }
 })
+
+function setHeading(level) {
+  editor.value.chain().focus().toggleHeading({ level }).run()
+  showHeadingMenu.value = false
+}
+
+function setParagraph() {
+  editor.value.chain().focus().setParagraph().run()
+  showHeadingMenu.value = false
+}
 
 async function compressImage(file, maxWidth = 1200, quality = 0.8) {
   return new Promise((resolve) => {
@@ -296,6 +367,7 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid rgba(255,255,255,0.06);
   flex-wrap: wrap;
   background: #0a0a0a;
+  align-items: center;
 }
 
 .editor-toolbar button {
@@ -321,6 +393,40 @@ onBeforeUnmount(() => {
 .editor-toolbar button.active {
   background: rgba(255,255,255,0.08);
   color: #ffffff;
+}
+
+.heading-dropdown {
+  position: relative;
+}
+
+.heading-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background: #111111;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  padding: 6px;
+  z-index: 30;
+  min-width: 100px;
+  box-shadow: 0 16px 32px rgba(0,0,0,0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.heading-menu button {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  justify-content: flex-start;
+}
+
+.heading-menu button:hover {
+  background: rgba(255,255,255,0.06);
+  color: #e5e5e5;
 }
 
 .table-dialog {
@@ -500,6 +606,14 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
+.editor-content :deep(.ProseMirror h1) {
+  margin: 28px 0 14px;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
 .editor-content :deep(.ProseMirror h2) {
   margin: 24px 0 12px;
   font-size: 1.3rem;
@@ -516,6 +630,13 @@ onBeforeUnmount(() => {
   letter-spacing: -0.01em;
 }
 
+.editor-content :deep(.ProseMirror h4) {
+  margin: 16px 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e5e5e5;
+}
+
 .editor-content :deep(.ProseMirror ul),
 .editor-content :deep(.ProseMirror ol) {
   margin-left: 20px;
@@ -524,6 +645,22 @@ onBeforeUnmount(() => {
 
 .editor-content :deep(.ProseMirror li) {
   margin-bottom: 4px;
+}
+
+.editor-content :deep(.ProseMirror ul[data-type="taskList"]) {
+  list-style: none;
+  margin-left: 0;
+  padding: 0;
+}
+
+.editor-content :deep(.ProseMirror ul[data-type="taskList"] li) {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.editor-content :deep(.ProseMirror ul[data-type="taskList"] li > label) {
+  margin-top: 4px;
 }
 
 .editor-content :deep(.ProseMirror table) {
@@ -590,7 +727,7 @@ onBeforeUnmount(() => {
 .editor-content :deep(.ProseMirror pre code) {
   background: none;
   padding: 0;
-  color: #a3a3a3;
+  color: #e5e5e5;
 }
 
 .editor-content :deep(.copy-code-btn) {
@@ -609,6 +746,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1;
 }
 
 .editor-content :deep(.copy-code-btn:hover) {
@@ -626,6 +764,26 @@ onBeforeUnmount(() => {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+.editor-content :deep(.ProseMirror mark) {
+  background: rgba(255, 230, 0, 0.25);
+  color: #ffffff;
+  padding: 2px 0;
+  border-radius: 2px;
+}
+
+.editor-content :deep(.hljs-keyword) { color: #c792ea !important; }
+.editor-content :deep(.hljs-string) { color: #c3e88d !important; }
+.editor-content :deep(.hljs-number) { color: #f78c6c !important; }
+.editor-content :deep(.hljs-comment) { color: #546e7a !important; font-style: italic; }
+.editor-content :deep(.hljs-function) { color: #82aaff !important; }
+.editor-content :deep(.hljs-title) { color: #82aaff !important; }
+.editor-content :deep(.hljs-attr) { color: #ffcb6b !important; }
+.editor-content :deep(.hljs-built_in) { color: #ffcb6b !important; }
+.editor-content :deep(.hljs-type) { color: #ffcb6b !important; }
+.editor-content :deep(.hljs-variable) { color: #e5e5e5 !important; }
+.editor-content :deep(.hljs-literal) { color: #f78c6c !important; }
+.editor-content :deep(.hljs-params) { color: #e5e5e5 !important; }
 
 @media (max-width: 768px) {
   .editor-toolbar {
