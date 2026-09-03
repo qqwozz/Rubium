@@ -69,6 +69,18 @@
               </div>
 
               <div class="form-group">
+                <label>О себе</label>
+                <textarea 
+                  v-model="editBio" 
+                  rows="3" 
+                  placeholder="Расскажи о себе"
+                  maxlength="200"
+                  @input="editBio = editBio.slice(0, 200)"
+                ></textarea>
+                <small class="form-hint">{{ editBio.length }}/200</small>
+              </div>
+
+              <div class="form-group">
                 <label>Email</label>
                 <input v-model="editEmail" type="email" placeholder="Email" disabled>
                 <small class="form-hint">Email менять нельзя — это твой логин</small>
@@ -108,6 +120,7 @@ const sidebarRef = ref(null)
 const editFirstName = ref('')
 const editLastName = ref('')
 const editEmail = ref('')
+const editBio = ref('')
 const saving = ref(false)
 const fileInput = ref(null)
 
@@ -188,6 +201,7 @@ function initForm() {
   editFirstName.value = auth.profile?.first_name || ''
   editLastName.value = auth.profile?.last_name || ''
   editEmail.value = auth.user?.email || ''
+  editBio.value = auth.profile?.bio || ''
 }
 
 async function saveProfile() {
@@ -200,7 +214,8 @@ async function saveProfile() {
       .from('rubium_users')
       .update({
         first_name: editFirstName.value,
-        last_name: editLastName.value
+        last_name: editLastName.value,
+        bio: editBio.value.slice(0, 200)
       })
       .eq('id', userId)
 
@@ -348,7 +363,7 @@ onMounted(() => {
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 8px;
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight:500;
   color: #a3a3a3;
 }
 
@@ -470,7 +485,8 @@ onMounted(() => {
   color: #a3a3a3;
 }
 
-.form-group input {
+.form-group input,
+.form-group textarea {
   padding: 10px 14px;
   background: rgba(255,255,255,0.03);
   border: 1px solid rgba(255,255,255,0.06);
@@ -480,14 +496,21 @@ onMounted(() => {
   font-size: 0.9rem;
   outline: none;
   transition: all 0.2s ease;
+  resize: vertical;
 }
 
-.form-group input:focus {
+.form-group textarea {
+  min-height: 80px;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
   border-color: rgba(255,255,255,0.15);
   background: rgba(255,255,255,0.04);
 }
 
-.form-group input::placeholder {
+.form-group input::placeholder,
+.form-group textarea::placeholder {
   color: #525252;
 }
 
@@ -499,6 +522,7 @@ onMounted(() => {
 .form-hint {
   font-size: 0.75rem;
   color: #525252;
+  text-align: right;
 }
 
 .btn-save {

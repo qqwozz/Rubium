@@ -89,7 +89,12 @@
                 <p>{{ selectedNotebook.description }}</p>
               </div>
 
-              <div class="modal-author">
+              <div 
+                class="modal-author" 
+                @click="goToAuthorProfile(selectedNotebook.author)"
+                role="button"
+                tabindex="0"
+              >
                 <div class="author-avatar">
                   <img v-if="getAuthorAvatar(selectedNotebook.author)" :src="getAuthorAvatar(selectedNotebook.author)" alt="Аватар">
                   <span v-else>{{ getInitial(selectedNotebook.author) }}</span>
@@ -98,6 +103,7 @@
                   <div class="author-name">{{ getAuthorFullName(selectedNotebook.author) }}</div>
                   <div class="author-email">{{ getAuthorEmail(selectedNotebook.author) }}</div>
                 </div>
+                <i class="fas fa-chevron-right author-arrow"></i>
               </div>
 
               <div class="modal-stats">
@@ -211,6 +217,12 @@ function truncateText(text, maxLength) {
 
 function showNotification(message, type = 'success') {
   notification.value = { message, type }
+}
+
+function goToAuthorProfile(author) {
+  if (!author?.id) return
+  selectedNotebook.value = null
+  router.push(`/user/${author.id}`)
 }
 
 async function loadNotebooks() {
@@ -480,6 +492,7 @@ onMounted(loadNotebooks)
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 16px;
+  align-items: stretch;
 }
 
 .notebook-card {
@@ -491,7 +504,8 @@ onMounted(loadNotebooks)
   transition: all 0.2s ease;
   display: flex;
   gap: 16px;
-  min-height: 110px;
+  height: 100%;
+  min-height: 140px;
 }
 
 .notebook-card:hover {
@@ -503,6 +517,7 @@ onMounted(loadNotebooks)
   width: 4px;
   border-radius: 2px;
   flex-shrink: 0;
+  align-self: stretch;
 }
 
 .notebook-info {
@@ -519,7 +534,7 @@ onMounted(loadNotebooks)
   line-height: 1.3;
   color: #e5e5e5;
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   gap: 8px;
 }
 
@@ -527,13 +542,14 @@ onMounted(loadNotebooks)
   color: #a3a3a3;
   font-size: 0.85rem;
   flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .notebook-description {
   font-size: 0.82rem;
   color: #737373;
   line-height: 1.4;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   flex: 1;
 }
 
@@ -543,6 +559,7 @@ onMounted(loadNotebooks)
   align-items: flex-end;
   gap: 10px;
   margin-top: auto;
+  flex-wrap: wrap;
 }
 
 .notebook-rating {
@@ -569,6 +586,7 @@ onMounted(loadNotebooks)
   gap: 4px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  max-width: 60%;
 }
 
 .tag {
@@ -579,6 +597,7 @@ onMounted(loadNotebooks)
   border-radius: 6px;
   color: #737373;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .modal {
@@ -665,6 +684,17 @@ onMounted(loadNotebooks)
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
+  padding: 12px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-author:hover {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.1);
 }
 
 .author-avatar {
@@ -699,6 +729,13 @@ onMounted(loadNotebooks)
   font-size: 0.78rem;
   color: #525252;
   margin-top: 2px;
+}
+
+.author-arrow {
+  margin-left: auto;
+  color: #525252;
+  font-size: 0.75rem;
+  flex-shrink: 0;
 }
 
 .modal-stats {
