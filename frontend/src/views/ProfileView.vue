@@ -316,6 +316,8 @@ onMounted(loadProfile)
   color: #a3a3a3;
   font-size: 0.95rem;
   line-height: 1.7;
+  display: block;
+  justify-content: center;
 }
 
 .stats-section {
