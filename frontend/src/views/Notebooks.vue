@@ -84,7 +84,7 @@
                     <span><i class="fas fa-star"></i> {{ formatRating(notebook.average_rating) }}</span>
                   </div>
                   <div v-if="notebook.tags && notebook.tags.length" class="notebook-tags">
-                    <span v-for="tag in notebook.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</span>
+                    <span v-for="tag in notebook.tags.slice(0, 1)" :key="tag" class="tag">{{ tag }}</span>
                   </div>
                 </div>
               </div>
@@ -627,6 +627,7 @@ onMounted(async () => {
   color: #525252;
   margin-bottom: 8px;
   flex-wrap: wrap;
+  margin-top: auto;
 }
 
 .notebook-meta i { font-size: 0.7rem; margin-right: 3px; }

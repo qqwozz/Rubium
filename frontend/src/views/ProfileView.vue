@@ -33,32 +33,79 @@
                 </h1>
                 <p class="profile-email">{{ profile.email }}</p>
               </div>
+
+              <div v-if="!isOwnProfile" class="subscribe-block">
+                <button 
+                  class="btn-subscribe" 
+                  :class="{ subscribed: isSubscribed }"
+                  @click="toggleSubscription"
+                  :disabled="subscribing"
+                >
+                  <i :class="subscribing ? 'fas fa-spinner fa-spin' : (isSubscribed ? 'fas fa-check' : 'fas fa-plus')"></i>
+                  {{ isMutual ? 'Друзья' : (isSubscribed ? 'Вы подписаны' : 'Подписаться') }}
+                </button>
+              </div>
             </div>
 
             <div v-if="profile.bio" class="bio-section">
               <p>{{ profile.bio }}</p>
             </div>
 
-            <div class="stats-section">
-              <div class="stat">
-                <span class="stat-value">{{ notebooks.length }}</span>
-                <span class="stat-label">Тетрадей</span>
+            <div class="stats-block">
+              <div class="stats-row">
+                <span class="stat-item">
+                  <span class="stat-value">{{ subscribersCount }}</span>
+                  <span class="stat-label">подписчики</span>
+                </span>
+                <span class="stat-divider"></span>
+                <span class="stat-item">
+                  <span class="stat-value">{{ subscriptionsCount }}</span>
+                  <span class="stat-label">подписки</span>
+                </span>
+                <span class="stat-divider"></span>
+                <span class="stat-item">
+                  <span class="stat-value">{{ friendsCount }}</span>
+                  <span class="stat-label">друзья</span>
+                </span>
               </div>
-              <div class="stat-divider"></div>
-              <div class="stat">
-                <span class="stat-value">{{ averageRating }}</span>
-                <span class="stat-label">Рейтинг</span>
-              </div>
-              <div class="stat-divider"></div>
-              <div class="stat">
-                <span class="stat-value">{{ totalViews }}</span>
-                <span class="stat-label">Просмотров</span>
+
+              <div class="stats-row">
+                <span class="stat-item">
+                  <span class="stat-value">{{ notebooks.length }}</span>
+                  <span class="stat-label">тетрадей</span>
+                </span>
+                <span class="stat-divider"></span>
+                <span class="stat-item">
+                  <span class="stat-value">{{ averageRating }}</span>
+                  <span class="stat-label">рейтинг</span>
+                </span>
+                <span class="stat-divider"></span>
+                <span class="stat-item">
+                  <span class="stat-value">{{ totalViews }}</span>
+                  <span class="stat-label">просмотров</span>
+                </span>
               </div>
             </div>
 
-            <div v-if="savedNotebooks.length > 0" class="notebooks-section">
-              <h2>Сохранённые тетради</h2>
-              <div class="notebooks-grid">
+            <div class="notebooks-toggle">
+              <button 
+                class="toggle-btn" 
+                :class="{ active: activeTab === 'own' }"
+                @click="activeTab = 'own'"
+              >
+                Тетради
+              </button>
+              <button 
+                class="toggle-btn" 
+                :class="{ active: activeTab === 'saved' }"
+                @click="activeTab = 'saved'"
+              >
+                Сохранённые
+              </button>
+            </div>
+
+            <div v-if="activeTab === 'saved'" class="notebooks-section">
+              <div v-if="savedNotebooks.length > 0" class="notebooks-grid">
                 <div 
                   v-for="nb in savedNotebooks" 
                   :key="nb.id" 
@@ -79,10 +126,13 @@
                   <i class="fas fa-chevron-right card-arrow"></i>
                 </div>
               </div>
+              <div v-else class="empty">
+                <div class="empty-icon"><i class="fas fa-bookmark"></i></div>
+                <p>Нет сохранённых тетрадей</p>
+              </div>
             </div>
 
-            <div class="notebooks-section">
-              <h2>Публичные тетради</h2>
+            <div v-else class="notebooks-section">
               <div v-if="notebooks.length > 0" class="notebooks-grid">
                 <div 
                   v-for="nb in notebooks" 
@@ -123,20 +173,34 @@ import { useRoute, useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import MobileHeader from '../components/MobileHeader.vue'
 import { supabase } from '../api/supabase'
+import { useAuthStore } from '../stores/auth'
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 const profile = ref(null)
 const notebooks = ref([])
 const savedNotebooks = ref([])
 const loading = ref(true)
 const sidebarRef = ref(null)
+const activeTab = ref('saved')
+
+const isSubscribed = ref(false)
+const isMutual = ref(false)
+const subscribing = ref(false)
+
+const subscribersCount = ref(0)
+const subscriptionsCount = ref(0)
+const friendsCount = ref(0)
 
 const DEVELOPER_EMAILS = ['nsdmlk@yandex.ru', 'offconix@gmail.com', 'oleg.veter.08@mail.ru']
 
 const isDeveloper = computed(() => {
   return DEVELOPER_EMAILS.includes(profile.value?.email)
 })
+
+const currentUserId = computed(() => auth.profile?.id)
+const isOwnProfile = computed(() => currentUserId.value === profile.value?.id)
 
 const averageRating = computed(() => {
   const rated = notebooks.value.filter(nb => nb.average_rating > 0)
@@ -169,8 +233,132 @@ function truncateText(text, maxLength) {
   return text.length > maxLength ? text.slice(0, maxLength) + '...' : text
 }
 
+async function checkSubscription() {
+  if (!currentUserId.value || !profile.value?.id) return
+  if (currentUserId.value === profile.value.id) return
+
+  const { data: sub } = await supabase
+    .from('subscriptions')
+    .select('subscriber_id')
+    .eq('subscriber_id', currentUserId.value)
+    .eq('subscribed_to_id', profile.value.id)
+    .maybeSingle()
+
+  isSubscribed.value = !!sub
+
+  if (isSubscribed.value) {
+    const { data: mutual } = await supabase
+      .from('subscriptions')
+      .select('subscriber_id')
+      .eq('subscriber_id', profile.value.id)
+      .eq('subscribed_to_id', currentUserId.value)
+      .maybeSingle()
+
+    isMutual.value = !!mutual
+  }
+}
+
+async function loadStats() {
+  if (!profile.value?.id) return
+
+  const { count: subs } = await supabase
+    .from('subscriptions')
+    .select('*', { count: 'exact', head: true })
+    .eq('subscribed_to_id', profile.value.id)
+
+  subscribersCount.value = subs || 0
+
+  const { count: subscr } = await supabase
+    .from('subscriptions')
+    .select('*', { count: 'exact', head: true })
+    .eq('subscriber_id', profile.value.id)
+
+  subscriptionsCount.value = subscr || 0
+
+  const { data: mutual } = await supabase
+    .from('subscriptions')
+    .select('subscriber_id, subscribed_to_id')
+    .or(`subscriber_id.eq.${profile.value.id},subscribed_to_id.eq.${profile.value.id}`)
+
+  if (mutual) {
+    const userSubs = mutual.filter(s => s.subscriber_id === profile.value.id).map(s => s.subscribed_to_id)
+    const userSubscribers = mutual.filter(s => s.subscribed_to_id === profile.value.id).map(s => s.subscriber_id)
+    
+    const friends = userSubs.filter(id => userSubscribers.includes(id))
+    friendsCount.value = friends.length
+  }
+}
+
+async function toggleSubscription() {
+  if (!auth.isAuthenticated) {
+    router.push('/login')
+    return
+  }
+
+  if (!currentUserId.value || !profile.value?.id || subscribing.value) return
+  if (currentUserId.value === profile.value.id) return
+
+  subscribing.value = true
+
+  try {
+    if (isSubscribed.value) {
+      const { error } = await supabase
+        .from('subscriptions')
+        .delete()
+        .eq('subscriber_id', currentUserId.value)
+        .eq('subscribed_to_id', profile.value.id)
+
+      if (error) throw error
+
+      isSubscribed.value = false
+      isMutual.value = false
+      await loadStats()
+    } else {
+      const { error: insertError } = await supabase
+        .from('subscriptions')
+        .insert({
+          subscriber_id: currentUserId.value,
+          subscribed_to_id: profile.value.id
+        })
+
+      if (insertError) throw insertError
+
+      isSubscribed.value = true
+
+      const { error: notifError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: profile.value.id,
+          type: 'subscription',
+          from_user_id: currentUserId.value,
+          message: `${getFullName()} подписался на вас`
+        })
+
+      if (notifError) console.error(notifError)
+
+      const { data: mutual } = await supabase
+        .from('subscriptions')
+        .select('subscriber_id')
+        .eq('subscriber_id', profile.value.id)
+        .eq('subscribed_to_id', currentUserId.value)
+        .maybeSingle()
+
+      isMutual.value = !!mutual
+      await loadStats()
+    }
+  } catch (e) {
+    console.error(e)
+  } finally {
+    subscribing.value = false
+  }
+}
+
 async function loadProfile() {
   try {
+    if (!auth.profile && auth.isAuthenticated) {
+      await auth.loadProfile()
+    }
+
     const { data: userData, error: userError } = await supabase
       .from('rubium_users')
       .select('id, first_name, last_name, avatar_url, bio, email, saved_notebooks, created_at')
@@ -201,6 +389,8 @@ async function loadProfile() {
       if (savedError) throw savedError
       savedNotebooks.value = savedData || []
     }
+
+    await Promise.all([checkSubscription(), loadStats()])
   } catch (e) {
     console.error(e)
   } finally {
@@ -299,7 +489,7 @@ onMounted(loadProfile)
   display: flex;
   align-items: center;
   gap: 20px;
-  margin-bottom: 32px;
+  margin-bottom: 28px;
 }
 
 .avatar {
@@ -324,6 +514,11 @@ onMounted(loadProfile)
   object-fit: cover;
 }
 
+.profile-info {
+  flex: 1;
+  min-width: 0;
+}
+
 .profile-info h1 {
   font-size: 1.5rem;
   font-weight: 700;
@@ -346,69 +541,133 @@ onMounted(loadProfile)
   font-size: 0.85rem;
 }
 
+.subscribe-block {
+  flex-shrink: 0;
+}
+
+.btn-subscribe {
+  padding: 10px 18px;
+  background: #ffffff;
+  color: #0a0a0a;
+  border: 1px solid #ffffff;
+  border-radius: 10px;
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.btn-subscribe:hover:not(:disabled) {
+  background: #e5e5e5;
+  border-color: #e5e5e5;
+}
+
+.btn-subscribe.subscribed {
+  background: transparent;
+  color: #fafafa;
+  border-color: rgba(255,255,255,0.12);
+}
+
+.btn-subscribe.subscribed:hover:not(:disabled) {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.2);
+}
+
+.btn-subscribe:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.stats-block {
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-direction: column;
+}
+
+.stats-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.stat-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #737373;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: #525252;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 14px;
+  background: rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+
 .bio-section {
-  margin-bottom: 32px;
+  margin-bottom: 28px;
 }
 
 .bio-section p {
   color: #a3a3a3;
   font-size: 0.95rem;
   line-height: 1.7;
-  display: block;
-  justify-content: center;
 }
 
-.stats-section {
+.notebooks-toggle {
   display: flex;
-  align-items: center;
-  gap: 24px;
-  margin-bottom: 40px;
-  padding: 20px;
-  background: rgba(255,255,255,0.02);
+  gap: 2px;
+  background: rgba(255,255,255,0.03);
   border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 12px;
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 24px;
+  width: fit-content;
 }
 
-.stat {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  text-align: center;
-}
-
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: -0.01em;
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  color: #525252;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+.toggle-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #737373;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
   font-weight: 500;
+  transition: all 0.15s ease;
 }
 
-.stat-divider {
-  width: 1px;
-  height: 36px;
-  background: rgba(255,255,255,0.06);
-  flex-shrink: 0;
+.toggle-btn:hover {
+  color: #e5e5e5;
+}
+
+.toggle-btn.active {
+  background: #ffffff;
+  color: #0a0a0a;
 }
 
 .notebooks-section {
   margin-bottom: 40px;
-}
-
-.notebooks-section h2 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #e5e5e5;
-  margin-bottom: 14px;
-  letter-spacing: -0.01em;
 }
 
 .notebooks-grid {
@@ -539,17 +798,28 @@ onMounted(loadProfile)
     justify-content: center;
   }
 
-  .stats-section {
-    gap: 12px;
-    padding: 16px;
+  .bio-section {
+    display: flex;
+    justify-content: center;
   }
 
-  .stat-value {
-    font-size: 1.3rem;
+  .notebooks-toggle {
+    width: 100%;
   }
 
-  .stat-label {
-    font-size: 0.68rem;
+  .toggle-btn {
+    flex: 1;
+  }
+
+  .subscribe-block {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .stats-row {
+    flex-wrap: wrap;
+    gap: 10px;
   }
 }
 </style>
