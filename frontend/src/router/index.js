@@ -7,7 +7,7 @@ const routes = [
   { path: '/trainer', name: 'trainer', component: () => import('../views/Trainer.vue'), meta: { requiresAuth: true } },
   { path: '/daily', name: 'daily', component: () => import('../views/Daily.vue'), meta: { requiresAuth: true } },
   { path: '/notebooks', name: 'notebooks', component: () => import('../views/Notebooks.vue'), meta: { requiresAuth: true } },
-  { path: '/notebook/:id', name: 'notebook-read', component: () => import('../views/NotebookRead.vue'), meta: { requiresAuth: false } },
+  { path: '/notebook/:id', name: 'notebook-read', component: () => import('../views/NotebookRead.vue'), meta: { requiresAuth: true } },
   { path: '/notebook/:id/edit', name: 'notebook-edit', component: () => import('../views/NotebookWrite.vue'), meta: { requiresAuth: true } },
   { path: '/community', name: 'community', component: () => import('../views/Community.vue'), meta: { requiresAuth: false } },
   { path: '/profile', name: 'profile', component: () => import('../views/Profile.vue'), meta: { requiresAuth: true } },
@@ -18,7 +18,8 @@ const routes = [
   { path: '/update-password', name: 'update-password', component: () => import('../views/UpdatePassword.vue') },
   { path: '/forgot-password', name: 'forgot-password', component: () => import('../views/ForgotPassword.vue') },
   { path: '/user/:id', name: 'ProfileView', component: () => import('../views/ProfileView.vue'), meta: { requiresAuth : true } },
-  { path: '/notifications', name: 'notifications', component: () => import('../views/Notifications.vue') }
+  { path: '/notifications', name: 'notifications', component: () => import('../views/Notifications.vue'), meta : { requiresAuth : true } },
+  { path: '/user/:id/connections', name: 'Connections', component: () => import('../views/Connections.vue'), meta : {requiresAuth : true } }
 ]
 
 const router = createRouter({

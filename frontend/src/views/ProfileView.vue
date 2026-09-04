@@ -52,7 +52,7 @@
             </div>
 
             <div class="stats-block">
-              <div class="stats-row">
+              <div class="stats-row clickable" @click="router.push(`/user/${profile.id}/connections`)">
                 <span class="stat-item">
                   <span class="stat-value">{{ subscribersCount }}</span>
                   <span class="stat-label">подписчики</span>
@@ -596,6 +596,17 @@ onMounted(loadProfile)
   align-items: center;
   gap: 16px;
   margin-bottom: 10px;
+}
+
+.stats-row.clickable {
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.stats-row.clickable:hover {
+  background: rgba(255,255,255,0.03);
 }
 
 .stat-item {
