@@ -13,6 +13,10 @@
         <router-link to="/notebooks" class="thin-link" data-tooltip="Мои тетради">
           <i class="fas fa-book"></i>
         </router-link>
+        <router-link to="/notifications" class="thin-link" data-tooltip="Уведомления" @click="markAllRead">
+          <i class="fas fa-bell"></i>
+          <span v-if="unreadCount > 0" class="thin-badge">{{ unreadCount }}</span>
+        </router-link>
         <router-link v-if="auth.isAdmin" to="/admin" class="thin-link" data-tooltip="Админ">
           <i class="fas fa-shield-halved"></i>
         </router-link>
@@ -48,16 +52,50 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { supabase } from '../api/supabase'
 
 const auth = useAuthStore()
 const isOpen = ref(false)
+const unreadCount = ref(0)
 
 const close = () => { isOpen.value = false }
 const toggle = () => { isOpen.value = !isOpen.value }
 
 defineExpose({ toggle })
+
+async function loadUnreadCount() {
+  if (!auth.profile?.id) return
+
+  const { count } = await supabase
+    .from('notifications')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', auth.profile.id)
+    .eq('is_read', false)
+
+  unreadCount.value = count || 0
+}
+
+async function markAllRead() {
+  if (!auth.profile?.id || unreadCount.value === 0) return
+
+  await supabase
+    .from('notifications')
+    .update({ is_read: true })
+    .eq('user_id', auth.profile.id)
+    .eq('is_read', false)
+
+  unreadCount.value = 0
+}
+
+watch(() => auth.profile?.id, (id) => {
+  if (id) loadUnreadCount()
+})
+
+onMounted(() => {
+  if (auth.profile?.id) loadUnreadCount()
+})
 </script>
 
 <style scoped>
@@ -122,6 +160,21 @@ defineExpose({ toggle })
 .thin-link.router-link-active {
   background: rgba(255,255,255,0.06);
   color: #ffffff;
+}
+
+.thin-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: #ffffff;
+  color: #0a0a0a;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 8px;
+  min-width: 16px;
+  text-align: center;
+  line-height: 1.4;
 }
 
 /* Tooltip */

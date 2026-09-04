@@ -17,7 +17,8 @@ const routes = [
   { path: '/verify-email', name: 'VerifyEmail', component: () => import('../views/VerifyEmail.vue') },
   { path: '/update-password', name: 'update-password', component: () => import('../views/UpdatePassword.vue') },
   { path: '/forgot-password', name: 'forgot-password', component: () => import('../views/ForgotPassword.vue') },
-  { path: '/user/:id', name: 'ProfileView', component: () => import('../views/ProfileView.vue'), meta: { requiresAuth : true } }
+  { path: '/user/:id', name: 'ProfileView', component: () => import('../views/ProfileView.vue'), meta: { requiresAuth : true } },
+  { path: '/notifications', name: 'notifications', component: () => import('../views/Notifications.vue') }
 ]
 
 const router = createRouter({
