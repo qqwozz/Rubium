@@ -114,7 +114,10 @@
                 >
               </div>
 
-              <NotebookEditor v-model="currentPage.content" />
+              <NotebookEditor 
+                v-model="currentPage.content" 
+                :notebook-id="route.params.id"
+              />
             </div>
           </div>
         </div>

@@ -154,6 +154,10 @@ const props = defineProps({
   modelValue: {
     type: String,
     default: ''
+  },
+  notebookId: {
+    type: String,
+    default: null
   }
 })
 
@@ -273,8 +277,7 @@ async function uploadImage(file) {
   
   try {
     const compressedFile = await compressImage(file)
-    const userId = auth.user?.id || auth.profile?.id
-    const filePath = `${userId}/${Date.now()}.jpg`
+    const filePath = `${props.notebookId}/${Date.now()}.jpg`
     
     const { error: uploadError } = await supabase.storage
       .from('notebook_images')
