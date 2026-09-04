@@ -56,6 +56,31 @@
               </div>
             </div>
 
+            <div v-if="savedNotebooks.length > 0" class="notebooks-section">
+              <h2>Сохранённые тетради</h2>
+              <div class="notebooks-grid">
+                <div 
+                  v-for="nb in savedNotebooks" 
+                  :key="nb.id" 
+                  class="notebook-card"
+                  @click="router.push(`/notebook/${nb.id}`)"
+                >
+                  <div class="notebook-color" :style="{ background: nb.color || '#525252' }"></div>
+                  <div class="notebook-info">
+                    <div class="notebook-title">{{ nb.title }}</div>
+                    <div v-if="nb.description" class="notebook-description">
+                      {{ truncateText(nb.description, 80) }}
+                    </div>
+                    <div class="notebook-stats">
+                      <span><i class="fas fa-star"></i> {{ formatRating(nb.average_rating) }}</span>
+                      <span><i class="fas fa-eye"></i> {{ nb.views_count || 0 }}</span>
+                    </div>
+                  </div>
+                  <i class="fas fa-chevron-right card-arrow"></i>
+                </div>
+              </div>
+            </div>
+
             <div class="notebooks-section">
               <h2>Публичные тетради</h2>
               <div v-if="notebooks.length > 0" class="notebooks-grid">
@@ -103,6 +128,7 @@ const route = useRoute()
 const router = useRouter()
 const profile = ref(null)
 const notebooks = ref([])
+const savedNotebooks = ref([])
 const loading = ref(true)
 const sidebarRef = ref(null)
 
@@ -147,7 +173,7 @@ async function loadProfile() {
   try {
     const { data: userData, error: userError } = await supabase
       .from('rubium_users')
-      .select('id, first_name, last_name, avatar_url, bio, email, created_at')
+      .select('id, first_name, last_name, avatar_url, bio, email, saved_notebooks, created_at')
       .eq('id', route.params.id)
       .single()
 
@@ -163,6 +189,18 @@ async function loadProfile() {
 
     if (notebooksError) throw notebooksError
     notebooks.value = notebooksData || []
+
+    const savedIds = userData?.saved_notebooks || []
+    if (savedIds.length > 0) {
+      const { data: savedData, error: savedError } = await supabase
+        .from('notebooks')
+        .select('id, title, description, color, average_rating, ratings_count, views_count, updated_at')
+        .in('id', savedIds)
+        .eq('is_public', true)
+
+      if (savedError) throw savedError
+      savedNotebooks.value = savedData || []
+    }
   } catch (e) {
     console.error(e)
   } finally {
@@ -359,6 +397,10 @@ onMounted(loadProfile)
   height: 36px;
   background: rgba(255,255,255,0.06);
   flex-shrink: 0;
+}
+
+.notebooks-section {
+  margin-bottom: 40px;
 }
 
 .notebooks-section h2 {

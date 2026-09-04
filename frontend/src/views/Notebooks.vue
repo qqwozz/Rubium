@@ -12,9 +12,18 @@
 
         <div class="content">
           <div class="notebooks-header">
-            <h1>Мои тетради</h1>
-            <button class="btn-create" @click="openCreateModal">
+            <h1>{{ activeTab === 'mine' ? 'Мои тетради' : 'Сохранённые' }}</h1>
+            <button v-if="activeTab === 'mine'" class="btn-create" @click="openCreateModal">
               <i class="fas fa-plus"></i> Создать
+            </button>
+          </div>
+
+          <div class="tabs-row">
+            <button class="tab-btn" :class="{ active: activeTab === 'mine' }" @click="activeTab = 'mine'">
+              <i class="fas fa-book"></i> Мои
+            </button>
+            <button class="tab-btn" :class="{ active: activeTab === 'saved' }" @click="activeTab = 'saved'">
+              <i class="fas fa-bookmark"></i> Сохранённые
             </button>
           </div>
 
@@ -23,33 +32,63 @@
             <span>Загружаем...</span>
           </div>
 
-          <div v-else-if="notebooks.length === 0" class="empty-state">
+          <div v-else-if="activeTab === 'mine' && notebooks.length === 0" class="empty-state">
             <div class="empty-icon"><i class="fas fa-book-open"></i></div>
             <h3>У тебя пока нет тетрадей</h3>
             <p>Создай первую — начни вести конспекты</p>
           </div>
 
+          <div v-else-if="activeTab === 'saved' && savedNotebooks.length === 0" class="empty-state">
+            <div class="empty-icon"><i class="fas fa-bookmark"></i></div>
+            <h3>Нет сохранённых тетрадей</h3>
+            <p>Сохраняй тетради из каталога, чтобы быстро находить их здесь</p>
+          </div>
+
           <div v-else class="notebooks-grid">
-            <div v-for="notebook in notebooks" :key="notebook.id" class="notebook-card" @click="openNotebook(notebook)">
-              <div class="notebook-color" :style="{ background: notebook.color || '#525252' }"></div>
-              <div class="notebook-info">
-                <div class="notebook-title-row">
-                  <div class="notebook-title">{{ notebook.title }}</div>
-                  <button class="btn-edit" @click.stop="openEditModal(notebook)">
-                    <i class="fas fa-gear"></i>
-                  </button>
-                </div>
-                <div v-if="notebook.description" class="notebook-description">{{ notebook.description }}</div>
-                <div class="notebook-meta">
-                  <span>{{ notebook.pages_count || 0 }} страниц</span>
-                  <span v-if="notebook.is_public"><i class="fas fa-globe"></i> Публичная</span>
-                  <span v-else><i class="fas fa-lock"></i> Приватная</span>
-                </div>
-                <div v-if="notebook.tags && notebook.tags.length" class="notebook-tags">
-                  <span v-for="tag in notebook.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</span>
+            <template v-if="activeTab === 'mine'">
+              <div v-for="notebook in notebooks" :key="notebook.id" class="notebook-card" @click="openNotebook(notebook)">
+                <div class="notebook-color" :style="{ background: notebook.color || '#525252' }"></div>
+                <div class="notebook-info">
+                  <div class="notebook-title-row">
+                    <div class="notebook-title">{{ notebook.title }}</div>
+                    <button class="btn-edit" @click.stop="openEditModal(notebook)">
+                      <i class="fas fa-gear"></i>
+                    </button>
+                  </div>
+                  <div v-if="notebook.description" class="notebook-description">{{ notebook.description }}</div>
+                  <div class="notebook-meta">
+                    <span>{{ notebook.pages_count || 0 }} страниц</span>
+                    <span v-if="notebook.is_public"><i class="fas fa-globe"></i> Публичная</span>
+                    <span v-else><i class="fas fa-lock"></i> Приватная</span>
+                  </div>
+                  <div v-if="notebook.tags && notebook.tags.length" class="notebook-tags">
+                    <span v-for="tag in notebook.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</span>
+                  </div>
                 </div>
               </div>
-            </div>
+            </template>
+
+            <template v-else>
+              <div v-for="notebook in savedNotebooks" :key="notebook.id" class="notebook-card" @click="openNotebook(notebook)">
+                <div class="notebook-color" :style="{ background: notebook.color || '#525252' }"></div>
+                <div class="notebook-info">
+                  <div class="notebook-title-row">
+                    <div class="notebook-title">{{ notebook.title }}</div>
+                    <button class="btn-edit" @click.stop="removeSaved(notebook.id)" title="Убрать из сохранённых">
+                      <i class="fas fa-bookmark"></i>
+                    </button>
+                  </div>
+                  <div v-if="notebook.description" class="notebook-description">{{ notebook.description }}</div>
+                  <div class="notebook-meta">
+                    <span v-if="notebook.author"><i class="fas fa-user"></i> {{ notebook.author }}</span>
+                    <span><i class="fas fa-star"></i> {{ formatRating(notebook.average_rating) }}</span>
+                  </div>
+                  <div v-if="notebook.tags && notebook.tags.length" class="notebook-tags">
+                    <span v-for="tag in notebook.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</span>
+                  </div>
+                </div>
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -153,18 +192,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import MobileHeader from '../components/MobileHeader.vue'
 import { apiFetch } from '../api/client'
 import { supabase } from '../api/supabase'
+import { useAuthStore } from '../stores/auth'
 import tagsRaw from '../assets/tags.txt?raw'
 
 const router = useRouter()
+const auth = useAuthStore()
 const notebooks = ref([])
 const loading = ref(true)
 const sidebarRef = ref(null)
+const activeTab = ref('mine')
 
 const showCreateModal = ref(false)
 const newTitle = ref('')
@@ -187,6 +229,8 @@ const filteredEditTags = ref([])
 
 const colors = ['#525252', '#737373', '#a3a3a3', '#d4d4d4', '#a78bfa', '#f472b6']
 const allTags = ref([])
+
+const savedNotebooks = ref([])
 
 function loadTags() {
   allTags.value = tagsRaw.split('\n').map(t => t.trim()).filter(Boolean)
@@ -254,6 +298,64 @@ async function loadNotebooks() {
   finally { loading.value = false }
 }
 
+async function loadSavedNotebooks() {
+  const savedIds = auth.profile?.saved_notebooks || []
+  if (savedIds.length === 0) {
+    savedNotebooks.value = []
+    return
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('notebooks')
+      .select('id, title, description, color, tags, average_rating, user_id')
+      .in('id', savedIds)
+      .eq('is_public', true)
+
+    if (error) throw error
+
+    const users = await Promise.all((data || []).map(async nb => {
+      if (!nb.user_id) return { ...nb, author: '' }
+      const { data: userData } = await supabase
+        .from('rubium_users')
+        .select('first_name, last_name')
+        .eq('id', nb.user_id)
+        .single()
+      const name = [userData?.first_name, userData?.last_name].filter(Boolean).join(' ')
+      return { ...nb, author: name }
+    }))
+
+    savedNotebooks.value = users
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+async function removeSaved(notebookId) {
+  try {
+    const userId = auth.profile?.id
+    if (!userId) return
+
+    const updated = (auth.profile?.saved_notebooks || []).filter(id => id !== notebookId)
+
+    const { error } = await supabase
+      .from('rubium_users')
+      .update({ saved_notebooks: updated })
+      .eq('id', userId)
+
+    if (error) throw error
+
+    await auth.loadProfile()
+    await loadSavedNotebooks()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+function formatRating(rating) {
+  return Number(rating || 0).toFixed(1)
+}
+
 async function deleteNotebook() {
   if (!editId.value) return
   try {
@@ -296,10 +398,18 @@ async function saveNotebook() {
 
 function openNotebook(notebook) {
   if (!notebook.id) return
-  router.push(`/notebook/${notebook.id}/edit`)
+  if (activeTab.value === 'saved') {
+    router.push(`/notebook/${notebook.id}`)
+  } else {
+    router.push(`/notebook/${notebook.id}/edit`)
+  }
 }
 
-onMounted(() => { loadTags(); loadNotebooks() })
+onMounted(async () => {
+  loadTags()
+  await loadNotebooks()
+  await loadSavedNotebooks()
+})
 </script>
 
 <style scoped>
@@ -342,7 +452,7 @@ onMounted(() => { loadTags(); loadNotebooks() })
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 40px;
+  margin-bottom: 24px;
   flex-wrap: wrap;
   gap: 12px;
 }
@@ -371,6 +481,42 @@ onMounted(() => { loadTags(); loadNotebooks() })
 }
 
 .btn-create:hover { background: #e5e5e5; border-color: #e5e5e5; }
+
+.tabs-row {
+  display: flex;
+  gap: 2px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 32px;
+  width: fit-content;
+}
+
+.tab-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #737373;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tab-btn:hover {
+  color: #e5e5e5;
+}
+
+.tab-btn.active {
+  background: #ffffff;
+  color: #0a0a0a;
+}
 
 .loading {
   display: flex;
@@ -480,6 +626,7 @@ onMounted(() => { loadTags(); loadNotebooks() })
   font-size: 0.78rem;
   color: #525252;
   margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .notebook-meta i { font-size: 0.7rem; margin-right: 3px; }

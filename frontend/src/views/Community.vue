@@ -44,20 +44,23 @@
             <div v-for="notebook in notebooks" :key="notebook.id" class="notebook-card" @click="openNotebook(notebook)">
               <div class="notebook-color" :style="{ background: notebook.color || '#525252' }"></div>
               <div class="notebook-info">
-                <div class="notebook-title">
-                  {{ notebook.title }}
+                <div class="notebook-title-row">
+                  <div class="notebook-title">{{ notebook.title }}</div>
                   <i v-if="notebook.is_verified" class="fas fa-check-circle verified-badge-icon" title="От разработчика"></i>
                 </div>
                 <div v-if="notebook.description" class="notebook-description">
-                  {{ truncateText(notebook.description, 50) }}
+                  {{ truncateText(notebook.description, 60) }}
                 </div>
                 <div class="notebook-footer">
+                  <div class="notebook-author">
+                    <i class="fas fa-user"></i> {{ getAuthorFullName(notebook.author) }}
+                  </div>
                   <div class="notebook-rating">
                     <i class="fas fa-star"></i> {{ formatRating(notebook.average_rating) }}
                     <span class="rating-count">({{ notebook.ratings_count || 0 }})</span>
                   </div>
                   <div v-if="notebook.tags && notebook.tags.length" class="notebook-tags">
-                    <span v-for="tag in notebook.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</span>
+                    <span v-for="tag in notebook.tags.slice(0, 1)" :key="tag" class="tag">{{ tag }}</span>
                   </div>
                 </div>
               </div>
@@ -74,10 +77,7 @@
             <div class="modal-header">
               <div class="modal-color" :style="{ background: selectedNotebook.color || '#525252' }"></div>
               <div class="modal-title-block">
-                <h2>
-                  {{ selectedNotebook.title }}
-                  <i v-if="selectedNotebook.is_verified" class="fas fa-check-circle verified-badge-icon" title="От разработчика"></i>
-                </h2>
+                <h2>{{ selectedNotebook.title }}</h2>
               </div>
               <button class="modal-close" @click="selectedNotebook = null">
                 <i class="fas fa-times"></i>
@@ -100,7 +100,10 @@
                   <span v-else>{{ getInitial(selectedNotebook.author) }}</span>
                 </div>
                 <div>
-                  <div class="author-name">{{ getAuthorFullName(selectedNotebook.author) }}</div>
+                  <div class="author-name">
+                    {{ getAuthorFullName(selectedNotebook.author) }}
+                    <i v-if="selectedNotebook.is_verified" class="fas fa-check-circle verified-badge-icon" title="От разработчика"></i>
+                  </div>
                   <div class="author-email">{{ getAuthorEmail(selectedNotebook.author) }}</div>
                 </div>
                 <i class="fas fa-chevron-right author-arrow"></i>
@@ -119,7 +122,11 @@
                 <button class="btn-open" @click="incrementViews">
                   <i class="fas fa-book-open"></i> Открыть
                 </button>
-                <button class="btn-rate" @click="openRateModal">
+                <button v-if="!isOwnNotebook" class="btn-save" @click="toggleSave" :class="{ saved: isSaved }" :disabled="saving">
+                  <i :class="saving ? 'fas fa-spinner fa-spin' : (isSaved ? 'fas fa-bookmark' : 'far fa-bookmark')"></i>
+                  {{ isSaved ? 'Сохранено' : 'Сохранить' }}
+                </button>
+                <button v-if="!isOwnNotebook" class="btn-rate" @click="openRateModal">
                   <i class="fas fa-star"></i> Оценить
                 </button>
               </div>
@@ -161,14 +168,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import MobileHeader from '../components/MobileHeader.vue'
 import { apiFetch } from '../api/client'
 import { useAuthStore } from '../stores/auth'
+import { supabase } from '../api/supabase'
 
 const router = useRouter()
+const auth = useAuthStore()
 const notebooks = ref([])
 const loading = ref(true)
 const searchQuery = ref('')
@@ -177,6 +186,7 @@ const selectedNotebook = ref(null)
 const showRateModal = ref(false)
 const rateValue = ref(5)
 const notification = ref(null)
+const saving = ref(false)
 const sidebarRef = ref(null)
 
 const DEVELOPER_EMAILS = ['nsdmlk@yandex.ru', 'offconix@gmail.com', 'oleg.veter.08@mail.ru']
@@ -186,6 +196,14 @@ const sorts = [
   { value: 'newest', label: 'Новые' },
   { value: 'popular', label: 'Популярные' }
 ]
+
+const isSaved = computed(() => {
+  return auth.profile?.saved_notebooks?.includes(selectedNotebook.value?.id)
+})
+
+const isOwnNotebook = computed(() => {
+  return selectedNotebook.value?.author?.id === auth.profile?.id
+})
 
 function getInitial(author) {
   if (!author) return 'А'
@@ -217,6 +235,45 @@ function truncateText(text, maxLength) {
 
 function showNotification(message, type = 'success') {
   notification.value = { message, type }
+}
+
+async function toggleSave() {
+  if (!selectedNotebook.value?.id) return
+  if (saving.value) return
+
+  if (!auth.isAuthenticated) {
+    showNotification('Войди в аккаунт, чтобы сохранить тетрадь', 'error')
+    return
+  }
+
+  saving.value = true
+  try {
+    const userId = auth.profile?.id
+    if (!userId) throw new Error('Нет профиля')
+
+    const saved = auth.profile?.saved_notebooks || []
+    let updated
+
+    if (saved.includes(selectedNotebook.value.id)) {
+      updated = saved.filter(id => id !== selectedNotebook.value.id)
+    } else {
+      updated = [...saved, selectedNotebook.value.id]
+    }
+
+    const { error } = await supabase
+      .from('rubium_users')
+      .update({ saved_notebooks: updated })
+      .eq('id', userId)
+
+    if (error) throw error
+
+    await auth.loadProfile()
+  } catch (e) {
+    console.error(e)
+    showNotification('Ошибка при сохранении', 'error')
+  } finally {
+    saving.value = false
+  }
 }
 
 function goToAuthorProfile(author) {
@@ -254,8 +311,6 @@ function openRateModal() {
   rateValue.value = 5
   showRateModal.value = true
 }
-
-const auth = useAuthStore()
 
 async function incrementViews() {
   if (!selectedNotebook.value?.id) return
@@ -505,7 +560,7 @@ onMounted(loadNotebooks)
   display: flex;
   gap: 16px;
   height: 100%;
-  min-height: 140px;
+  min-height: 150px;
 }
 
 .notebook-card:hover {
@@ -527,20 +582,24 @@ onMounted(loadNotebooks)
   flex-direction: column;
 }
 
+.notebook-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
 .notebook-title {
   font-size: 1.05rem;
   font-weight: 600;
-  margin-bottom: 6px;
   line-height: 1.3;
   color: #e5e5e5;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
 }
 
 .verified-badge-icon {
   color: #a3a3a3;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -550,16 +609,32 @@ onMounted(loadNotebooks)
   color: #737373;
   line-height: 1.4;
   margin-bottom: 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   flex: 1;
 }
 
 .notebook-footer {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 10px;
+  align-items: center;
+  gap: 5px;
   margin-top: auto;
   flex-wrap: wrap;
+}
+
+.notebook-author {
+  font-size: 0.78rem;
+  color: #525252;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.notebook-author i {
+  font-size: 0.7rem;
 }
 
 .notebook-rating {
@@ -583,6 +658,7 @@ onMounted(loadNotebooks)
 
 .notebook-tags {
   display: flex;
+  margin-left: auto;
   gap: 4px;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -622,7 +698,7 @@ onMounted(loadNotebooks)
 
 .modal-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
   margin-bottom: 20px;
 }
@@ -643,9 +719,6 @@ onMounted(loadNotebooks)
   font-weight: 600;
   color: #ffffff;
   line-height: 1.3;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .modal-close {
@@ -685,16 +758,8 @@ onMounted(loadNotebooks)
   gap: 12px;
   margin-bottom: 16px;
   padding: 12px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
-}
-
-.modal-author:hover {
-  background: rgba(255,255,255,0.04);
-  border-color: rgba(255,255,255,0.1);
 }
 
 .author-avatar {
@@ -723,6 +788,14 @@ onMounted(loadNotebooks)
   font-weight: 600;
   font-size: 0.95rem;
   color: #e5e5e5;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.author-name .verified-badge-icon {
+  font-size: 0.75rem;
+  margin-top: 0;
 }
 
 .author-email {
@@ -773,6 +846,7 @@ onMounted(loadNotebooks)
 }
 
 .btn-open,
+.btn-save,
 .btn-rate {
   padding: 10px 18px;
   border: 1px solid transparent;
@@ -796,6 +870,28 @@ onMounted(loadNotebooks)
 .btn-open:hover {
   background: #e5e5e5;
   border-color: #e5e5e5;
+}
+
+.btn-save {
+  background: transparent;
+  color: #fafafa;
+  border-color: rgba(255,255,255,0.12);
+}
+
+.btn-save:hover:not(:disabled) {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.2);
+}
+
+.btn-save.saved {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.2);
+  color: #ffffff;
+}
+
+.btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-rate {
@@ -923,6 +1019,10 @@ onMounted(loadNotebooks)
   .page-body {
     display: block;
   }
+
+  .sort-btn {
+    width: 100%;
+  }
   
   .main-content {
     margin-left: 0;
@@ -950,6 +1050,7 @@ onMounted(loadNotebooks)
   }
   
   .btn-open,
+  .btn-save,
   .btn-rate,
   .btn-submit,
   .btn-cancel {
