@@ -705,7 +705,7 @@ onMounted(loadNotebooks)
 
 .modal-color {
   width: 4px;
-  height: 2.2em;
+  height: stretch;
   border-radius: 2px;
   flex-shrink: 0;
 }
