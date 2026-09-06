@@ -47,6 +47,7 @@
                   @blur="editingSectionId = null"
                   @keydown.enter="editingSectionId = null"
                   @keydown.esc="editingSectionId = null"
+                  @input="debouncedSave"
                   ref="sectionInput"
                 />
                 <span 
@@ -111,12 +112,14 @@
                   v-model="currentPage.title" 
                   class="page-title-input" 
                   placeholder="Заголовок страницы"
+                  @input="debouncedSave"
                 >
               </div>
 
               <NotebookEditor 
                 v-model="currentPage.content" 
                 :notebook-id="route.params.id"
+                @update:modelValue="debouncedSave"
               />
             </div>
           </div>
@@ -127,7 +130,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, onBeforeUnmount } from 'vue'
+import { ref, watch, onMounted, nextTick, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import ThinSidebar from '../components/ThinSidebar.vue'
@@ -150,12 +153,14 @@ const editingSectionId = ref(null)
 const sectionInput = ref(null)
 
 let autoSaveTimer = null
+let isLoaded = false
 
 function checkMobile() {
   isMobile.value = window.innerWidth <= 768
 }
 
 function debouncedSave() {
+  if (!isLoaded) return
   if (autoSaveTimer) clearTimeout(autoSaveTimer)
   autoSaveTimer = setTimeout(() => {
     saveNotebook()
@@ -180,12 +185,16 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', checkMobile)
   window.removeEventListener('keydown', handleKeydown)
   if (autoSaveTimer) clearTimeout(autoSaveTimer)
-  if (route.params.id) saveNotebook()
+  if (route.params.id && isLoaded) saveNotebook()
 })
 
 onBeforeRouteLeave(() => {
-  if (route.params.id) saveNotebook()
+  if (route.params.id && isLoaded) saveNotebook()
 })
+
+watch(() => sections.value, () => {
+  debouncedSave()
+}, { deep: true })
 
 async function loadNotebook() {
   try {
@@ -198,6 +207,7 @@ async function loadNotebook() {
         currentPage.value = sections.value[0].pages[0]
       }
     }
+    isLoaded = true
   } catch (e) {
     console.error(e)
   }
@@ -221,6 +231,7 @@ function addSection() {
   sections.value.push(newSection)
   openSections.value.push(newSection.id)
   startEditSection(newSection.id)
+  debouncedSave()
 }
 
 async function startEditSection(sectionId) {
@@ -240,6 +251,7 @@ function deleteSection(index) {
     if (currentPage.value && section.pages?.includes(currentPage.value)) {
       currentPage.value = null
     }
+    debouncedSave()
   }
 }
 
@@ -252,6 +264,7 @@ function deletePage(sectionIndex, pageId) {
       if (currentPage.value?.id === pageId) {
         currentPage.value = null
       }
+      debouncedSave()
     }
   }
 }
@@ -265,6 +278,7 @@ function addPage(sectionIndex) {
   }
   sections.value[sectionIndex].pages.push(newPage)
   currentPage.value = newPage
+  debouncedSave()
 }
 
 function selectPage(page) {
@@ -272,7 +286,8 @@ function selectPage(page) {
 }
 
 async function saveNotebook() {
-  if (!route.params.id) return
+  if (!route.params.id || !isLoaded) return
+  if (saving.value) return
 
   saving.value = true
   try {
