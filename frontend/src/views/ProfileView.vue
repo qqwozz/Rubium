@@ -311,8 +311,6 @@ async function toggleSubscription() {
       if (error) throw error
 
       isSubscribed.value = false
-      isMutual.value = false
-      await loadStats()
     } else {
       const { error: insertError } = await supabase
         .from('subscriptions')
@@ -325,27 +323,21 @@ async function toggleSubscription() {
 
       isSubscribed.value = true
 
+      const currentUserName = [auth.profile?.first_name, auth.profile?.last_name].filter(Boolean).join(' ') || 'Пользователь'
+
       const { error: notifError } = await supabase
         .from('notifications')
         .insert({
           user_id: profile.value.id,
           type: 'subscription',
           from_user_id: currentUserId.value,
-          message: `${getFullName()} подписался на вас`
+          message: `${currentUserName} подписался(лась) на вас`
         })
 
       if (notifError) console.error(notifError)
-
-      const { data: mutual } = await supabase
-        .from('subscriptions')
-        .select('subscriber_id')
-        .eq('subscriber_id', profile.value.id)
-        .eq('subscribed_to_id', currentUserId.value)
-        .maybeSingle()
-
-      isMutual.value = !!mutual
-      await loadStats()
     }
+
+    await loadStats()
   } catch (e) {
     console.error(e)
   } finally {
