@@ -38,15 +38,8 @@
 ```
 frontend/  — Vue 3 SPA
 backend/   — Go API, Python
+bot/       — Bots
 ```
-
-## Команда
-
-| Имя                      | Роль       | GitHub                               | Telegram                                          |
-| --------------------------- | -------------- | ------------------------------------ | ------------------------------------------------- |
-| Илья Емельянов | Lead Developer | [nsdmlk](https://github.com/nsdmlk)   | [@KantervilleGhost](https://t.me/KantervilleGhost) |
-| Дима Киселёв     | Lead Developer | [qqwozz](https://github.com/qqwozz)   | [@onixxed](https://t.me/onixxed)                   |
-| Олег Ветер         | DevOps         | [veter22](https://github.com/veter22) | [@oveterr](https://t.me/oveterr)                   |
 
 ## Контрибьюторам
 
