@@ -35,19 +35,26 @@ func resolveEnv(value string) string {
 		envName := value[2 : len(value)-1]
 		return os.Getenv(envName)
 	}
+
 	return value
 }
 
 func Load() *Config {
+	// Загружаем .env
 	if err := godotenv.Load("../.env"); err != nil {
-		log.Printf("WARNING: failed to load .env file: %v; using environment variables instead", err)
+		log.Printf(
+			"WARNING: failed to load .env file: %v; using environment variables instead",
+			err,
+		)
 	}
 
+	// Путь к config.yaml
 	yamlPath := os.Getenv("CONFIG_YAML")
 	if yamlPath == "" {
 		yamlPath = "../config.yaml"
 	}
 
+	// Читаем config.yaml
 	data, err := os.ReadFile(yamlPath)
 	if err != nil {
 		log.Fatalf(
@@ -57,6 +64,7 @@ func Load() *Config {
 		)
 	}
 
+	// Парсим YAML
 	var yc yamlConfig
 	if err := yaml.Unmarshal(data, &yc); err != nil {
 		log.Fatalf(
@@ -66,10 +74,13 @@ func Load() *Config {
 		)
 	}
 
+	// Определяем порт Go API
 	port := os.Getenv("PORT")
+
 	if port == "" && yc.Server.GoPort != 0 {
 		port = fmt.Sprintf("%d", yc.Server.GoPort)
 	}
+
 	if port == "" {
 		port = "8080"
 	}
@@ -81,6 +92,8 @@ func Load() *Config {
 		SupabaseServiceKey: resolveEnv(yc.Supabase.ServiceKey),
 		InternalAPIKey:     os.Getenv("INTERNAL_API_KEY"),
 	}
+
+	// Проверяем обязательные настройки
 
 	if cfg.SupabaseURL == "" {
 		log.Fatal(
