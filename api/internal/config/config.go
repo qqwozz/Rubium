@@ -15,6 +15,7 @@ type Config struct {
 	SupabaseURL        string
 	SupabaseAnonKey    string
 	SupabaseServiceKey string
+	InternalAPIKey     string
 }
 
 type yamlConfig struct {
@@ -23,6 +24,7 @@ type yamlConfig struct {
 		AnonKey    string `yaml:"anon_key"`
 		ServiceKey string `yaml:"service_key"`
 	} `yaml:"supabase"`
+
 	Server struct {
 		GoPort int `yaml:"go_port"`
 	} `yaml:"server"`
@@ -38,7 +40,7 @@ func resolveEnv(value string) string {
 
 func Load() *Config {
 	if err := godotenv.Load("../.env"); err != nil {
-		log.Println("Warning: .env file not found, using environment variables")
+		log.Printf("WARNING: failed to load .env file: %v; using environment variables instead", err)
 	}
 
 	yamlPath := os.Getenv("CONFIG_YAML")
@@ -48,12 +50,20 @@ func Load() *Config {
 
 	data, err := os.ReadFile(yamlPath)
 	if err != nil {
-		log.Fatalf("Cannot read %s: %v", yamlPath, err)
+		log.Fatalf(
+			"CONFIG ERROR: failed to read config file %q: %v",
+			yamlPath,
+			err,
+		)
 	}
 
 	var yc yamlConfig
 	if err := yaml.Unmarshal(data, &yc); err != nil {
-		log.Fatalf("Cannot parse %s: %v", yamlPath, err)
+		log.Fatalf(
+			"CONFIG ERROR: failed to parse config file %q: %v",
+			yamlPath,
+			err,
+		)
 	}
 
 	port := os.Getenv("PORT")
@@ -69,16 +79,35 @@ func Load() *Config {
 		SupabaseURL:        yc.Supabase.URL,
 		SupabaseAnonKey:    resolveEnv(yc.Supabase.AnonKey),
 		SupabaseServiceKey: resolveEnv(yc.Supabase.ServiceKey),
+		InternalAPIKey:     os.Getenv("INTERNAL_API_KEY"),
 	}
 
 	if cfg.SupabaseURL == "" {
-		log.Fatal("supabase.url is required in config.yaml")
+		log.Fatal(
+			"CONFIG ERROR: Supabase URL is not configured. " +
+				"Set 'supabase.url' in config.yaml",
+		)
 	}
+
 	if cfg.SupabaseAnonKey == "" {
-		log.Fatal("supabase.anon_key is required in config.yaml")
+		log.Fatal(
+			"CONFIG ERROR: Supabase anonymous key is not configured. " +
+				"Set 'supabase.anon_key' in config.yaml",
+		)
 	}
+
 	if cfg.SupabaseServiceKey == "" {
-		log.Fatal("supabase.service_key is required in config.yaml (needed for write operations)")
+		log.Fatal(
+			"CONFIG ERROR: Supabase service key is not configured. " +
+				"Set 'supabase.service_key' in config.yaml",
+		)
+	}
+
+	if cfg.InternalAPIKey == "" {
+		log.Fatal(
+			"CONFIG ERROR: INTERNAL_API_KEY is not configured. " +
+				"Set INTERNAL_API_KEY in .env or environment variables",
+		)
 	}
 
 	return cfg

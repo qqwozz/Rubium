@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"unicode/utf8"
 )
 
 // === Whitelist для enum-полей ===
@@ -24,7 +25,6 @@ var (
 
 // SafeString разрешает только безопасные символы для PostgREST
 func SafeString(s string) (string, bool) {
-	// Русские/английские буквы, цифры, пробел, дефис, подчёркивание
 	re := regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ0-9\s\-_]+$`)
 	if !re.MatchString(s) {
 		return "", false
@@ -100,4 +100,14 @@ func ValidSort(s string) (string, bool) {
 	default:
 		return "", false
 	}
+}
+
+// IsSafeTag проверяет tag для использования в PostgREST cs-фильтре.
+func IsSafeTag(tag string) bool {
+	if tag == "" || utf8.RuneCountInString(tag) > 50 {
+		return false
+	}
+
+	re := regexp.MustCompile(`^[\p{L}\p{N}_-]+$`)
+	return re.MatchString(tag)
 }

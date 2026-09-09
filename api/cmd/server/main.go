@@ -83,6 +83,13 @@ func main() {
 		nbPrivate.POST("/:id/view", notebooks.IncrementViews) // Увеличить просмотры
 	}
 
+	// --- Internal API: notebooks by tag ---
+	internal := r.Group("/internal/v1")
+	internal.Use(middleware.RequireInternalKey(cfg.InternalAPIKey))
+	{
+		internal.GET("/notebooks/by-tag", notebooks.GetNotebooksByTag)
+	}
+
 	// HTTP-сервер с таймаутами (prod-ready)
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
