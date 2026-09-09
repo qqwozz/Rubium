@@ -47,7 +47,7 @@ backend/   — Go API, Python
 | Илья Емельянов | Lead Developer | [nsdmlk](https://github.com/nsdmlk)   | [@KantervilleGhost](https://t.me/KantervilleGhost) |
 | Дима Киселёв     | Lead Developer | [qqwozz](https://github.com/qqwozz)   | [@onixxed](https://t.me/onixxed)                   |
 | Олег Ветер         | DevOps         | [veter22](https://github.com/veter22) | [@oveterr](https://t.me/oveterr)                   |
-| Антон Голяков      | Backend Developer | [DRAGonit-py](https://github.com/DRAGonit-py) | [@lsddollar](https://t.me/lsddollar)
+| Антон Голяков      | Intern Backend developer | [DRAGonit-py](https://github.com/DRAGonit-py) | [@lsddollar](https://t.me/lsddollar)
 
 ## Контрибьюторам
 
