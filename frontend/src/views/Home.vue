@@ -148,6 +148,15 @@ import Sidebar from '../components/Sidebar.vue'
 import MobileHeader from '../components/MobileHeader.vue'
 import { useAuthStore } from '../stores/auth'
 
+import { useHead } from '@unhead/vue'
+
+useHead({
+  title: 'Rubium — образовательная экосистема',
+  meta: [
+    { name: 'description', content: 'Тетради с формулами, сообщество, каталог курсов и карьера в IT.' }
+  ]
+})
+
 const auth = useAuthStore()
 const sidebarRef = ref(null)
 

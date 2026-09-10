@@ -175,6 +175,18 @@ import MobileHeader from '../components/MobileHeader.vue'
 import { apiFetch } from '../api/client'
 import { useAuthStore } from '../stores/auth'
 import { supabase } from '../api/supabase'
+import { useHead } from '@unhead/vue'
+
+useHead({
+  title: 'Каталог тетрадей — Rubium',
+  meta: [
+    { name: 'description', content: 'Публичные конспекты учеников по всем предметам. Находи тетради, оценивай и сохраняй себе.' },
+    { property: 'og:title', content: 'Каталог тетрадей — Rubium' },
+    { property: 'og:description', content: 'Публичные конспекты учеников по всем предметам.' },
+    { property: 'og:type', content: 'website' },
+    { property: 'og:url', content: 'https://rubium.tech/community' }
+  ]
+})
 
 const router = useRouter()
 const auth = useAuthStore()

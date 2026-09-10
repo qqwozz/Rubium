@@ -66,6 +66,18 @@ import MobileHeader from '../components/MobileHeader.vue'
 import { apiFetch } from '../api/client'
 import { useAuthStore } from '../stores/auth'
 import katex from 'katex'
+import { useHead } from '@unhead/vue'
+
+useHead(() => ({
+  title: notebook.value ? `${notebook.value.title} — Rubium` : 'Тетрадь — Rubium',
+  meta: [
+    { name: 'description', content: notebook.value?.description || 'Конспект на Rubium' },
+    { property: 'og:title', content: notebook.value?.title || 'Тетрадь' },
+    { property: 'og:description', content: notebook.value?.description || '' },
+    { property: 'og:type', content: 'article' },
+    { property: 'og:url', content: `https://rubium.tech/notebook/${route.params.id}` }
+  ]
+}))
 
 const route = useRoute()
 const router = useRouter()
