@@ -2,6 +2,8 @@ import httpx
 
 from config import RUBIUM_API_URL, INTERNAL_API_KEY
 
+# Much better but try to add more field in search system, not just tags
+
 
 def get_notebooks_by_tag(tag: str, limit: int = 50) -> list[dict]:
     response = httpx.get(
