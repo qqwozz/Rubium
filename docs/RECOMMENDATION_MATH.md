@@ -343,5 +343,3 @@ function recommend(u, K=10):
 4. **Cold start** — топ по quality + freshness + popularity
 5. **Логирование показов** — для будущего ML
 ```
-
-Сохрани как `docs/recommendations.md`. Дальше — реализация в Python. Показать скелет модуля?
