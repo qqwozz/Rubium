@@ -34,6 +34,10 @@
               <div class="stat-value">{{ stats.notebooks }}</div>
               <div class="stat-label">Тетрадей</div>
             </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ stats.feedback }}</div>
+              <div class="stat-label">Новых сообщений</div>
+            </div>
           </div>
           
           <div class="admin-tabs">
@@ -50,6 +54,13 @@
               @click="activeTab = 'notebooks'; loadPublicNotebooks()"
             >
               <i class="fas fa-book"></i> Тетради
+            </button>
+            <button 
+              class="admin-tab" 
+              :class="{ active: activeTab === 'feedback' }"
+              @click="activeTab = 'feedback'; loadFeedback()"
+            >
+              <i class="fas fa-comment-dots"></i> Обратная связь
             </button>
           </div>
           
@@ -126,6 +137,48 @@
               <p>Нет публичных тетрадей</p>
             </div>
           </div>
+
+          <!-- ОБРАТНАЯ СВЯЗЬ -->
+          <div v-if="activeTab === 'feedback'" class="admin-section">
+            <div class="section-header">
+              <h2>Обратная связь</h2>
+              <button class="btn-load" @click="loadFeedback" :disabled="loading">
+                <i v-if="loading" class="fas fa-spinner fa-spin"></i>
+                <span v-else>Обновить</span>
+              </button>
+            </div>
+
+            <div v-if="feedback.length" class="items-list">
+              <div v-for="fb in feedback" :key="fb.id" class="item-row" :class="{ resolved: fb.status === 'resolved' }">
+                <div class="item-info">
+                  <div class="item-title">
+                    <span class="feedback-type" :class="fb.type">{{ getFeedbackLabel(fb.type) }}</span>
+                    {{ fb.message }}
+                  </div>
+                  <div class="item-meta">
+                    {{ fb.author?.email || 'Аноним' }} · {{ formatDate(fb.created_at) }}
+                    <span v-if="fb.page_url"> · {{ fb.page_url }}</span>
+                  </div>
+                </div>
+                <div class="item-actions">
+                  <button 
+                    v-if="fb.status !== 'resolved'"
+                    class="btn-status"
+                    @click="resolveFeedback(fb)"
+                  >
+                    Решено
+                  </button>
+                  <button class="btn-icon danger" @click="deleteFeedback(fb)">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div v-else class="empty-state">
+              <p>Нет обратной связи</p>
+            </div>
+          </div>
         </template>
       </div>
     </div>
@@ -140,20 +193,14 @@ import { supabase } from '../api/supabase'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-
-onMounted(() => {
-  if (!auth.isAdmin) {
-    router.push('/')
-  }
-})
-
 const auth = useAuthStore()
 const sidebarRef = ref(null)
 const activeTab = ref('users')
 const users = ref([])
 const notebooks = ref([])
+const feedback = ref([])
 const loading = ref(false)
-const stats = ref({ users: 0, notebooks: 0 })
+const stats = ref({ users: 0, notebooks: 0, feedback: 0 })
 
 function formatDate(dateStr) {
   if (!dateStr) return ''
@@ -162,13 +209,15 @@ function formatDate(dateStr) {
 
 async function loadStats() {
   try {
-    const [usersRes, notebooksRes] = await Promise.all([
+    const [usersRes, notebooksRes, feedbackRes] = await Promise.all([
       supabase.from('rubium_users').select('id', { count: 'exact', head: true }),
-      supabase.from('notebooks').select('id', { count: 'exact', head: true })
+      supabase.from('notebooks').select('id', { count: 'exact', head: true }),
+      supabase.from('feedback').select('id', { count: 'exact', head: true }).eq('status', 'new')
     ])
     
     stats.value.users = usersRes.count || 0
     stats.value.notebooks = notebooksRes.count || 0
+    stats.value.feedback = feedbackRes.count || 0
   } catch (e) {
     console.error(e)
   }
@@ -268,7 +317,73 @@ async function deleteNotebook(notebook) {
   }
 }
 
+async function loadFeedback() {
+  loading.value = true
+  try {
+    const { data, error } = await supabase
+      .from('feedback')
+      .select(`
+        *,
+        author:rubium_users!user_id(id, first_name, email)
+      `)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    feedback.value = data || []
+  } catch (e) {
+    console.error(e)
+  } finally {
+    loading.value = false
+  }
+}
+
+function getFeedbackLabel(type) {
+  const labels = {
+    bug: 'Баг',
+    ui: 'Дизайн',
+    idea: 'Идея',
+    other: 'Другое'
+  }
+  return labels[type] || type
+}
+
+async function resolveFeedback(fb) {
+  try {
+    const { error } = await supabase
+      .from('feedback')
+      .update({ status: 'resolved' })
+      .eq('id', fb.id)
+
+    if (error) throw error
+    fb.status = 'resolved'
+    await loadStats()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+async function deleteFeedback(fb) {
+  if (!confirm('Удалить сообщение?')) return
+
+  try {
+    const { error } = await supabase
+      .from('feedback')
+      .delete()
+      .eq('id', fb.id)
+
+    if (error) throw error
+    feedback.value = feedback.value.filter(f => f.id !== fb.id)
+    await loadStats()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
 onMounted(() => {
+  if (!auth.isAdmin) {
+    router.push('/')
+    return
+  }
   loadStats()
   loadUsers()
 })
@@ -350,7 +465,7 @@ onMounted(() => {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   margin-bottom: 40px;
 }
@@ -478,6 +593,10 @@ onMounted(() => {
   border-color: rgba(255,255,255,0.08);
 }
 
+.item-row.resolved {
+  opacity: 0.5;
+}
+
 .item-info {
   flex: 1;
   min-width: 0;
@@ -488,11 +607,14 @@ onMounted(() => {
   font-weight: 600;
   color: #e5e5e5;
   margin-bottom: 3px;
+  line-height: 1.5;
+  word-break: break-word;
 }
 
 .item-meta {
   font-size: 0.78rem;
   color: #525252;
+  word-break: break-all;
 }
 
 .item-actions {
@@ -512,6 +634,7 @@ onMounted(() => {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .btn-status:hover {
@@ -552,6 +675,25 @@ onMounted(() => {
   color: #525252;
   font-size: 0.9rem;
 }
+
+.feedback-type {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-right: 6px;
+  background: rgba(255,255,255,0.06);
+  color: #a3a3a3;
+  vertical-align: middle;
+}
+
+.feedback-type.bug { background: rgba(239,68,68,0.12); color: #ef4444; }
+.feedback-type.ui { background: rgba(167,139,250,0.12); color: #a78bfa; }
+.feedback-type.idea { background: rgba(255,230,0,0.12); color: #eab308; }
+.feedback-type.other { background: rgba(255,255,255,0.06); color: #a3a3a3; }
 
 @media (max-width: 768px) {
   .main-content {
@@ -595,7 +737,7 @@ onMounted(() => {
   }
   
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
   
   .item-row {

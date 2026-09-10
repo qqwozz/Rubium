@@ -1,11 +1,13 @@
 <template>
   <router-view />
+  <FeedbackButton v-if="auth.isAuthenticated" />
 </template>
 
 <script setup>
 import { onMounted } from 'vue'
 import { useAuthStore } from './stores/auth'
 import { supabase } from './api/supabase'
+import FeedbackButton from './components/FeedbackButton.vue'
 
 const auth = useAuthStore()
 
