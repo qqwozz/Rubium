@@ -19,11 +19,13 @@
           <div class="controls-row">
             <div class="search-bar">
               <i class="fas fa-search search-icon"></i>
-              <input v-model="searchQuery" type="text" placeholder="Поиск по названию или тегам..." @keydown.enter="loadNotebooks">
+              <input v-model="searchQuery" type="text" placeholder="Поиск по названию или тегам..."
+                @keydown.enter="loadNotebooks">
             </div>
 
             <div class="sort-row">
-              <button v-for="sort in sorts" :key="sort.value" class="sort-btn" :class="{ active: currentSort === sort.value }" @click="currentSort = sort.value; loadNotebooks()">
+              <button v-for="sort in sorts" :key="sort.value" class="sort-btn"
+                :class="{ active: currentSort === sort.value }" @click="currentSort = sort.value; loadNotebooks()">
                 {{ sort.label }}
               </button>
             </div>
@@ -46,7 +48,8 @@
               <div class="notebook-info">
                 <div class="notebook-title-row">
                   <div class="notebook-title">{{ notebook.title }}</div>
-                  <i v-if="notebook.is_verified" class="fas fa-check-circle verified-badge-icon" title="От разработчика"></i>
+                  <i v-if="notebook.is_verified" class="fas fa-check-circle verified-badge-icon"
+                    title="От разработчика"></i>
                 </div>
                 <div v-if="notebook.description" class="notebook-description">
                   {{ truncateText(notebook.description, 60) }}
@@ -89,20 +92,17 @@
                 <p>{{ selectedNotebook.description }}</p>
               </div>
 
-              <div 
-                class="modal-author" 
-                @click="goToAuthorProfile(selectedNotebook.author)"
-                role="button"
-                tabindex="0"
-              >
+              <div class="modal-author" @click="goToAuthorProfile(selectedNotebook.author)" role="button" tabindex="0">
                 <div class="author-avatar">
-                  <img v-if="getAuthorAvatar(selectedNotebook.author)" :src="getAuthorAvatar(selectedNotebook.author)" alt="Аватар">
+                  <img v-if="getAuthorAvatar(selectedNotebook.author)" :src="getAuthorAvatar(selectedNotebook.author)"
+                    alt="Аватар">
                   <span v-else>{{ getInitial(selectedNotebook.author) }}</span>
                 </div>
                 <div>
                   <div class="author-name">
                     {{ getAuthorFullName(selectedNotebook.author) }}
-                    <i v-if="selectedNotebook.is_verified" class="fas fa-check-circle verified-badge-icon" title="От разработчика"></i>
+                    <i v-if="selectedNotebook.is_verified" class="fas fa-check-circle verified-badge-icon"
+                      title="От разработчика"></i>
                   </div>
                   <div class="author-email">{{ getAuthorEmail(selectedNotebook.author) }}</div>
                 </div>
@@ -110,7 +110,8 @@
               </div>
 
               <div class="modal-stats">
-                <span class="stat-item"><i class="fas fa-star"></i> {{ formatRating(selectedNotebook.average_rating) }} ({{ selectedNotebook.ratings_count || 0 }})</span>
+                <span class="stat-item"><i class="fas fa-star"></i> {{ formatRating(selectedNotebook.average_rating) }}
+                  ({{ selectedNotebook.ratings_count || 0 }})</span>
                 <span class="stat-item"><i class="fas fa-eye"></i> {{ selectedNotebook.views_count || 0 }}</span>
               </div>
 
@@ -122,7 +123,8 @@
                 <button class="btn-open" @click="incrementViews">
                   <i class="fas fa-book-open"></i> Открыть
                 </button>
-                <button v-if="!isOwnNotebook" class="btn-save" @click="toggleSave" :class="{ saved: isSaved }" :disabled="saving">
+                <button v-if="!isOwnNotebook" class="btn-save" @click="toggleSave" :class="{ saved: isSaved }"
+                  :disabled="saving">
                   <i :class="saving ? 'fas fa-spinner fa-spin' : (isSaved ? 'fas fa-bookmark' : 'far fa-bookmark')"></i>
                   {{ isSaved ? 'Сохранено' : 'Сохранить' }}
                 </button>
@@ -140,7 +142,8 @@
           <div class="modal-card rate-modal">
             <h2>Оценить тетрадь</h2>
             <div class="rate-stars">
-              <button v-for="star in 5" :key="star" class="star-btn" :class="{ active: star <= rateValue }" @click="rateValue = star">
+              <button v-for="star in 5" :key="star" class="star-btn" :class="{ active: star <= rateValue }"
+                @click="rateValue = star">
                 <i class="fas fa-star"></i>
               </button>
             </div>
@@ -176,6 +179,9 @@ import { apiFetch } from '../api/client'
 import { useAuthStore } from '../stores/auth'
 import { supabase } from '../api/supabase'
 import { useHead } from '@unhead/vue'
+import { useTracking } from '../composables/useTracking'
+
+const { track } = useTracking()
 
 useHead({
   title: 'Каталог тетрадей — Rubium',
@@ -280,6 +286,16 @@ async function toggleSave() {
     if (error) throw error
 
     await auth.loadProfile()
+
+    if (updated.includes(selectedNotebook.value.id)) {
+      track('save_notebook', {
+        id: selectedNotebook.value.id,
+        tags: selectedNotebook.value.tags || [],
+        author_id: selectedNotebook.value.author?.id
+      })
+    }
+
+    await auth.loadProfile()
   } catch (e) {
     console.error(e)
     showNotification('Ошибка при сохранении', 'error')
@@ -343,27 +359,50 @@ async function incrementViews() {
   }
 }
 
-async function submitRate() {
-  if (!selectedNotebook.value) return
+async function toggleSave() {
+  if (!selectedNotebook.value?.id) return
+  if (saving.value) return
 
   if (!auth.isAuthenticated) {
-    showNotification('Войди в аккаунт, чтобы оценить тетрадь', 'error')
+    showNotification('Войди в аккаунт, чтобы сохранить тетрадь', 'error')
     return
   }
 
+  saving.value = true
   try {
-    await apiFetch(`/notebooks/${selectedNotebook.value.id}/rate`, {
-      method: 'POST',
-      body: JSON.stringify({ rating: rateValue.value })
-    })
+    const userId = auth.profile?.id
+    if (!userId) throw new Error('Нет профиля')
 
-    showRateModal.value = false
-    selectedNotebook.value = null
-    await loadNotebooks()
-    showNotification('Спасибо за оценку!')
+    const saved = auth.profile?.saved_notebooks || []
+    let updated
+
+    if (saved.includes(selectedNotebook.value.id)) {
+      updated = saved.filter(id => id !== selectedNotebook.value.id)
+    } else {
+      updated = [...saved, selectedNotebook.value.id]
+    }
+
+    const { error } = await supabase
+      .from('rubium_users')
+      .update({ saved_notebooks: updated })
+      .eq('id', userId)
+
+    if (error) throw error
+
+    if (updated.includes(selectedNotebook.value.id)) {
+      track('save_notebook', {
+        id: selectedNotebook.value.id,
+        tags: selectedNotebook.value.tags || [],
+        author_id: selectedNotebook.value.author?.id
+      })
+    }
+
+    await auth.loadProfile()
   } catch (e) {
     console.error(e)
-    showNotification(e.message || 'Ошибка при оценке', 'error')
+    showNotification('Ошибка при сохранении', 'error')
+  } finally {
+    saving.value = false
   }
 }
 
@@ -392,7 +431,7 @@ onMounted(loadNotebooks)
 
 .topbar {
   padding: 20px 48px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .page-title {
@@ -452,8 +491,8 @@ onMounted(loadNotebooks)
 .search-bar input {
   width: 100%;
   padding: 12px 16px 12px 40px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 10px;
   color: #e5e5e5;
   font-family: inherit;
@@ -463,8 +502,8 @@ onMounted(loadNotebooks)
 }
 
 .search-bar input:focus {
-  border-color: rgba(255,255,255,0.15);
-  background: rgba(255,255,255,0.04);
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .search-bar input::placeholder {
@@ -474,8 +513,8 @@ onMounted(loadNotebooks)
 .sort-row {
   display: flex;
   gap: 2px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 10px;
   padding: 4px;
 }
@@ -514,14 +553,16 @@ onMounted(loadNotebooks)
 .spinner {
   width: 32px;
   height: 32px;
-  border: 2px solid rgba(255,255,255,0.06);
+  border: 2px solid rgba(255, 255, 255, 0.06);
   border-top-color: #ffffff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .empty-state {
@@ -535,8 +576,8 @@ onMounted(loadNotebooks)
   height: 64px;
   margin: 0 auto 20px;
   border-radius: 16px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -563,8 +604,8 @@ onMounted(loadNotebooks)
 }
 
 .notebook-card {
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 14px;
   padding: 20px;
   cursor: pointer;
@@ -576,8 +617,8 @@ onMounted(loadNotebooks)
 }
 
 .notebook-card:hover {
-  background: rgba(255,255,255,0.04);
-  border-color: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .notebook-color {
@@ -680,8 +721,8 @@ onMounted(loadNotebooks)
 .tag {
   font-size: 0.7rem;
   padding: 3px 8px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 6px;
   color: #737373;
   font-weight: 500;
@@ -691,7 +732,7 @@ onMounted(loadNotebooks)
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -701,7 +742,7 @@ onMounted(loadNotebooks)
 
 .modal-card {
   background: #111111;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 18px;
   padding: 28px;
   width: 100%;
@@ -747,15 +788,15 @@ onMounted(loadNotebooks)
 
 .modal-close:hover {
   color: #e5e5e5;
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .modal-description {
   margin-bottom: 20px;
   padding: 14px;
-  background: rgba(255,255,255,0.02);
+  background: rgba(255, 255, 255, 0.02);
   border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .modal-description p {
@@ -779,7 +820,7 @@ onMounted(loadNotebooks)
   height: 44px;
   border-radius: 50%;
   background: #1a1a1a;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -887,17 +928,17 @@ onMounted(loadNotebooks)
 .btn-save {
   background: transparent;
   color: #fafafa;
-  border-color: rgba(255,255,255,0.12);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .btn-save:hover:not(:disabled) {
-  background: rgba(255,255,255,0.04);
-  border-color: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .btn-save.saved {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
   color: #ffffff;
 }
 
@@ -909,12 +950,12 @@ onMounted(loadNotebooks)
 .btn-rate {
   background: transparent;
   color: #fafafa;
-  border-color: rgba(255,255,255,0.12);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .btn-rate:hover {
-  background: rgba(255,255,255,0.04);
-  border-color: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .rate-modal {
@@ -956,9 +997,9 @@ onMounted(loadNotebooks)
 
 .btn-cancel {
   padding: 10px 18px;
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
   color: #737373;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   font-family: inherit;
   font-weight: 500;
@@ -968,7 +1009,7 @@ onMounted(loadNotebooks)
 }
 
 .btn-cancel:hover {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
   color: #e5e5e5;
 }
 
@@ -1035,32 +1076,32 @@ onMounted(loadNotebooks)
   .sort-btn {
     width: 100%;
   }
-  
+
   .main-content {
     margin-left: 0;
   }
-  
+
   .topbar {
     display: none;
   }
-  
+
   .content {
     padding: 32px 24px 64px;
   }
-  
+
   .controls-row {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .notebooks-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .modal-actions {
     flex-direction: column;
   }
-  
+
   .btn-open,
   .btn-save,
   .btn-rate,

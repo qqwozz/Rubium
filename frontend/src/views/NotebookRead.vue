@@ -67,6 +67,23 @@ import { apiFetch } from '../api/client'
 import { useAuthStore } from '../stores/auth'
 import katex from 'katex'
 import { useHead } from '@unhead/vue'
+import { useTracking } from '../composables/useTracking'
+
+const route = useRoute()
+const router = useRouter()
+const auth = useAuthStore()
+const { track } = useTracking()
+
+const sidebarRef = ref(null)
+const mobileSidebarRef = ref(null)
+const isMobile = ref(false)
+
+const notebook = ref(null)
+const sections = ref([])
+const openSections = ref([])
+const currentPage = ref(null)
+
+let readTimer = null
 
 useHead(() => ({
   title: notebook.value ? `${notebook.value.title} — Rubium` : 'Тетрадь — Rubium',
@@ -78,18 +95,6 @@ useHead(() => ({
     { property: 'og:url', content: `https://rubium.tech/notebook/${route.params.id}` }
   ]
 }))
-
-const route = useRoute()
-const router = useRouter()
-const auth = useAuthStore()
-const sidebarRef = ref(null)
-const mobileSidebarRef = ref(null)
-const isMobile = ref(false)
-
-const notebook = ref(null)
-const sections = ref([])
-const openSections = ref([])
-const currentPage = ref(null)
 
 const isOwner = computed(() => {
   return notebook.value?.user_id === auth.user?.id
@@ -147,6 +152,22 @@ async function loadNotebook() {
         currentPage.value = sections.value[0].pages[0]
       }
     }
+
+    track('open_notebook', {
+      id: notebook.value.id,
+      tags: notebook.value.tags || [],
+      author_id: notebook.value.user_id
+    })
+
+    readTimer = setTimeout(() => {
+      if (notebook.value) {
+        track('read_page', {
+          id: notebook.value.id,
+          tags: notebook.value.tags || [],
+          author_id: notebook.value.user_id
+        })
+      }
+    }, 30000)
   } catch (e) {
     console.error(e)
   }
@@ -160,6 +181,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', checkMobile)
+  if (readTimer) clearTimeout(readTimer)
 })
 </script>
 
