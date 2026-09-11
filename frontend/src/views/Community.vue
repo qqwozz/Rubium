@@ -98,13 +98,15 @@
                     alt="Аватар">
                   <span v-else>{{ getInitial(selectedNotebook.author) }}</span>
                 </div>
-                <div>
+                <div class="author-info">
                   <div class="author-name">
                     {{ getAuthorFullName(selectedNotebook.author) }}
                     <i v-if="selectedNotebook.is_verified" class="fas fa-check-circle verified-badge-icon"
                       title="От разработчика"></i>
                   </div>
-                  <div class="author-email">{{ getAuthorEmail(selectedNotebook.author) }}</div>
+                  <div v-if="getAuthorBio(selectedNotebook.author)" class="author-bio">
+                    {{ getAuthorBio(selectedNotebook.author) }}
+                  </div>
                 </div>
                 <i class="fas fa-chevron-right author-arrow"></i>
               </div>
@@ -238,8 +240,9 @@ function getAuthorFullName(author) {
   return parts.join(' ') || author.email?.split('@')[0] || 'Автор'
 }
 
-function getAuthorEmail(author) {
-  return author?.email || ''
+function getAuthorBio(author) {
+  if (!author?.bio) return ''
+  return truncateText(author.bio, 50)
 }
 
 function formatRating(rating) {
@@ -284,8 +287,6 @@ async function toggleSave() {
       .eq('id', userId)
 
     if (error) throw error
-
-    await auth.loadProfile()
 
     if (updated.includes(selectedNotebook.value.id)) {
       track('save_notebook', {
@@ -359,50 +360,35 @@ async function incrementViews() {
   }
 }
 
-async function toggleSave() {
-  if (!selectedNotebook.value?.id) return
-  if (saving.value) return
+async function submitRate() {
+  if (!selectedNotebook.value) return
 
   if (!auth.isAuthenticated) {
-    showNotification('Войди в аккаунт, чтобы сохранить тетрадь', 'error')
+    showNotification('Войди в аккаунт, чтобы оценить тетрадь', 'error')
     return
   }
 
-  saving.value = true
+  const notebook = selectedNotebook.value
+
   try {
-    const userId = auth.profile?.id
-    if (!userId) throw new Error('Нет профиля')
+    await apiFetch(`/notebooks/${notebook.id}/rate`, {
+      method: 'POST',
+      body: JSON.stringify({ rating: rateValue.value })
+    })
 
-    const saved = auth.profile?.saved_notebooks || []
-    let updated
+    track('rate_notebook', {
+      id: notebook.id,
+      tags: notebook.tags || [],
+      author_id: notebook.author?.id
+    })
 
-    if (saved.includes(selectedNotebook.value.id)) {
-      updated = saved.filter(id => id !== selectedNotebook.value.id)
-    } else {
-      updated = [...saved, selectedNotebook.value.id]
-    }
-
-    const { error } = await supabase
-      .from('rubium_users')
-      .update({ saved_notebooks: updated })
-      .eq('id', userId)
-
-    if (error) throw error
-
-    if (updated.includes(selectedNotebook.value.id)) {
-      track('save_notebook', {
-        id: selectedNotebook.value.id,
-        tags: selectedNotebook.value.tags || [],
-        author_id: selectedNotebook.value.author?.id
-      })
-    }
-
-    await auth.loadProfile()
+    showRateModal.value = false
+    selectedNotebook.value = null
+    await loadNotebooks()
+    showNotification('Спасибо за оценку!')
   } catch (e) {
     console.error(e)
-    showNotification('Ошибка при сохранении', 'error')
-  } finally {
-    saving.value = false
+    showNotification(e.message || 'Ошибка при оценке', 'error')
   }
 }
 
@@ -837,6 +823,11 @@ onMounted(loadNotebooks)
   object-fit: cover;
 }
 
+.author-info {
+  flex: 1;
+  min-width: 0;
+}
+
 .author-name {
   font-weight: 600;
   font-size: 0.95rem;
@@ -851,10 +842,11 @@ onMounted(loadNotebooks)
   margin-top: 0;
 }
 
-.author-email {
+.author-bio {
   font-size: 0.78rem;
   color: #525252;
   margin-top: 2px;
+  line-height: 1.4;
 }
 
 .author-arrow {
