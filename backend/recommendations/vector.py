@@ -1,5 +1,6 @@
 import time
 from typing import Dict, List, Tuple
+
 from .redis_client import get_client
 
 DECAY_RATE = 0.98  # затухание в час
@@ -14,10 +15,10 @@ def get_vector(user_id: str) -> Dict[str, float]:
     """Читает весь вектор пользователя из Redis."""
     client = get_client()
     data = client.hgetall(_key(user_id))
-    
+
     if not data:
         return {}
-    
+
     vector = {}
     for field, value in data.items():
         if field == "_last_updated":
@@ -26,7 +27,7 @@ def get_vector(user_id: str) -> Dict[str, float]:
             vector[field] = float(value)
         except ValueError:
             continue
-    
+
     return vector
 
 
@@ -34,10 +35,10 @@ def get_last_updated(user_id: str) -> float:
     """Возвращает timestamp последнего обновления вектора."""
     client = get_client()
     value = client.hget(_key(user_id), "_last_updated")
-    
+
     if not value:
         return time.time()
-    
+
     try:
         return float(value)
     except ValueError:
@@ -52,20 +53,20 @@ def apply_decay(user_id: str) -> Dict[str, float]:
     client = get_client()
     vector = get_vector(user_id)
     last_updated = get_last_updated(user_id)
-    
+
     now = time.time()
     hours_passed = (now - last_updated) / 3600
-    
+
     if hours_passed < 0.01:
         return vector
-    
+
     decay_factor = DECAY_RATE ** hours_passed
-    
+
     if vector:
         updated = {k: v * decay_factor for k, v in vector.items()}
         client.hset(_key(user_id), mapping=updated)
         return updated
-    
+
     return {}
 
 

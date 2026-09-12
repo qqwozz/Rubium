@@ -1,7 +1,8 @@
 # init.py
 import os
-from dotenv import load_dotenv
+
 import yaml
+from dotenv import load_dotenv
 
 load_dotenv(".env")
 
