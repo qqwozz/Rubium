@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
-	"regexp"
 	"strings"
 
 	"api/internal/supabase"
@@ -12,12 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
-
-var uuidRe = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
-
-func isValidUUID(s string) bool {
-	return uuidRe.MatchString(s)
-}
 
 type TasksHandler struct {
 	client *supabase.Client
@@ -120,7 +113,7 @@ func (h *TasksHandler) GetTasks(c *gin.Context) {
 // GetTaskByID — GET /api/v1/tasks/:id
 func (h *TasksHandler) GetTaskByID(c *gin.Context) {
 	id := c.Param("id")
-	if !isValidUUID(id) {
+	if !validation.IsValidUUID(id) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный UUID"})
 		return
 	}
@@ -155,7 +148,7 @@ type UpdateTaskRequest struct {
 // UpdateTask — PUT /api/v1/tasks/:id
 func (h *TasksHandler) UpdateTask(c *gin.Context) {
 	id := c.Param("id")
-	if !isValidUUID(id) {
+	if !validation.IsValidUUID(id) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный UUID"})
 		return
 	}
@@ -222,7 +215,7 @@ func (h *TasksHandler) UpdateTask(c *gin.Context) {
 // DeleteTask — DELETE /api/v1/tasks/:id
 func (h *TasksHandler) DeleteTask(c *gin.Context) {
 	id := c.Param("id")
-	if !isValidUUID(id) {
+	if !validation.IsValidUUID(id) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный UUID"})
 		return
 	}

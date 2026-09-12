@@ -13,6 +13,7 @@ import (
 
 	"api/internal/checker"
 	"api/internal/supabase"
+	"api/internal/validation"
 
 	"github.com/gin-gonic/gin"
 )
@@ -54,7 +55,7 @@ func (h *CheckHandler) Check(c *gin.Context) {
 		return
 	}
 
-	if !isValidUUID(req.TaskID) {
+	if !validation.IsValidUUID(req.TaskID) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "невалидный task_id"})
 		return
 	}

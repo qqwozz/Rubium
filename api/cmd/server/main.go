@@ -12,6 +12,7 @@ import (
 
 	"api/internal/config"
 	"api/internal/handlers"
+	"api/internal/handlers/notebooks"
 	"api/internal/middleware"
 	"api/internal/supabase"
 
@@ -19,136 +20,283 @@ import (
 )
 
 func main() {
-	// Запускаем тесты перед стартом сервера
-	// tests.RunAll()
-
-	// Загружаем конфигурацию (порт, ключи Supabase)
+	// Загружаем конфигурацию
 	cfg := config.Load()
 
-	// Инициализируем клиент Supabase (PostgREST + Auth)
-	client := supabase.NewClient(cfg.SupabaseURL, cfg.SupabaseAnonKey, cfg.SupabaseServiceKey)
+	// Инициализируем клиент Supabase
+	client := supabase.NewClient(
+		cfg.SupabaseURL,
+		cfg.SupabaseAnonKey,
+		cfg.SupabaseServiceKey,
+	)
 
-	// Настраиваем Gin в production-режиме (без debug-логов)
+	// Production mode
 	gin.SetMode(gin.ReleaseMode)
 
 	// Создаём роутер
 	r := gin.New()
-	r.Use(gin.Recovery())         // Recovery от паник
-	r.Use(corsMiddleware())       // CORS для фронтенда
-	r.Use(bodySizeLimit(5 << 20)) // Лимит тела запроса: 5 MB
 
-	// Инициализируем хендлеры
-	tasks := handlers.NewTasksHandler(client)
-	check := handlers.NewCheckHandler(client)
-	notebooks := handlers.NewNotebooksHandler(client)
+	r.Use(gin.Recovery())
+	r.Use(corsMiddleware())
+	r.Use(bodySizeLimit(5 << 20)) // 5 MB
 
-	// --- Tasks: public read ---
-	r.GET("/api/v1/tasks", tasks.GetTasks)
-	r.GET("/api/v1/tasks/:id", tasks.GetTaskByID)
-	r.POST("/api/v1/check", check.Check)
+	// =========================
+	// Handlers
+	// =========================
+
+	tasksHandler := handlers.NewTasksHandler(client)
+	checkHandler := handlers.NewCheckHandler(client)
+	notebooksHandler := notebooks.NewNotebooksHandler(client)
+
+	// =========================
+	// Health
+	// =========================
+
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+		c.JSON(http.StatusOK, gin.H{
+			"status": "ok",
+		})
 	})
 
-	// --- Tasks: protected write (auth required) ---
-	// TODO: add admin/moderator role check inside handlers when role system is ready
+	// =========================
+	// Tasks
+	// =========================
+
+	// Public read
+	r.GET(
+		"/api/v1/tasks",
+		tasksHandler.GetTasks,
+	)
+
+	r.GET(
+		"/api/v1/tasks/:id",
+		tasksHandler.GetTaskByID,
+	)
+
+	// Check task
+	r.POST(
+		"/api/v1/check",
+		checkHandler.Check,
+	)
+
+	// Protected write
 	tasksAdmin := r.Group("/api/v1/tasks")
 	tasksAdmin.Use(middleware.RequireAuth(client))
+
 	{
-		tasksAdmin.PUT("/:id", tasks.UpdateTask)
-		tasksAdmin.DELETE("/:id", tasks.DeleteTask)
+		tasksAdmin.PUT(
+			"/:id",
+			tasksHandler.UpdateTask,
+		)
+
+		tasksAdmin.DELETE(
+			"/:id",
+			tasksHandler.DeleteTask,
+		)
 	}
 
-	// --- Notebooks: community (без middleware, отдельный роут) ---
-	r.GET("/api/v1/notebooks/community", notebooks.GetCommunityNotebooks)
+	// =========================
+	// Notebooks
+	// =========================
 
-	// --- Notebooks: публичные / опциональная авторизация ---
+	// Community — публичный endpoint
+	r.GET(
+		"/api/v1/notebooks/community",
+		notebooksHandler.GetCommunityNotebooks,
+	)
+
+	// Public / Optional Auth
 	nb := r.Group("/api/v1/notebooks")
 	nb.Use(middleware.OptionalAuth(client))
+
 	{
-		nb.GET("/:id", notebooks.GetNotebookByID)  // Просмотр тетради
-		nb.GET("/:id/rating", notebooks.GetRating) // Получить рейтинг
+		// Получить одну тетрадь
+		nb.GET(
+			"/:id",
+			notebooksHandler.GetNotebookByID,
+		)
+
+		// Получить рейтинг
+		nb.GET(
+			"/:id/rating",
+			notebooksHandler.GetRating,
+		)
 	}
 
-	// --- Notebooks: только авторизованные ---
+	// Protected notebooks
 	nbPrivate := r.Group("/api/v1/notebooks")
 	nbPrivate.Use(middleware.RequireAuth(client))
+
 	{
-		nbPrivate.GET("", notebooks.GetNotebooks)             // Мои тетради
-		nbPrivate.POST("", notebooks.CreateNotebook)          // Создать
-		nbPrivate.PUT("/:id", notebooks.UpdateNotebook)       // Обновить
-		nbPrivate.DELETE("/:id", notebooks.DeleteNotebook)    // Удалить
-		nbPrivate.POST("/:id/copy", notebooks.CopyNotebook)   // Копировать
-		nbPrivate.POST("/:id/rate", notebooks.RateNotebook)   // Оценить
-		nbPrivate.POST("/:id/view", notebooks.IncrementViews) // Увеличить просмотры
+		// Мои тетради
+		nbPrivate.GET(
+			"",
+			notebooksHandler.GetNotebooks,
+		)
+
+		// Создать
+		nbPrivate.POST(
+			"",
+			notebooksHandler.CreateNotebook,
+		)
+
+		// Обновить
+		nbPrivate.PUT(
+			"/:id",
+			notebooksHandler.UpdateNotebook,
+		)
+
+		// Удалить
+		nbPrivate.DELETE(
+			"/:id",
+			notebooksHandler.DeleteNotebook,
+		)
+
+		// Копировать
+		nbPrivate.POST(
+			"/:id/copy",
+			notebooksHandler.CopyNotebook,
+		)
+
+		// Оценить
+		nbPrivate.POST(
+			"/:id/rate",
+			notebooksHandler.RateNotebook,
+		)
+
+		// Увеличить просмотры
+		nbPrivate.POST(
+			"/:id/view",
+			notebooksHandler.IncrementViews,
+		)
 	}
 
-	// --- Internal API: notebooks by tag ---
+	// =========================
+	// Internal API
+	// =========================
+
 	internal := r.Group("/internal/v1")
-	internal.Use(middleware.RequireInternalKey(cfg.InternalAPIKey))
+	internal.Use(
+		middleware.RequireInternalKey(cfg.InternalAPIKey),
+	)
+
 	{
-		internal.GET("/notebooks/by-tag", notebooks.GetNotebooksByTag)
+		internal.GET(
+			"/notebooks/by-tag",
+			notebooksHandler.GetNotebooksByTag,
+		)
 	}
 
-	// HTTP-сервер с таймаутами (prod-ready)
+	// =========================
+	// HTTP Server
+	// =========================
+
 	srv := &http.Server{
-		Addr:              ":" + cfg.Port,
-		Handler:           r,
+		Addr:    ":" + cfg.Port,
+		Handler: r,
+
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
 
-	// Graceful shutdown: ловим SIGINT / SIGTERM
+	// =========================
+	// Graceful Shutdown
+	// =========================
+
 	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	signal.Notify(
+		quit,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+	)
 
 	go func() {
 		<-quit
+
 		fmt.Println("\nShutting down...")
 
-		// Даём активным запросам 10 секунд на завершение
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(
+			context.Background(),
+			10*time.Second,
+		)
 		defer cancel()
 
 		if err := srv.Shutdown(ctx); err != nil {
-			log.Printf("Force shutdown: %v", err)
+			log.Printf(
+				"Force shutdown: %v",
+				err,
+			)
 		}
+
 		fmt.Println("Server stopped")
 	}()
 
-	log.Printf("Server started on http://localhost:%s", cfg.Port)
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	// =========================
+	// Start Server
+	// =========================
+
+	log.Printf(
+		"Server started on http://localhost:%s",
+		cfg.Port,
+	)
+
+	if err := srv.ListenAndServe(); err != nil &&
+		err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
 }
 
-// corsMiddleware — разрешает запросы с локальных фронтендов
+// =========================
+// CORS
+// =========================
+
 func corsMiddleware() gin.HandlerFunc {
 	origins := map[string]bool{
 		"http://localhost:5500": true,
 		"http://localhost:5080": true,
 		"http://localhost:5081": true,
 		"http://localhost:3000": true,
+		"http://localhost:5173": true,
+
 		"http://127.0.0.1:5500": true,
 		"http://127.0.0.1:5080": true,
-		"http://localhost:5173": true,
-		"http://rubium.tech":    true,
-		"https://rubium.tech":   true,
+
+		"http://rubium.tech":  true,
+		"https://rubium.tech": true,
 	}
 
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
+
 		if origins[origin] {
-			c.Header("Access-Control-Allow-Origin", origin)
-			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS, DELETE")
-			c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
-			c.Header("Access-Control-Max-Age", "86400")
+			c.Header(
+				"Access-Control-Allow-Origin",
+				origin,
+			)
+
+			c.Header(
+				"Access-Control-Allow-Methods",
+				"GET, POST, PUT, OPTIONS, DELETE",
+			)
+
+			c.Header(
+				"Access-Control-Allow-Headers",
+				"Content-Type, Authorization",
+			)
+
+			c.Header(
+				"Access-Control-Max-Age",
+				"86400",
+			)
 		}
 
 		if c.Request.Method == http.MethodOptions {
-			c.AbortWithStatus(http.StatusNoContent)
+			c.AbortWithStatus(
+				http.StatusNoContent,
+			)
 			return
 		}
 
@@ -156,10 +304,18 @@ func corsMiddleware() gin.HandlerFunc {
 	}
 }
 
-// bodySizeLimit — ограничивает размер тела запроса (5 MB)
+// =========================
+// Body Size Limit
+// =========================
+
 func bodySizeLimit(maxBytes int64) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
+		c.Request.Body = http.MaxBytesReader(
+			c.Writer,
+			c.Request.Body,
+			maxBytes,
+		)
+
 		c.Next()
 	}
 }

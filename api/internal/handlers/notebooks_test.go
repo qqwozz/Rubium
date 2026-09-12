@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"api/internal/handlers/notebooks"
 	"api/internal/supabase"
 
 	"github.com/gin-gonic/gin"
@@ -72,9 +73,11 @@ func mockNotebooksServer(t *testing.T) (*httptest.Server, *supabase.Client) {
 func setupNotebooksRouter(t *testing.T) (*gin.Engine, *httptest.Server) {
 	gin.SetMode(gin.TestMode)
 	srv, client := mockNotebooksServer(t)
-	h := NewNotebooksHandler(client)
+
+	h := notebooks.NewNotebooksHandler(client)
 
 	r := gin.New()
+
 	r.GET("/api/v1/notebooks/community", h.GetCommunityNotebooks)
 	r.GET("/api/v1/notebooks/:id", h.GetNotebookByID)
 	r.GET("/api/v1/notebooks/:id/rating", h.GetRating)
@@ -82,22 +85,25 @@ func setupNotebooksRouter(t *testing.T) (*gin.Engine, *httptest.Server) {
 	auth := r.Group("/api/v1/notebooks")
 	auth.Use(func(c *gin.Context) {
 		token := c.GetHeader("Authorization")
+
 		if token == "Bearer valid-token" {
 			c.Set("user_id", "auth-123")
 			c.Next()
 		} else {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "требуется авторизация"})
+			c.AbortWithStatusJSON(
+				http.StatusUnauthorized,
+				gin.H{"error": "требуется авторизация"},
+			)
 		}
 	})
-	{
-		auth.GET("", h.GetNotebooks)
-		auth.POST("", h.CreateNotebook)
-		auth.PUT("/:id", h.UpdateNotebook)
-		auth.DELETE("/:id", h.DeleteNotebook)
-		auth.POST("/:id/copy", h.CopyNotebook)
-		auth.POST("/:id/rate", h.RateNotebook)
-		auth.POST("/:id/view", h.IncrementViews)
-	}
+
+	auth.GET("", h.GetNotebooks)
+	auth.POST("", h.CreateNotebook)
+	auth.PUT("/:id", h.UpdateNotebook)
+	auth.DELETE("/:id", h.DeleteNotebook)
+	auth.POST("/:id/copy", h.CopyNotebook)
+	auth.POST("/:id/rate", h.RateNotebook)
+	auth.POST("/:id/view", h.IncrementViews)
 
 	return r, srv
 }
