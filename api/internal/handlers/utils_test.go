@@ -1,18 +1,21 @@
 package handlers
 
-import "testing"
+import (
+	"api/internal/validation"
+	"testing"
+)
 
 func TestIsValidUUID(t *testing.T) {
 	valid := "550e8400-e29b-41d4-a716-446655440000"
 	invalid := "not-a-uuid"
 
-	if !isValidUUID(valid) {
+	if !validation.IsValidUUID(valid) {
 		t.Errorf("expected %s to be valid", valid)
 	}
-	if isValidUUID(invalid) {
+	if validation.IsValidUUID(invalid) {
 		t.Errorf("expected %s to be invalid", invalid)
 	}
-	if isValidUUID("") {
+	if validation.IsValidUUID("") {
 		t.Error("expected empty string to be invalid")
 	}
 }

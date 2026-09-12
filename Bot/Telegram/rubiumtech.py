@@ -8,7 +8,7 @@ from telebot import types
 
 """
 
-TOKEN = "8816074875:AAGLtkH5kc467RQVkRI0ae_IbsGJVmqsV6Y"
+TOKEN = "какой то токен"
 bot = telebot.TeleBot(TOKEN)
 
 # Временное хранилище сессий поиска
