@@ -60,7 +60,7 @@ def apply_decay(user_id: str) -> Dict[str, float]:
     if hours_passed < 0.01:
         return vector
 
-    decay_factor = DECAY_RATE ** hours_passed
+    decay_factor = DECAY_RATE**hours_passed
 
     if vector:
         updated = {k: v * decay_factor for k, v in vector.items()}

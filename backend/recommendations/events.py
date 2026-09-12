@@ -56,6 +56,7 @@ def process_event(event: Dict[str, Any]) -> bool:
     ts = event.get("timestamp")
     if ts:
         from datetime import datetime
+
         hour = datetime.fromtimestamp(ts).hour
         boost_field(user_id, f"hour:{hour}", boost)
 

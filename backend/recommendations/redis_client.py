@@ -4,7 +4,7 @@ from pathlib import Path
 import redis
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).parent.parent.parent / '.env')
+load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
@@ -16,12 +16,7 @@ _client = None
 def get_client() -> redis.Redis:
     global _client
     if _client is None:
-        _client = redis.Redis(
-            host=REDIS_HOST,
-            port=REDIS_PORT,
-            db=REDIS_DB,
-            decode_responses=True
-        )
+        _client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, decode_responses=True)
     return _client
 
 

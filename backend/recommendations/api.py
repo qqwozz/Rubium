@@ -8,8 +8,9 @@ LAMBDA_MMR = 0.7
 EPSILON = 0.1
 
 
-def mmr_rank(user_id: str, candidates: List[Dict], k: int = 10,
-             min_pop: float = 0.0, max_pop: float = 10.0) -> List[Dict]:
+def mmr_rank(
+    user_id: str, candidates: List[Dict], k: int = 10, min_pop: float = 0.0, max_pop: float = 10.0
+) -> List[Dict]:
     """
     Ранжирование с MMR (Maximal Marginal Relevance).
     Возвращает топ-K тетрадей.
@@ -59,17 +60,23 @@ def mmr_rank(user_id: str, candidates: List[Dict], k: int = 10,
     return selected
 
 
-def recommend_cold_start(candidates: List[Dict], k: int = 10,
-                          min_pop: float = 0.0, max_pop: float = 10.0) -> List[Dict]:
+def recommend_cold_start(
+    candidates: List[Dict], k: int = 10, min_pop: float = 0.0, max_pop: float = 10.0
+) -> List[Dict]:
     """Рекомендации для нового пользователя."""
     scored = [(nb, score_cold_start(nb, min_pop, max_pop)) for nb in candidates]
     scored.sort(key=lambda x: x[1], reverse=True)
     return [nb for nb, _ in scored[:k]]
 
 
-def recommend(user_id: str, candidates: List[Dict], k: int = 10,
-              is_cold: bool = False,
-              min_pop: float = 0.0, max_pop: float = 10.0) -> List[Dict]:
+def recommend(
+    user_id: str,
+    candidates: List[Dict],
+    k: int = 10,
+    is_cold: bool = False,
+    min_pop: float = 0.0,
+    max_pop: float = 10.0,
+) -> List[Dict]:
     """Главная функция рекомендаций."""
     if is_cold:
         return recommend_cold_start(candidates, k, min_pop, max_pop)

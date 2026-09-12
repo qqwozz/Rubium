@@ -5,15 +5,15 @@ from recommendations.events import process_batch
 from recommendations.redis_client import ping
 from recommendations.vector import clear_vector, get_vector
 
-recommendations_bp = Blueprint('recommendations', __name__)
+recommendations_bp = Blueprint("recommendations", __name__)
 
 
-@recommendations_bp.route('/health', methods=['GET'])
+@recommendations_bp.route("/health", methods=["GET"])
 def health():
     return jsonify({"redis": "ok" if ping() else "fail"})
 
 
-@recommendations_bp.route('/events', methods=['POST'])
+@recommendations_bp.route("/events", methods=["POST"])
 def events():
     """
     Принимает батч событий.
@@ -34,7 +34,7 @@ def events():
     return jsonify({"processed": processed}), 200
 
 
-@recommendations_bp.route('/recommendations/<user_id>', methods=['POST'])
+@recommendations_bp.route("/recommendations/<user_id>", methods=["POST"])
 def get_recommendations(user_id):
     """
     Возвращает топ-K рекомендаций.
@@ -65,19 +65,19 @@ def get_recommendations(user_id):
         k=k,
         is_cold=is_cold,
         min_pop=min_pop,
-        max_pop=max_pop
+        max_pop=max_pop,
     )
 
     return jsonify({"recommendations": result}), 200
 
 
-@recommendations_bp.route('/vector/<user_id>', methods=['GET'])
+@recommendations_bp.route("/vector/<user_id>", methods=["GET"])
 def get_user_vector(user_id):
     """Отладочный эндпоинт — показывает вектор пользователя."""
     return jsonify({"vector": get_vector(user_id)}), 200
 
 
-@recommendations_bp.route('/vector/<user_id>', methods=['DELETE'])
+@recommendations_bp.route("/vector/<user_id>", methods=["DELETE"])
 def delete_user_vector(user_id):
     """Удаление вектора (для тестов)."""
     clear_vector(user_id)

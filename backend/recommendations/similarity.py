@@ -5,7 +5,7 @@ from .vector import get_vector
 
 TEMPERATURE = 1.0
 ALPHA = 0.7  # вес similarity по предметам
-BETA = 0.3   # вес similarity по авторам
+BETA = 0.3  # вес similarity по авторам
 
 
 def softmax(values: Dict[str, float], temperature: float = TEMPERATURE) -> Dict[str, float]:
@@ -27,7 +27,7 @@ def softmax(values: Dict[str, float], temperature: float = TEMPERATURE) -> Dict[
 
 def extract_axis(vector: Dict[str, float], prefix: str) -> Dict[str, float]:
     """Достаёт ось из вектора: subject:, author:, hour:."""
-    return {k[len(prefix):]: v for k, v in vector.items() if k.startswith(prefix)}
+    return {k[len(prefix) :]: v for k, v in vector.items() if k.startswith(prefix)}
 
 
 def cosine_similarity(a: Dict[str, float], b: Dict[str, float]) -> float:

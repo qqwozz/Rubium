@@ -15,7 +15,7 @@ T_HALF = 14  # дней
 
 # Quality
 C_GLOBAL = 3.5  # глобальная средняя оценка
-M_TRUST = 10    # порог доверия
+M_TRUST = 10  # порог доверия
 
 
 def freshness(notebook: Dict) -> float:
@@ -60,8 +60,7 @@ def normalize(value: float, min_v: float, max_v: float) -> float:
     return (value - min_v) / (max_v - min_v)
 
 
-def score(user_id: str, notebook: Dict,
-          min_pop: float = 0.0, max_pop: float = 10.0) -> float:
+def score(user_id: str, notebook: Dict, min_pop: float = 0.0, max_pop: float = 10.0) -> float:
     """
     Итоговый скор тетради для пользователя.
     min_pop/max_pop нужны для нормировки popularity.
@@ -72,12 +71,7 @@ def score(user_id: str, notebook: Dict,
     pop = popularity(notebook)
     pop_norm = normalize(pop, min_pop, max_pop)
 
-    return (
-        W_SIM * sim +
-        W_FRESH * fresh +
-        W_QUAL * qual +
-        W_POP * pop_norm
-    )
+    return W_SIM * sim + W_FRESH * fresh + W_QUAL * qual + W_POP * pop_norm
 
 
 def score_cold_start(notebook: Dict, min_pop: float = 0.0, max_pop: float = 10.0) -> float:
@@ -88,8 +82,4 @@ def score_cold_start(notebook: Dict, min_pop: float = 0.0, max_pop: float = 10.0
     pop_norm = normalize(pop, min_pop, max_pop)
 
     total_w = W_FRESH + W_QUAL + W_POP
-    return (
-        W_FRESH * fresh +
-        W_QUAL * qual +
-        W_POP * pop_norm
-    ) / total_w
+    return (W_FRESH * fresh + W_QUAL * qual + W_POP * pop_norm) / total_w
