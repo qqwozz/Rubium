@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /profile
+Disallow: /notifications
+Disallow: /user/*/connections
+Disallow: /update-password
+Disallow: /forgot-password
+Disallow: /verify-email
+Disallow: /trainer
+Disallow: /daily
+Disallow: /notebook/*/edit
+
+Sitemap: https://rubium.tech/sitemap.xml

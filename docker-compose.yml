@@ -6,11 +6,14 @@ services:
     container_name: rubium_redis
     restart: always
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly no --save 300 10
     networks:
       - app-network
     healthcheck:
-      test: ["CMD","redis-cli","ping"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -21,8 +24,8 @@ services:
       dockerfile: Dockerfile
     container_name: rubium_api
     restart: always
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     volumes:
       - ./config.yaml:/config.yaml
     environment:
@@ -30,6 +33,9 @@ services:
       - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
     depends_on:
       redis:
         condition: service_healthy
@@ -54,6 +60,9 @@ services:
       - api
     networks:
       - app-network
+
+volumes:
+  redis_data:
 
 networks:
   app-network:

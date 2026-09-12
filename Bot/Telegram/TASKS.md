@@ -3,3 +3,8 @@ Python-клиент чуть более нормальным — через http
 Написать requrements.txt
 
 я там написал функцию которая возвращает список тетрадей тестовые данные тоже там приложил попробуй затестить через POSTMAN по адрессу http://localhost:8080/internal/v1/notebooks/by-tag с параметром ?tag=математика и заголовком X-Internal-Key: ключ из .env
+
+Yep, we have all the endpoints in GO API, check it at first... hardcode and static elements is not cool... We used it somwhere like
+
+frontend/src/assets/courses.json
+BUT it's static page... so check out api and try to rewrite bot with correct endpoint's

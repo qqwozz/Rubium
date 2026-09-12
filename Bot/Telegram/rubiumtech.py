@@ -2,6 +2,12 @@ import json
 import telebot
 from telebot import types
 
+"""
+Почему мы тянем данные из JSON, а не из базы данных?
+Нужно использовать готовые эндпоинты из GO API.
+
+"""
+
 TOKEN = "какой то токен"
 bot = telebot.TeleBot(TOKEN)
 

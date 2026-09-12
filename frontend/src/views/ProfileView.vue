@@ -31,7 +31,6 @@
                   {{ getFullName() }}
                   <i v-if="isDeveloper" class="fas fa-check-circle verified-badge-icon" title="Разработчик"></i>
                 </h1>
-                <p class="profile-email">{{ profile.email }}</p>
               </div>
 
               <div v-if="!isOwnProfile" class="subscribe-block">
