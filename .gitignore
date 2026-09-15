@@ -23,6 +23,7 @@ dist/
 build/
 venv/
 .venv/
+.ruff_cache/
 
 # Go
 api/server
