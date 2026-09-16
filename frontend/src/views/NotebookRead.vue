@@ -109,21 +109,40 @@ function renderContent(html) {
 
   let result = html
 
+  // 1. Block math ($$...$$)
   result = result.replace(/\$\$([\s\S]*?)\$\$/g, (_, formula) => {
-    try { 
-      return katex.renderToString(formula, { displayMode: true, throwOnError: false }) 
-    } catch { 
-      return formula 
+    try {
+      return katex.renderToString(formula.trim(), { displayMode: true, throwOnError: false })
+    } catch {
+      return formula
     }
   })
 
+  // 2. Inline math ($...$)
   result = result.replace(/\$([^\$\n]+?)\$/g, (_, formula) => {
-    try { 
-      return katex.renderToString(formula, { displayMode: false, throwOnError: false }) 
-    } catch { 
-      return formula 
+    try {
+      return katex.renderToString(formula.trim(), { displayMode: false, throwOnError: false })
+    } catch {
+      return formula
     }
   })
+
+  // 3. Inline math from TipTap: <span data-inline-math data-formula="...">...</span>
+  result = result.replace(
+    /<span[^>]*data-inline-math[^>]*data-formula="([^"]*)"[^>]*>[\s\S]*?<\/span>/g,
+    (_, formula) => {
+      const decoded = formula
+        .replace(/&quot;/g, '"')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+      try {
+        return katex.renderToString(decoded, { displayMode: false, throwOnError: false })
+      } catch {
+        return decoded
+      }
+    }
+  )
 
   return `<div class="tiptap-content">${result}</div>`
 }
