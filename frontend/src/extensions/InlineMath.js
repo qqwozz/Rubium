@@ -16,11 +16,20 @@ const InlineMath = Node.create({
   },
 
   parseHTML() {
-    return [{ tag: 'span[data-inline-math]' }]
+    return [{
+      tag: 'span[data-inline-math]',
+      getAttrs: (dom) => ({
+        formula: dom.getAttribute('data-formula') || dom.textContent || ''
+      })
+    }]
   },
 
   renderHTML({ node }) {
-    return ['span', { 'data-inline-math': '', class: 'katex-inline' }, node.attrs.formula]
+    return ['span', {
+      'data-inline-math': '',
+      'data-formula': node.attrs.formula,
+      class: 'katex-inline'
+    }]
   },
 
   addNodeView() {
@@ -28,16 +37,17 @@ const InlineMath = Node.create({
       const dom = document.createElement('span')
       dom.className = 'katex-inline'
       dom.setAttribute('data-inline-math', '')
-      
+      dom.setAttribute('data-formula', node.attrs.formula)
+
       try {
-        katex.render(node.attrs.formula, dom, { 
-          displayMode: false, 
-          throwOnError: false 
+        katex.render(node.attrs.formula, dom, {
+          displayMode: false,
+          throwOnError: false
         })
       } catch {
         dom.textContent = node.attrs.formula
       }
-      
+
       return { dom }
     }
   },

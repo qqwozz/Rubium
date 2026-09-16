@@ -5,6 +5,7 @@ import App from './App.vue'
 import router from './router/index.js'
 import { useTracking } from './composables/useTracking'
 import './style.css'
+import 'katex/dist/katex.min.css'
 
 const head = createHead()
 const app = createApp(App)
