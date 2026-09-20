@@ -2,10 +2,9 @@ from flask import Flask
 from flask_cors import CORS
 from waitress import serve
 
+from formula.service import formula_bp
 from init import PYTHON_PORT
 from routes.reco import recommendations_bp
-from formula.service import formula_bp
-
 
 app = Flask(__name__)
 CORS(
@@ -24,7 +23,7 @@ CORS(
 )
 
 app.register_blueprint(recommendations_bp)
-app.register_blueprint(formula_bp, url_prefix='/formula')
+app.register_blueprint(formula_bp, url_prefix="/formula")
 
 if __name__ == "__main__":
     print("\n--- Rubium Python Server (waitress) ---")

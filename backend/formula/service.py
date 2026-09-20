@@ -1,14 +1,15 @@
-import torch
 from pathlib import Path
-from flask import Blueprint, request, jsonify
+
+import torch
+from flask import Blueprint, jsonify, request
 
 from .tokenizer import MathTokenizer
 
-formula_bp = Blueprint('formula', __name__)
+formula_bp = Blueprint("formula", __name__)
 
 _dir = Path(__file__).parent
-_encoder = torch.jit.load(str(_dir / 'encoder.pt'))
-_decoder = torch.jit.load(str(_dir / 'decoder.pt'))
+_encoder = torch.jit.load(str(_dir / "encoder.pt"))
+_decoder = torch.jit.load(str(_dir / "decoder.pt"))
 _encoder.eval()
 _decoder.eval()
 _tok = MathTokenizer()
@@ -37,10 +38,10 @@ def _generate(text, max_len=100, repetition_penalty=1.3):
     return tgt[0].tolist()
 
 
-@formula_bp.route('/convert', methods=['POST'])
+@formula_bp.route("/convert", methods=["POST"])
 def convert():
-    text = request.json.get('text', '').strip()
+    text = request.json.get("text", "").strip()
     if not text:
-        return jsonify({'error': 'empty'}), 400
+        return jsonify({"error": "empty"}), 400
     ids = _generate(text)
-    return jsonify({'latex': _tok.decode(ids, skip_special=True), 'source': 'model'})
+    return jsonify({"latex": _tok.decode(ids, skip_special=True), "source": "model"})
