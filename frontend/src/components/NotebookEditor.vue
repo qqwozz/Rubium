@@ -103,9 +103,8 @@
       </div>
       <button class="btn-insert" @click="insertTable">Вставить</button>
     </div>
-    
     <div v-if="showFormulaInput" class="formula-input">
-      <input v-model="formula" placeholder="Например: \frac{a}{b}" @keydown.enter="insertFormula" />
+      <input v-model="formula" placeholder="LaTeX или текст: x^2 = 9" @keydown.enter="insertFormula" />
       <button class="btn-primary" @click="insertFormula">Вставить</button>
       <button class="btn-icon" @click="showFormulaInput = false"><i class="fas fa-times"></i></button>
     </div>
@@ -318,13 +317,40 @@ function insertTable() {
   showTableDialog.value = false
 }
 
-function insertFormula() {
-  if (formula.value) {
-    const cleanFormula = formula.value.replace(/\\\\/g, '\\')
-    editor.value.chain().focus().insertInlineMath(cleanFormula).run()
-    formula.value = ''
-    showFormulaInput.value = false
+async function insertFormula() {
+  if (!formula.value) return
+
+  const raw = formula.value.trim()
+  let latex = raw
+
+  // Проверка: LaTeX или pseudo?
+  if (!isLatex(raw)) {
+    try {
+      const res = await fetch('http://localhost:5080/formula/convert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: raw })
+      })
+      const data = await res.json()
+      latex = data.latex || raw
+    } catch (e) {
+      console.error('Formula service failed:', e)
+      // fallback: вставляем как есть
+    }
   }
+
+  const cleanFormula = latex.replace(/\\\\/g, '\\')
+  editor.value.chain().focus().insertInlineMath(cleanFormula).run()
+  formula.value = ''
+  showFormulaInput.value = false
+}
+
+function isLatex(s) {
+  // LaTeX, если есть \команды или { } $ и нет "русских описаний"
+  if (/\\[a-zA-Z]+/.test(s)) return true
+  if (/[{}^_]/.test(s) && !/[а-яА-Я]/.test(s)) return true
+  // Иначе — pseudo-текст
+  return false
 }
 
 function insertLink() {

@@ -15,13 +15,17 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+}
+
+code, pre {
+  font-family: 'IBM Plex Mono', monospace;
 }
 
 .task-content img.math,
@@ -36,7 +40,6 @@ body {
   display: none !important;
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -55,7 +58,6 @@ body {
   background: rgba(255,255,255,0.12);
 }
 
-/* Selection */
 ::selection {
   background: rgba(255,255,255,0.12);
   color: #ffffff;
